@@ -114,6 +114,12 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .field{margin-top:10px}
 .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .linkbtn{background:none;border:0;color:var(--brand);font-weight:700;padding:8px 0}
+.rlot{border:1px solid var(--line);border-radius:14px;padding:10px 12px 12px;margin-top:10px;background:#fbfdfd}
+.rlot-h{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px;color:var(--brand)}
+.rlot-h button{background:none;border:0;color:var(--muted);font-size:14px;padding:4px 0 4px 10px}
+.rlot .two{display:grid;grid-template-columns:1fr 112px;gap:8px}
+.rlot .field{margin-top:8px}
+.addlot{width:100%;margin-top:10px;border:1px dashed var(--brand-2);border-radius:12px;background:none;color:var(--brand);font-weight:700;padding:12px}
 
 /* dialog */
 .dialog{background:#fff;width:calc(100% - 32px);max-width:440px;border-radius:18px;padding:18px;margin:auto;align-self:center;max-height:88vh;overflow:auto}
@@ -239,7 +245,7 @@ const normCode = v => String(v == null ? '' : v).replace(/\D/g, '').replace(/^0+
 const normName = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().toUpperCase();
 
 /* ---------- ข้อมูล ---------- */
-let items = [], counters = [], causes = [];
+let items = [], counters = [], causes = [], shelves = [];
 let byCode = new Map();   // บาร์โค้ด → Set(ชื่อสินค้า)
 let byName = new Map();   // ชื่อสินค้า → [LOT]
 let queue = store.get('queue', []);
@@ -287,7 +293,7 @@ function setOnline(v) { online = v; $('#netDot').classList.toggle('off', !v); }
 async function load(silent) {
   try {
     const d = await api('init', null, 'GET');
-    items = d.items; counters = d.counters || []; causes = d.causes || [];
+    items = d.items; counters = d.counters || []; causes = d.causes || []; shelves = d.shelves || [];
     buildIndex(d.barcodes);
     setOnline(true);
     renderAll();
@@ -474,26 +480,80 @@ function openUnknown(raw) {
 
 function openReport(pre) {
   pre = pre || {};
+  const lotRow = n => `<div class="rlot" data-lot>
+      <div class="rlot-h"><span>LOT ที่ ${n}</span><button type="button" data-del>ลบ</button></div>
+      <div class="field"><label>LOT</label><input type="text" data-f="lot" autocapitalize="characters" autocomplete="off"></div>
+      <div class="two">
+        <div class="field"><label>วันหมดอายุ</label><input type="text" data-f="exp" placeholder="เช่น 2028-05-31" autocomplete="off"></div>
+        <div class="field"><label>จำนวน</label><input type="number" data-f="q" inputmode="numeric" min="0" step="1"></div>
+      </div></div>`;
   openDialog(`<h3>${pre.type === 'newlot' ? 'พบ LOT ที่ไม่มีในระบบ' : 'สินค้าไม่มีในรายการนับ'}</h3>
-    <p class="muted small">บันทึกไว้ในแท็บ “บันทึกการนับ” ให้เภสัชกรตรวจสอบกับ Arincare ภายหลัง</p>
+    <p class="muted small">บันทึกไว้ในแท็บ “บันทึกการนับ” ให้เภสัชกรตรวจสอบกับ Arincare ภายหลัง ถ้าบนชั้นมีหลาย LOT กด “+ เพิ่ม LOT” แล้วกรอกจำนวนแยกกัน</p>
     ${pre.type === 'newlot' ? `<div class="field"><label>สินค้า</label><input type="text" value="${esc(pre.name)}" disabled></div>` :
       `<div class="field"><label>บาร์โค้ด</label><input type="text" id="rpB" value="${esc(pre.barcode || '')}"></div>
        <div class="field"><label>ชื่อสินค้า (ถ้าทราบ)</label><input type="text" id="rpN"></div>`}
-    <div class="field"><label>LOT</label><input type="text" id="rpL"></div>
-    <div class="field"><label>วันหมดอายุ</label><input type="text" id="rpE" placeholder="เช่น 2028-05-31"></div>
-    <div class="field"><label>จำนวนที่นับได้</label><input type="number" id="rpQ" inputmode="numeric" min="0"></div>
+    <div id="rpLots">${lotRow(1)}</div>
+    <button type="button" class="addlot" id="rpAdd">+ เพิ่ม LOT</button>
+    ${shelfField('rpLoc', store.get('lastShelf', ''))}
     <div class="field"><label>หมายเหตุ</label><input type="text" id="rpNote"></div>
     <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button><button class="btn" id="rpSave">บันทึก</button></div>`, dlg => {
+    const box = dlg.querySelector('#rpLots');
+    const renumber = () => { const rows = box.querySelectorAll('[data-lot]');
+      rows.forEach((r, i) => { r.querySelector('.rlot-h span').textContent = 'LOT ที่ ' + (i + 1); r.querySelector('[data-del]').style.visibility = rows.length > 1 ? '' : 'hidden'; });
+      const btn = dlg.querySelector('#rpSave'); if (!btn.disabled) btn.textContent = rows.length > 1 ? `บันทึก ${rows.length} LOT` : 'บันทึก'; };
+    renumber();
+    bindShelf(dlg, 'rpLoc');
+    dlg.querySelector('#rpAdd').onclick = () => {
+      box.insertAdjacentHTML('beforeend', lotRow(box.children.length + 1)); renumber();
+      box.lastElementChild.querySelector('[data-f="lot"]').focus();
+    };
+    box.addEventListener('click', e => { const d = e.target.closest('[data-del]'); if (d && box.children.length > 1) { d.closest('[data-lot]').remove(); renumber(); } });
     dlg.querySelector('#rpSave').onclick = async () => {
       const v = id => { const el = dlg.querySelector(id); return el ? el.value.trim() : ''; };
+      const lots = [...box.querySelectorAll('[data-lot]')].map(r => {
+        const f = k => r.querySelector(`[data-f="${k}"]`).value.trim();
+        const o = { lot: f('lot'), exp: f('exp') }; if (f('q') !== '') o.q = Number(f('q')); return o;
+      }).filter((o, i) => i === 0 || o.lot || o.exp || o.q !== undefined);
+      if (lots.some(o => o.q !== undefined && (!Number.isInteger(o.q) || o.q < 0))) { toast('จำนวนต้องเป็นจำนวนเต็มตั้งแต่ 0', 'bad'); return; }
+      const seenLot = new Set();
+      if (lots.some(o => o.lot && (seenLot.has(o.lot.toUpperCase()) || !seenLot.add(o.lot.toUpperCase())))) { toast('มี LOT ซ้ำกัน ตรวจสอบอีกครั้ง', 'bad'); return; }
+      const loc = readShelf(dlg, 'rpLoc');
       const body = { type: pre.type || 'notfound', barcode: pre.type === 'newlot' ? (pre.barcode || '') : v('#rpB'),
-        name: pre.type === 'newlot' ? pre.name : v('#rpN'), lot: v('#rpL'), exp: v('#rpE'), note: v('#rpNote') };
-      if (v('#rpQ') !== '') body.q = Number(v('#rpQ'));
+        name: pre.type === 'newlot' ? pre.name : v('#rpN'), lots, loc, note: v('#rpNote') };
       const btn = dlg.querySelector('#rpSave'); if (btn.disabled) return; btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
-      try { await api('report', body); closeDialog(); toast('บันทึกแล้ว รอเภสัชกรเพิ่มเข้ารายการนับ (เมนู PharmaCount ในชีต)', 'ok', 3500); }
-      catch (e) { btn.disabled = false; btn.textContent = 'บันทึก'; toast('บันทึกไม่ได้: ' + e.message, 'bad', 4000); }
+      try {
+        const d = await api('report', body);
+        rememberShelf(loc); closeDialog();
+        toast(`บันทึกแล้ว${d.saved > 1 ? ' ' + d.saved + ' LOT' : ''} รอเภสัชกรเพิ่มเข้ารายการนับ (เมนู PharmaCount ในชีต)`, 'ok', 3500);
+      } catch (e) { btn.disabled = false; renumber(); toast('บันทึกไม่ได้: ' + e.message, 'bad', 4000); }
     };
   });
+}
+
+/* ---------- เลือกชั้นวาง (dropdown) ---------- */
+const OTHER_SHELF = '__other__';
+function shelfField(id, cur) {
+  cur = cur || '';
+  const list = shelves.slice();
+  if (cur && !list.some(x => normName(x) === normName(cur))) list.unshift(cur);
+  return `<div class="field"><label>ชั้นที่วางยา (ไม่บังคับ)</label>
+    <select id="${id}"><option value="">— ไม่ระบุ —</option>${list.map(x => `<option${normName(x) === normName(cur) ? ' selected' : ''}>${esc(x)}</option>`).join('')}
+    <option value="${OTHER_SHELF}">+ ชั้นอื่น (พิมพ์เอง)</option></select>
+    <input type="text" id="${id}Txt" placeholder="พิมพ์ชื่อชั้น" style="display:none;margin-top:8px" autocomplete="off"></div>`;
+}
+function bindShelf(root, id) {
+  const sel = root.querySelector('#' + id), txt = root.querySelector('#' + id + 'Txt');
+  if (!sel) return;
+  sel.addEventListener('change', () => { const o = sel.value === OTHER_SHELF; txt.style.display = o ? '' : 'none'; if (o) txt.focus(); });
+}
+function readShelf(root, id) {
+  const sel = root.querySelector('#' + id); if (!sel) return '';
+  return sel.value === OTHER_SHELF ? root.querySelector('#' + id + 'Txt').value.trim() : sel.value.trim();
+}
+function rememberShelf(loc) {
+  if (!loc) return;
+  store.set('lastShelf', loc);
+  if (!shelves.some(x => normName(x) === normName(loc))) shelves.push(loc);
 }
 
 /* ---------- แผ่นนับ ---------- */
@@ -534,7 +594,7 @@ function openSheet(lots, mode, raw) {
           <button type="button" class="linkbtn small" data-zero>ไม่พบ LOT นี้บนชั้น (= 0)</button>
         </div>`).join('')}
       ${mode === 'count' ? `<button type="button" class="linkbtn" id="newLotBtn">+ พบ LOT ที่ไม่มีในระบบ</button>
-      <div class="field"><label>ตำแหน่ง/ชั้นวาง (ไม่บังคับ)</label><input type="text" id="locInput" value="${esc(p.loc || '')}" placeholder="เช่น A-3-05"></div>` : ''}
+      ${shelfField('locInput', p.loc || store.get('lastShelf', ''))}` : ''}
     </div>
     <div class="sheet-f">
       <button class="btn ghost" id="sheetCancel">ยกเลิก</button>
@@ -553,6 +613,7 @@ function openSheet(lots, mode, raw) {
   ov.querySelectorAll('[data-q]').forEach(inp => inp.addEventListener('input', updateSave));
   $('#sheetCancel').onclick = closeSheet;
   $('#sheetSave').onclick = saveSheet;
+  bindShelf(ov, 'locInput');
   const nl = $('#newLotBtn'); if (nl) nl.onclick = () => { const name = p.n; closeSheet(); openReport({ type: 'newlot', name, barcode: raw || '' }); };
   updateSave();
   const first = ov.querySelector('[data-q]'); if (first && lots.length === 1 && !isTouch()) first.focus();
@@ -581,12 +642,12 @@ async function saveSheet() {
     const over = entries.filter(e => e.it.c).length;
     if (over && !confirm(`มี ${over} LOT ที่นับไปแล้ว ต้องการบันทึกทับเป็นรอบใหม่ไหม`)) return;
   }
-  const locEl = $('#locInput'), loc = locEl ? locEl.value.trim() : '';
+  const loc = readShelf(document, 'locInput');
   const payload = { entries: entries.map(e => ({ r: e.it.r, n: e.it.n, l: e.it.l, q: e.q, loc: loc && loc !== e.it.loc ? loc : undefined })) };
   const btn = $('#sheetSave'); btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
   try {
     const d = await api(mode, payload);
-    closeSheet();
+    closeSheet(); rememberShelf(loc);
     applyResults(d.results, entries, loc, mode);
   } catch (e) {
     if (e.server) { btn.disabled = false; updateSave(); toast(e.message, 'bad', 4500); return; }
