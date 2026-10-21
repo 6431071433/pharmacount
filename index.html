@@ -176,7 +176,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
         </button>
       </div>
     </div>
-    <div class="scan-status muted" id="scanStatus">เล็งบาร์โค้ดให้อยู่ในกรอบ ถือนิ่งๆ ห่างประมาณ 10–15 ซม.</div>
+    <div class="scan-status muted" id="scanStatus">เล็งบาร์โค้ดให้อยู่ในกรอบ ห่างประมาณ 10–15 ซม.</div>
     <div class="kbd-hint">ป้ายราคาบนชั้น: กดปุ่ม 1× ให้เป็น 2× หรือ 3× ให้บาร์โค้ดกว้างเกือบเต็มกรอบ และเอียงมือถือเล็กน้อยหลบแสงสะท้อนจากพลาสติก</div>
 
     <form class="manual" id="manualForm" autocomplete="off">
@@ -651,14 +651,14 @@ setInterval(flushQueue, 30000);
 
 /* ---------- กล้องและตัวอ่านบาร์โค้ด ---------- */
 const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'];
-let detector = null, stream = null, track = null, scanning = false, paused = false, last = { code: '', t: 0 }, cool = { code: '', until: 0 };
+let detector = null, stream = null, track = null, scanning = false, paused = false, cool = { code: '', until: 0 };
 
 async function getDetector() {
   if (detector) return detector;
   if ('BarcodeDetector' in window) {
     try {
       const sup = await window.BarcodeDetector.getSupportedFormats();
-      if (sup.includes('ean_13')) { detector = new window.BarcodeDetector({ formats: FORMATS.filter(f => sup.includes(f)) }); nativeDet = true; return detector; }
+      if (sup.includes('ean_13')) { detector = new window.BarcodeDetector({ formats: FORMATS.filter(f => sup.includes(f)) }); return detector; }
     } catch (e) {}
   }
   detector = new BarcodeDetectionAPI.BarcodeDetector({ formats: FORMATS });
@@ -709,7 +709,7 @@ function stopCamera() {
   msg.innerHTML = '<div><div>แตะเพื่อเปิดกล้องสแกนบาร์โค้ด</div><button class="btn" id="camStart2">เปิดกล้อง</button></div>';
   $('#camStart2').onclick = startCamera;
 }
-function resumeScan() { paused = false; last = { code: '', t: 0 }; }
+function resumeScan() { paused = false; }
 
 // แปลงตำแหน่งกรอบเล็งบนจอ → พิกัดในภาพกล้อง (วิดีโอแสดงแบบเต็มกรอบ จึงถูกตัดขอบ)
 function mapRect(v, W, H, r) {
@@ -725,13 +725,8 @@ function guideRect(v, W, H) {
 }
 function visibleRect(v, W, H) { return mapRect(v, W, H, v.getBoundingClientRect()); }
 // ตัวกรองทำให้เส้นบาร์โค้ดคมขึ้นในแนวนอน (ทดสอบแล้วอ่านภาพเบลอที่ตัวอ่านปกติอ่านไม่ได้)
-const PASSES = [
-  { k: null },                                 // ภาพปกติ กลางกรอบ
-  { k: [-1, -2, 7, -2, -1] },                  // คมขึ้น
-  { k: [-2, -3, 11, -3, -2] },                 // คมมาก สำหรับภาพเบลอมาก
-  { k: [-1, -1, 5, -1, -1], full: true }       // คมเล็กน้อย ทั้งภาพ เผื่อบาร์โค้ดไม่อยู่กลางกรอบ
-];
-let frameNo = 0, nativeDet = false;
+const KERNELS = [[-1, -2, 7, -2, -1], [-2, -3, 11, -3, -2], [-1, -1, 5, -1, -1]];   // คมขึ้น / คมมาก / คมเล็กน้อย
+let frameNo = 0;
 function sharpenH(img, k) {
   const { width: w, height: h, data: d } = img, g = new Float32Array(w * h);
   for (let i = 0, j = 0; i < g.length; i++, j += 4) g[i] = d[j] * 0.299 + d[j + 1] * 0.587 + d[j + 2] * 0.114;
@@ -752,33 +747,47 @@ async function loop() {
   if (!scanning) return;
   const v = $('#video');
   if (!paused && !sheetOpen() && v.readyState >= 2 && v.videoWidth) {
-    // อ่านเฉพาะกลางภาพตามกรอบเล็ง: เร็วขึ้นและไม่หยิบบาร์โค้ดข้างเคียง
     const W = v.videoWidth, H = v.videoHeight;
-    // สลับวิธีอ่านทีละเฟรม: ภาพปกติ / ทำให้เส้นคมขึ้น 3 แบบ (ทดสอบแล้วช่วยบาร์โค้ดเบลอได้มาก)
-    const pass = (nativeDet && frameNo % 2 === 0) ? PASSES[0] : PASSES[frameNo % PASSES.length]; frameNo++;
-    const R = pass.full ? visibleRect(v, W, H) : guideRect(v, W, H);
-    const sx = R.x, sy = R.y, sw = R.w, sh = R.h;
-    const scale = pass.k ? Math.min(1, 2400 / sw) : Math.min(1, 1600 / sw);
-    canvas.width = Math.round(sw * scale); canvas.height = Math.round(sh * scale);
-    ctx2d.drawImage(v, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-    let src = canvas;
-    if (pass.k) src = sharpenH(ctx2d.getImageData(0, 0, canvas.width, canvas.height), pass.k);
+    // ทุก 4 เฟรมอ่านทั้งภาพที่เห็น เผื่อบาร์โค้ดไม่อยู่กลางกรอบ ที่เหลืออ่านเฉพาะกรอบเล็ง
+    const full = frameNo++ % 4 === 3;
+    const R = full ? visibleRect(v, W, H) : guideRect(v, W, H);
+    const scale = Math.min(1, 1800 / R.w);
+    canvas.width = Math.round(R.w * scale); canvas.height = Math.round(R.h * scale);
+    ctx2d.drawImage(v, R.x, R.y, R.w, R.h, 0, 0, canvas.width, canvas.height);
     try {
-      const found = await detector.detect(src);
+      let found = await detector.detect(canvas);
+      // มือสั่นทำให้ภาพเบลอแบบลาก: วัดความคมของเฟรมนี้ ถ้าคมพอ (เทียบกับเฟรมที่คมที่สุดช่วงนี้) ลองทำภาพให้คมแล้วอ่านซ้ำ
+      if (!(found && found.length)) {
+        const sharp = frameSharpness(canvas);
+        peak = Math.max(sharp, peak * 0.93);
+        if (sharp >= peak * 0.6) {
+          const k = KERNELS[sharpNo++ % KERNELS.length];
+          found = await detector.detect(sharpenH(ctx2d.getImageData(0, 0, canvas.width, canvas.height), k));
+        }
+      }
       if (found && found.length) {
-        const code = found[0].rawValue, now = Date.now();
-        // ต้องอ่านได้ค่าเดียวกัน 2 ครั้งติดกัน เพื่อกันอ่านผิดจากภาพเบลอ
-        if (normCode(code) === normCode(cool.code) && now < cool.until) { /* เพิ่งปิดแผ่นของสินค้านี้ */ }
-        else if (normCode(code) === normCode(last.code) && now - last.t < 2500) {
+        const code = found[0].rawValue;
+        // บาร์โค้ดสินค้า (EAN/UPC/Code 128) มีเลขตรวจสอบในตัว อ่านได้ครั้งเดียวก็เชื่อได้ ไม่ต้องรออ่านซ้ำ
+        // และหน้าถัดไปแสดงชื่อสินค้าให้ตรวจด้วยตาอีกชั้น
+        if (!(normCode(code) === normCode(cool.code) && Date.now() < cool.until)) {
           paused = true; handleCode(code, 'camera');
           // ถ้าไม่ได้เปิดหน้าต่างใด (เช่น ไม่มี LOT รอนับซ้ำ) ให้สแกนต่อได้
           setTimeout(() => { if (!sheetOpen()) { cool = { code, until: Date.now() + 2500 }; resumeScan(); } }, 1200);
         }
-        else { last = { code, t: now }; $('#scanStatus').textContent = 'กำลังอ่าน… ถือนิ่งๆ'; }
       }
     } catch (e) {}
   }
   nextFrame();
+}
+// ค่าความคมแนวนอนแบบเร็ว (ใช้ภาพย่อ) ภาพที่เบลอจากมือสั่นจะได้ค่าต่ำ
+const mini = document.createElement('canvas'), miniCtx = mini.getContext('2d', { willReadFrequently: true });
+let peak = 0, sharpNo = 0;
+function frameSharpness(src) {
+  const w = 240, h = Math.max(8, Math.round(src.height * 240 / src.width));
+  mini.width = w; mini.height = h; miniCtx.drawImage(src, 0, 0, w, h);
+  const d = miniCtx.getImageData(0, 0, w, h).data; let sum = 0;
+  for (let y = 0; y < h; y += 2) for (let x = 1; x < w; x++) { const i = (y * w + x) * 4; sum += Math.abs(d[i + 1] - d[i - 3]); }
+  return sum / (w * h / 2);
 }
 // อ่านทันทีที่กล้องส่งเฟรมใหม่ (เร็วกว่ารอเวลาคงที่) ถ้าเบราว์เซอร์ไม่รองรับใช้ 60 มิลลิวินาที
 function nextFrame() {
@@ -807,7 +816,7 @@ $('#zoomBtn').onclick = () => { const cur = Number($('#zoom').value) || 1; setZo
 document.addEventListener('visibilitychange', () => { if (document.hidden && stream) stopCamera(); });
 
 function flash(kind) { const g = $('#guide'); g.classList.add(kind); setTimeout(() => g.classList.remove(kind), 450);
-  $('#scanStatus').textContent = 'เล็งบาร์โค้ดให้อยู่ในกรอบ ถือนิ่งๆ ห่างประมาณ 10–15 ซม.'; }
+  $('#scanStatus').textContent = 'เล็งบาร์โค้ดให้อยู่ในกรอบ ห่างประมาณ 10–15 ซม.'; }
 
 /* ---------- ช่องพิมพ์และเครื่องสแกนบลูทูธ ---------- */
 $('#manualForm').addEventListener('submit', e => {
