@@ -228,7 +228,10 @@ const qs = new URLSearchParams(location.search);
 if (qs.get('api')) store.set('api', qs.get('api'));
 if (qs.get('pin')) store.set('pin', qs.get('pin'));
 if (qs.get('api') || qs.get('pin')) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
-const cfg = { api: store.get('api', ''), pin: store.get('pin', ''), counter: store.get('counter', '') };
+// ลิงก์ระบบของร้าน (Apps Script) ฝังไว้ในแอป: ไม่ใช่ความลับ เพราะต้องมีรหัสร้านถึงจะอ่าน/เขียนข้อมูลได้
+const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbw4_JeW_ZdVEFxO4yv0OvTwW61uSk6CtYRPSJBepHLJb31kB-omU2rhOQRDcAIM-FvsNw/exec';
+const validApi = u => /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(String(u || '').trim());
+const cfg = { api: validApi(store.get('api', '')) ? store.get('api', '') : DEFAULT_API, pin: store.get('pin', ''), counter: store.get('counter', '') };
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -273,7 +276,8 @@ async function api(action, payload, method) {
     res = await fetch(cfg.api, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(Object.assign({ action, pin: cfg.pin, counter: cfg.counter, device: deviceName() }, payload || {})) });
   }
-  const data = await res.json();
+  let data;
+  try { data = await res.json(); } catch (e) { throw new Error('ระบบตอบกลับไม่ถูกต้อง ตรวจสอบลิงก์ระบบ'); }
   if (!data.ok) { const e = new Error(data.error || 'เกิดข้อผิดพลาด'); e.server = true; e.code = data.code; throw e; }
   return data;
 }
@@ -880,18 +884,24 @@ function askCounter(after) {
 }
 $('#counterBtn').onclick = () => askCounter();
 
-function openSetup(err) {
-  openDialog(`<h3>ตั้งค่าการเชื่อมต่อ</h3>
-    <p class="small muted">ทำครั้งเดียวต่อเครื่อง ลิงก์ได้จากขั้นตอน Deploy ใน Apps Script</p>
+function openSetup(err, advanced) {
+  const custom = cfg.api && cfg.api !== DEFAULT_API;
+  openDialog(`<h3>ใส่รหัสร้าน</h3>
+    <p class="small muted">ทำครั้งเดียวต่อเครื่อง (ถ้าเปิดจากไอคอนบนหน้าจอโฮม iPhone จะถามอีก 1 ครั้ง)</p>
     ${err ? `<p class="small" style="color:var(--bad)">${esc(err)}</p>` : ''}
-    <div class="field"><label>ลิงก์ระบบ (Web app URL)</label><input type="url" id="sApi" value="${esc(cfg.api)}" placeholder="https://script.google.com/macros/s/…/exec"></div>
-    <div class="field"><label>รหัสร้าน</label><input type="password" id="sPin" inputmode="numeric" value="${esc(cfg.pin)}"></div>
+    <div class="field"><label>รหัสร้าน</label><input type="password" id="sPin" inputmode="numeric" autocomplete="off" value="${esc(cfg.pin)}"></div>
+    <div class="field ${advanced || custom ? '' : 'hidden'}" id="apiBox"><label>ลิงก์ระบบ (ลงท้ายด้วย /exec)</label><input type="url" id="sApi" value="${esc(cfg.api)}"></div>
+    ${advanced || custom ? '' : '<button class="linkbtn small" id="showApi">ตั้งค่าขั้นสูง</button>'}
     <div class="acts"><button class="btn" id="sSave">เชื่อมต่อ</button></div>`, d => {
+    const sa = d.querySelector('#showApi'); if (sa) sa.onclick = () => { d.querySelector('#apiBox').classList.remove('hidden'); sa.remove(); };
+    setTimeout(() => d.querySelector('#sPin').focus(), 60);
     d.querySelector('#sSave').onclick = async () => {
-      cfg.api = d.querySelector('#sApi').value.trim(); cfg.pin = d.querySelector('#sPin').value.trim();
+      const apiIn = d.querySelector('#sApi').value.trim() || DEFAULT_API;
+      if (!validApi(apiIn)) { openSetup('ลิงก์ระบบต้องขึ้นต้นด้วย https://script.google.com/macros/s/ และลงท้ายด้วย /exec (ไม่ใช่ลิงก์ github.io ของหน้าแอป)', true); return; }
+      cfg.api = apiIn; cfg.pin = d.querySelector('#sPin').value.trim();
       store.set('api', cfg.api); store.set('pin', cfg.pin);
       try { await api('ping', null, 'GET'); closeDialog(); toast('เชื่อมต่อสำเร็จ', 'ok'); await load(); if (!cfg.counter) askCounter(); }
-      catch (e) { openSetup(e.message); }
+      catch (e) { openSetup(e.code === 'pin' ? 'รหัสร้านไม่ถูกต้อง' : e.server ? e.message : 'เชื่อมต่อไม่ได้ ตรวจสอบอินเทอร์เน็ต แล้วลองอีกครั้ง'); }
     };
   });
 }
@@ -912,7 +922,7 @@ $('#menuBtn').onclick = () => openDialog(`<h3>เมนู</h3>
 function fixNavTop() { document.documentElement.style.setProperty('--hh', $('#hdr').offsetHeight + 'px'); }
 addEventListener('resize', fixNavTop); fixNavTop();
 renderAll();
-if (!cfg.api || !cfg.pin) openSetup(); else load(true).then(() => { if (!cfg.counter) askCounter(); });
+if (!cfg.pin) openSetup(); else load(true).then(() => { if (!cfg.counter) askCounter(); });
 let hiddenAt = 0;
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) hiddenAt = Date.now();
