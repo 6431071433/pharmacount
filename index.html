@@ -168,6 +168,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
         <button class="round" id="torchBtn" aria-label="ไฟฉาย" title="ไฟฉาย">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2h8l-2 6h-4z"/><path d="M10 8v12a2 2 0 0 0 4 0V8"/></svg>
         </button>
+        <button class="round hidden" id="zoomBtn" aria-label="ซูมด่วน" title="ซูมด่วน" style="font-weight:700;font-size:15px">1×</button>
         <input type="range" class="zoom hidden" id="zoom" aria-label="ซูม">
         <span style="flex:1" id="zoomSpacer"></span>
         <button class="round" id="camStop" aria-label="ปิดกล้อง" title="ปิดกล้อง">
@@ -176,6 +177,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
       </div>
     </div>
     <div class="scan-status muted" id="scanStatus">เล็งบาร์โค้ดให้อยู่ในกรอบ ถือนิ่งๆ ห่างประมาณ 10–15 ซม.</div>
+    <div class="kbd-hint">ป้ายราคาบนชั้น: กดปุ่ม 1× ให้เป็น 2× หรือ 3× ให้บาร์โค้ดกว้างเกือบเต็มกรอบ และเอียงมือถือเล็กน้อยหลบแสงสะท้อนจากพลาสติก</div>
 
     <form class="manual" id="manualForm" autocomplete="off">
       <input type="search" id="manualInput" inputmode="numeric" placeholder="พิมพ์บาร์โค้ด หรือใช้เครื่องสแกน">
@@ -224,6 +226,8 @@ const store = {
 };
 const qs = new URLSearchParams(location.search);
 if (qs.get('api')) store.set('api', qs.get('api'));
+if (qs.get('pin')) store.set('pin', qs.get('pin'));
+if (qs.get('api') || qs.get('pin')) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
 const cfg = { api: store.get('api', ''), pin: store.get('pin', ''), counter: store.get('counter', '') };
 
 const $ = s => document.querySelector(s);
@@ -670,7 +674,7 @@ async function startCamera() {
   try {
     await getDetector();
     stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: {
-      facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } } });
+      facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 30 } } });
     track = stream.getVideoTracks()[0];
     try { await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) {}
     const v = $('#video'); v.srcObject = stream; await v.play();
@@ -690,8 +694,10 @@ function setupCaps() {
   if (caps.zoom && caps.zoom.max > caps.zoom.min) {
     z.min = caps.zoom.min; z.max = Math.min(caps.zoom.max, 5); z.step = caps.zoom.step || 0.1;
     const s = track.getSettings ? track.getSettings() : {}; z.value = s.zoom || caps.zoom.min;
-    z.classList.remove('hidden'); $('#zoomSpacer').classList.add('hidden');
-  } else { z.classList.add('hidden'); $('#zoomSpacer').classList.remove('hidden'); }
+    z.classList.remove('hidden'); $('#zoomSpacer').classList.add('hidden'); $('#zoomBtn').classList.remove('hidden');
+    const saved = Number(store.get('zoom', 0));
+    if (saved) setZoom(saved);
+  } else { z.classList.add('hidden'); $('#zoomSpacer').classList.remove('hidden'); $('#zoomBtn').classList.add('hidden'); }
 }
 function stopCamera() {
   scanning = false;
@@ -705,6 +711,19 @@ function stopCamera() {
 }
 function resumeScan() { paused = false; last = { code: '', t: 0 }; }
 
+// แปลงตำแหน่งกรอบเล็งบนจอ → พิกัดในภาพกล้อง (วิดีโอแสดงแบบเต็มกรอบ จึงถูกตัดขอบ)
+function mapRect(v, W, H, r) {
+  const vr = v.getBoundingClientRect(), s = Math.max(vr.width / W, vr.height / H);
+  const offX = (vr.width - W * s) / 2, offY = (vr.height - H * s) / 2;
+  let x = (r.left - vr.left - offX) / s, y = (r.top - vr.top - offY) / s, w = r.width / s, h = r.height / s;
+  x = Math.max(0, x); y = Math.max(0, y); w = Math.min(W - x, w); h = Math.min(H - y, h);
+  return { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
+}
+function guideRect(v, W, H) {
+  const g = $('#guide').getBoundingClientRect(), padX = g.width * 0.04, padY = g.height * 0.15;
+  return mapRect(v, W, H, { left: g.left - padX, top: g.top - padY, width: g.width + 2 * padX, height: g.height + 2 * padY });
+}
+function visibleRect(v, W, H) { return mapRect(v, W, H, v.getBoundingClientRect()); }
 // ตัวกรองทำให้เส้นบาร์โค้ดคมขึ้นในแนวนอน (ทดสอบแล้วอ่านภาพเบลอที่ตัวอ่านปกติอ่านไม่ได้)
 const PASSES = [
   { k: null },                                 // ภาพปกติ กลางกรอบ
@@ -737,9 +756,9 @@ async function loop() {
     const W = v.videoWidth, H = v.videoHeight;
     // สลับวิธีอ่านทีละเฟรม: ภาพปกติ / ทำให้เส้นคมขึ้น 3 แบบ (ทดสอบแล้วช่วยบาร์โค้ดเบลอได้มาก)
     const pass = (nativeDet && frameNo % 2 === 0) ? PASSES[0] : PASSES[frameNo % PASSES.length]; frameNo++;
-    const sx = pass.full ? 0 : Math.round(W * 0.06), sw = pass.full ? W : Math.round(W * 0.88);
-    const sy = pass.full ? 0 : Math.round(H * 0.24), sh = pass.full ? H : Math.round(H * 0.52);
-    const scale = pass.k ? 1 : Math.min(1, 960 / sw);
+    const R = pass.full ? visibleRect(v, W, H) : guideRect(v, W, H);
+    const sx = R.x, sy = R.y, sw = R.w, sh = R.h;
+    const scale = pass.k ? Math.min(1, 2400 / sw) : Math.min(1, 1600 / sw);
     canvas.width = Math.round(sw * scale); canvas.height = Math.round(sh * scale);
     ctx2d.drawImage(v, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
     let src = canvas;
@@ -773,7 +792,18 @@ $('#torchBtn').onclick = async () => {
   if (!track) return; const b = $('#torchBtn'), on = !b.classList.contains('on');
   try { await track.applyConstraints({ advanced: [{ torch: on }] }); b.classList.toggle('on', on); } catch (e) { toast('เปิดไฟฉายไม่ได้ในเครื่องนี้', 'warn'); }
 };
-$('#zoom').addEventListener('input', async e => { try { await track.applyConstraints({ advanced: [{ zoom: Number(e.target.value) }] }); } catch (err) {} });
+async function setZoom(val) {
+  if (!track) return;
+  const caps = track.getCapabilities ? track.getCapabilities() : {};
+  if (!caps.zoom) return;
+  const z = Math.max(caps.zoom.min, Math.min(Number(val), caps.zoom.max));
+  try { await track.applyConstraints({ advanced: [{ zoom: z }] }); } catch (err) { return; }
+  $('#zoom').value = z; store.set('zoom', z);
+  const b = $('#zoomBtn'); b.textContent = (Math.round(z * 10) / 10) + '×'; b.classList.toggle('on', z >= 1.5);
+}
+$('#zoom').addEventListener('input', e => setZoom(e.target.value));
+// แตะสลับ 1× → 2× → 3× (ป้ายราคาบนชั้นใช้ 2–3×)
+$('#zoomBtn').onclick = () => { const cur = Number($('#zoom').value) || 1; setZoom(cur < 1.5 ? 2 : cur < 2.5 ? 3 : 1); };
 document.addEventListener('visibilitychange', () => { if (document.hidden && stream) stopCamera(); });
 
 function flash(kind) { const g = $('#guide'); g.classList.add(kind); setTimeout(() => g.classList.remove(kind), 450);
