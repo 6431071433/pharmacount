@@ -296,11 +296,24 @@ async function load(silent) {
   } catch (e) {
     if (e.code === 'pin') { openSetup('รหัสร้านไม่ถูกต้อง'); return; }
     setOnline(false);
-    $('#progTxt').textContent = 'เชื่อมต่อไม่ได้';
+    $('#progTxt').textContent = 'เชื่อมต่อไม่ได้ · แตะเพื่อแก้';
+    loadError = e.message;
     if (!silent) toast('โหลดข้อมูลไม่ได้: ' + e.message, 'bad', 4000);
   }
 }
 
+let loadError = '';
+// แตะแถบสถานะตอนเชื่อมต่อไม่ได้: ลองใหม่ หรือแก้การตั้งค่า
+document.querySelector('.progress').addEventListener('click', () => {
+  if (online && items.length) return;
+  openDialog(`<h3>เชื่อมต่อระบบไม่ได้</h3>
+    <p class="small muted">${esc(loadError || 'ตรวจสอบอินเทอร์เน็ตของมือถือ')}</p>
+    <div class="choice"><button class="btn" id="eRetry">ลองใหม่</button><button class="btn ghost" id="eSetup">แก้รหัสร้าน / ลิงก์ระบบ</button></div>
+    <div class="acts"><button class="btn ghost" data-close>ปิด</button></div>`, d => {
+    d.querySelector('#eRetry').onclick = () => { closeDialog(); load(); };
+    d.querySelector('#eSetup').onclick = () => openSetup('', true);
+  });
+});
 /* ---------- แสดงผลรวม ---------- */
 function renderAll() {
   const total = items.length, done = items.filter(i => i.c).length;
@@ -476,8 +489,9 @@ function openReport(pre) {
       const body = { type: pre.type || 'notfound', barcode: pre.type === 'newlot' ? (pre.barcode || '') : v('#rpB'),
         name: pre.type === 'newlot' ? pre.name : v('#rpN'), lot: v('#rpL'), exp: v('#rpE'), note: v('#rpNote') };
       if (v('#rpQ') !== '') body.q = Number(v('#rpQ'));
-      try { await api('report', body); closeDialog(); toast('บันทึกแล้ว ส่งให้เภสัชกรตรวจสอบ', 'ok'); }
-      catch (e) { toast('บันทึกไม่ได้: ' + e.message, 'bad', 4000); }
+      const btn = dlg.querySelector('#rpSave'); if (btn.disabled) return; btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
+      try { await api('report', body); closeDialog(); toast('บันทึกแล้ว รอเภสัชกรเพิ่มเข้ารายการนับ (เมนู PharmaCount ในชีต)', 'ok', 3500); }
+      catch (e) { btn.disabled = false; btn.textContent = 'บันทึก'; toast('บันทึกไม่ได้: ' + e.message, 'bad', 4000); }
     };
   });
 }
