@@ -472,7 +472,14 @@ function openUnknown(raw) {
         addCode(raw, name); closeDialog(); renderAll();
         toast('จำบาร์โค้ดแล้ว ✓', 'ok', 1500);
         openSheet(byName.get(normName(name)) || [], tab === 'recount' ? 'recount' : 'count', raw);
-      } catch (err) { b.disabled = false; toast('บันทึกไม่ได้: ' + err.message, 'bad', 4000); }
+      } catch (err) {
+        if (err.server) { b.disabled = false; toast('บันทึกไม่ได้: ' + err.message, 'bad', 4000); return; }
+        queue.push({ action: 'link', payload: { barcode: raw, name }, counter: cfg.counter, at: Date.now() });
+        store.set('queue', queue); setOnline(false);
+        addCode(raw, name); closeDialog(); renderAll();
+        toast('ไม่มีสัญญาณ จำบาร์โค้ดไว้ในเครื่องก่อน จะส่งเข้าชีตเมื่อออนไลน์', 'warn', 3500);
+        openSheet(byName.get(normName(name)) || [], tab === 'recount' ? 'recount' : 'count', raw);
+      }
     });
     dlg.querySelector('#reportBtn').onclick = () => { closeDialog(); openReport({ barcode: raw }); };
   });
@@ -525,7 +532,12 @@ function openReport(pre) {
         const d = await api('report', body);
         rememberShelf(loc); closeDialog();
         toast(`บันทึกแล้ว${d.saved > 1 ? ' ' + d.saved + ' LOT' : ''} รอเภสัชกรเพิ่มเข้ารายการนับ (เมนู PharmaCount ในชีต)`, 'ok', 3500);
-      } catch (e) { btn.disabled = false; renumber(); toast('บันทึกไม่ได้: ' + e.message, 'bad', 4000); }
+      } catch (e) {
+        if (e.server) { btn.disabled = false; renumber(); toast('บันทึกไม่ได้: ' + e.message, 'bad', 4000); return; }
+        queue.push({ action: 'report', payload: body, counter: cfg.counter, at: Date.now() });
+        store.set('queue', queue); rememberShelf(loc); setOnline(false); closeDialog(); renderAll();
+        toast('ไม่มีสัญญาณ เก็บรายการไว้ในเครื่องแล้ว จะส่งเองเมื่อออนไลน์', 'warn', 4000);
+      }
     };
   });
 }
@@ -643,7 +655,7 @@ async function saveSheet() {
     if (over && !confirm(`มี ${over} LOT ที่นับไปแล้ว ต้องการบันทึกทับเป็นรอบใหม่ไหม`)) return;
   }
   const loc = readShelf(document, 'locInput');
-  const payload = { entries: entries.map(e => ({ r: e.it.r, n: e.it.n, l: e.it.l, q: e.q, loc: loc && loc !== e.it.loc ? loc : undefined })) };
+  const payload = { entries: entries.map(e => ({ r: e.it.r, n: e.it.n, l: e.it.l, q: e.q, loc: loc && loc !== e.it.loc ? loc : undefined, seen: mode === 'count' ? !!e.it.c : undefined })) };
   const btn = $('#sheetSave'); btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
   try {
     const d = await api(mode, payload);
@@ -665,7 +677,7 @@ function applyResults(results, entries, loc, mode) {
   const askCause = [];
   results.forEach(res => {
     const it = items.find(i => i.r === res.r) || (entries.find(e => e.it.r === res.r) || {}).it;
-    if (!res.ok) { bad++; lines.push(`✕ ${it ? 'LOT ' + it.l : 'แถว ' + res.r}: ${res.error}`); return; }
+    if (!res.ok) { bad++; if (res.taken && it) { it.c = true; it.by = res.by || ''; } lines.push(`✕ ${it ? 'LOT ' + it.l : 'แถว ' + res.r}: ${res.error}`); return; }
     if (!it) return;
     it.st = res.st;
     if (mode === 'count') { it.c = true; it.by = cfg.counter; it.cz = ''; it.df = null; }
@@ -716,9 +728,21 @@ async function flushQueue() {
       const job = queue[0];
       const saved = cfg.counter; cfg.counter = job.counter;
       let d;
-      try { d = await api(job.action, job.payload); } finally { cfg.counter = saved; }
+      try { d = await api(job.action, job.payload); }
+      catch (e) {
+        if (!e.server) throw e;
+        // ระบบปฏิเสธรายการนี้ (เช่น ข้อมูลในชีตเปลี่ยน) ไม่ต้องส่งซ้ำ แจ้งผู้ใช้แล้วข้ามไป
+        queue.shift(); store.set('queue', queue);
+        toast('รายการที่ค้างส่งไม่สำเร็จ 1 รายการ: ' + e.message, 'bad', 5000);
+        continue;
+      } finally { cfg.counter = saved; }
       queue.shift(); store.set('queue', queue); sent.push(d);
-      d.results.forEach(res => { const it = items.find(i => i.r === res.r); if (it && res.ok) { it.st = res.st; if (/^ไม่ตรง/.test(res.st)) it.df = res.diff; } });
+      (d.results || []).forEach(res => {
+        const it = items.find(i => i.r === res.r);
+        if (!it) return;
+        if (res.ok) { it.st = res.st; if (/^ไม่ตรง/.test(res.st)) it.df = res.diff; }
+        else if (res.taken) { it.c = true; it.by = res.by || ''; toast(`LOT ${it.l}: ${res.error}`, 'warn', 5000); }
+      });
     }
     setOnline(true);
     if (sent.length) toast(`ส่งข้อมูลที่ค้างไว้ ${sent.length} ครั้งแล้ว`, 'ok');
@@ -727,6 +751,11 @@ async function flushQueue() {
 }
 addEventListener('online', flushQueue);
 setInterval(flushQueue, 30000);
+// โหลดข้อมูลใหม่เองทุก 5 นาที เมื่อไม่ได้เปิดแผ่นนับหรือกำลังพิมพ์ เพื่อให้เห็นผลนับของเครื่องอื่น
+setInterval(() => {
+  const a = document.activeElement, typing = a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);
+  if (online && !document.hidden && !sheetOpen() && !typing && !queue.length && cfg.pin) load(true);
+}, 5 * 60 * 1000);
 
 /* ---------- กล้องและตัวอ่านบาร์โค้ด ---------- */
 const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'];
