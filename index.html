@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F5257">
+<title>PharmaCount นับสต็อกยา</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/barcode-detector@3.2.1/dist/iife/ponyfill.js"></script>
+<style>
+:root{
+  --brand:#0F5257; --brand-2:#13706f; --brand-soft:#E6F2F2;
+  --ink:#1b2426; --muted:#5d6b6e; --line:#d9e1e2; --bg:#f4f7f7; --card:#fff;
+  --ok:#1e7d45; --ok-soft:#e3f4e8; --warn:#b45f06; --warn-soft:#fff1e0;
+  --bad:#b3261e; --bad-soft:#fdecea; --radius:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Sarabun,system-ui,sans-serif;font-size:16px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+
+/* header */
+header{position:sticky;top:0;z-index:20;background:var(--brand);color:#fff;padding:10px 16px calc(10px);padding-top:max(10px,env(safe-area-inset-top))}
+.hrow{display:flex;align-items:center;gap:10px}
+.logo{font-weight:700;font-size:18px;letter-spacing:.2px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip-btn{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;border-radius:999px;padding:5px 12px;font-size:14px;display:inline-flex;align-items:center;gap:6px;max-width:46vw}
+.chip-btn span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon-btn{border:0;background:transparent;color:#fff;width:36px;height:36px;border-radius:10px;display:grid;place-items:center}
+.icon-btn svg{width:22px;height:22px}
+.dot{width:8px;height:8px;border-radius:50%;background:#7ee2a8;flex:none}
+.dot.off{background:#ffb4a9}
+.progress{margin-top:8px;display:flex;align-items:center;gap:10px;font-size:13px;opacity:.95}
+.bar{flex:1;height:6px;background:rgba(255,255,255,.22);border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:#9ff0d0;width:0;transition:width .3s}
+
+/* tabs */
+nav{display:flex;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:var(--hh,84px);z-index:15}
+nav button{flex:1;border:0;background:none;padding:12px 6px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;display:flex;gap:6px;justify-content:center;align-items:center}
+nav button.on{color:var(--brand);border-bottom-color:var(--brand)}
+.badge{background:var(--bad);color:#fff;border-radius:999px;font-size:12px;min-width:20px;padding:0 6px;line-height:20px}
+.badge:empty{display:none}
+
+main{padding:14px 16px 120px;max-width:640px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+h2{font-size:17px;margin:0 0 8px}
+
+/* camera */
+.cam{position:relative;border-radius:var(--radius);overflow:hidden;background:#0b1214;aspect-ratio:4/3;max-height:52vh;width:100%}
+.cam video{width:100%;height:100%;object-fit:cover;display:block}
+.guide{position:absolute;left:8%;right:8%;top:28%;bottom:28%;border:3px solid rgba(255,255,255,.9);border-radius:12px;box-shadow:0 0 0 999px rgba(0,0,0,.35);transition:border-color .15s}
+.guide.hit{border-color:#7ee2a8}
+.guide.miss{border-color:#ff8a80}
+.laser{position:absolute;left:10%;right:10%;top:50%;height:2px;background:rgba(255,90,80,.85);box-shadow:0 0 8px rgba(255,90,80,.8)}
+.cam-msg{position:absolute;inset:0;display:grid;place-items:center;color:#fff;text-align:center;padding:24px;font-size:15px}
+.cam-msg button{margin-top:12px}
+.cam-tools{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;align-items:center;padding:10px;background:linear-gradient(transparent,rgba(0,0,0,.55))}
+.round{width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.9);color:var(--ink);display:grid;place-items:center;flex:none}
+.round.on{background:#ffe27a}
+.round svg{width:22px;height:22px}
+.zoom{flex:1;accent-color:#fff}
+.scan-status{margin:10px 2px 0;font-size:14px;min-height:20px}
+
+.manual{display:flex;gap:8px;margin-top:12px}
+.manual input{flex:1;min-width:0}
+input[type=text],input[type=search],input[type=number],input[type=url],input[type=password],select,textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 12px;background:#fff;font-size:16px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline-offset:0;border-color:transparent}
+.btn{border:0;border-radius:12px;padding:12px 16px;font-weight:700;background:var(--brand);color:#fff;min-height:48px}
+.btn.ghost{background:#fff;color:var(--brand);border:1px solid var(--line)}
+.btn.warn{background:var(--warn)}
+.btn.block{width:100%}
+.btn:disabled{opacity:.5}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.stat b{display:block;font-size:20px;color:var(--brand)}
+
+/* list */
+.list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.row{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;gap:10px;align-items:center;text-align:left;width:100%}
+.row .t{flex:1;min-width:0}
+.row .n{font-weight:600;line-height:1.3}
+.row .s{font-size:13px;color:var(--muted);margin-top:2px}
+.pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.p-ok{background:var(--ok-soft);color:var(--ok)}
+.p-warn{background:var(--warn-soft);color:var(--warn)}
+.p-bad{background:var(--bad-soft);color:var(--bad)}
+.p-mute{background:#eef2f2;color:var(--muted)}
+.section-title{margin:18px 2px 6px;font-weight:700;color:var(--brand)}
+
+/* sheet */
+.overlay{position:fixed;inset:0;background:rgba(10,20,22,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92vh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;animation:up .18s ease-out}
+@keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+.sheet-h{padding:16px 16px 10px;border-bottom:1px solid var(--line);background:#fff;border-radius:20px 20px 0 0}
+.sheet-h .mode{font-size:13px;font-weight:700;color:var(--brand);letter-spacing:.2px}
+.sheet-h .pname{font-size:18px;font-weight:700;line-height:1.3;margin-top:2px}
+.sheet-b{padding:12px 16px;overflow:auto;flex:1}
+.sheet-f{padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line);display:flex;gap:10px}
+.sheet-f .btn{flex:1}
+.lot{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.lot.done{border-color:#9fd7b3}
+.lot-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.lot-id{font-weight:700;font-size:16px}
+.lot-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.stepper{display:flex;align-items:center;gap:8px;margin-top:12px}
+.stepper button{width:52px;height:52px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:26px;font-weight:700;color:var(--brand);flex:none}
+.stepper input{text-align:center;font-size:24px;font-weight:700;height:52px;padding:6px}
+.stepper .zero{width:auto;padding:0 12px;font-size:14px;color:var(--muted)}
+.unit{font-size:14px;color:var(--muted);min-width:36px}
+.note{font-size:13px;color:var(--muted);margin-top:8px}
+.field{margin-top:10px}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+.linkbtn{background:none;border:0;color:var(--brand);font-weight:700;padding:8px 0}
+
+/* dialog */
+.dialog{background:#fff;width:calc(100% - 32px);max-width:440px;border-radius:18px;padding:18px;margin:auto;align-self:center;max-height:88vh;overflow:auto}
+.dialog h3{margin:0 0 6px;font-size:18px}
+.dialog .acts{display:flex;gap:10px;margin-top:16px}
+.dialog .acts .btn{flex:1}
+.choice{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.choice button{text-align:left}
+
+.toast{position:fixed;left:50%;top:calc(var(--hh,84px) + 58px);transform:translateX(-50%);z-index:60;background:#1b2426;color:#fff;border-radius:14px;padding:12px 16px;max-width:calc(100% - 32px);width:max-content;box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:15px;line-height:1.45}
+.toast.ok{background:var(--ok)}.toast.warn{background:var(--warn)}.toast.bad{background:var(--bad)}
+.empty{text-align:center;color:var(--muted);padding:28px 10px}
+.kbd-hint{font-size:13px;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+
+<header id="hdr">
+  <div class="hrow">
+    <div class="logo">PharmaCount</div>
+    <span class="dot" id="netDot" title="สถานะการเชื่อมต่อ"></span>
+    <button class="chip-btn" id="counterBtn" aria-label="เปลี่ยนผู้นับ">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      <span id="counterName">เลือกผู้นับ</span>
+    </button>
+    <button class="icon-btn" id="menuBtn" aria-label="เมนู">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </div>
+  <div class="progress"><span id="progTxt">กำลังโหลด…</span><div class="bar"><i id="progBar"></i></div><span id="queueTxt"></span></div>
+</header>
+
+<nav id="tabs">
+  <button data-tab="count" class="on">นับสต็อก</button>
+  <button data-tab="recount">นับซ้ำ <span class="badge" id="recountBadge"></span></button>
+  <button data-tab="search">ค้นหา</button>
+</nav>
+
+<main>
+  <!-- นับสต็อก -->
+  <section id="tab-count">
+    <div class="cam" id="cam">
+      <video id="video" playsinline muted autoplay></video>
+      <div class="guide hidden" id="guide"><div class="laser"></div></div>
+      <div class="cam-msg" id="camMsg">
+        <div>
+          <div>แตะเพื่อเปิดกล้องสแกนบาร์โค้ด</div>
+          <button class="btn" id="camStart">เปิดกล้อง</button>
+        </div>
+      </div>
+      <div class="cam-tools hidden" id="camTools">
+        <button class="round" id="torchBtn" aria-label="ไฟฉาย" title="ไฟฉาย">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2h8l-2 6h-4z"/><path d="M10 8v12a2 2 0 0 0 4 0V8"/></svg>
+        </button>
+        <input type="range" class="zoom hidden" id="zoom" aria-label="ซูม">
+        <span style="flex:1" id="zoomSpacer"></span>
+        <button class="round" id="camStop" aria-label="ปิดกล้อง" title="ปิดกล้อง">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="scan-status muted" id="scanStatus">เล็งบาร์โค้ดให้อยู่ในกรอบ ถือนิ่งๆ ห่างประมาณ 10–15 ซม.</div>
+
+    <form class="manual" id="manualForm" autocomplete="off">
+      <input type="search" id="manualInput" inputmode="numeric" placeholder="พิมพ์บาร์โค้ด หรือใช้เครื่องสแกน">
+      <button class="btn" type="submit">ตกลง</button>
+    </form>
+    <div class="kbd-hint">ต่อเครื่องสแกนบาร์โค้ดบลูทูธได้ สแกนได้ทันทีโดยไม่ต้องแตะช่องพิมพ์ · สินค้าไม่มีบาร์โค้ด ใช้แท็บ “ค้นหา”</div>
+
+    <div class="stats">
+      <div class="stat"><b id="stCounted">–</b><span class="small muted">LOT ที่นับแล้ว</span></div>
+      <div class="stat"><b id="stBarcode">–</b><span class="small muted">สินค้าที่มีบาร์โค้ดแล้ว</span></div>
+    </div>
+  </section>
+
+  <!-- นับซ้ำ -->
+  <section id="tab-recount" class="hidden">
+    <div class="card small">
+      <b>นับซ้ำโดยเภสัชกรคนที่สอง</b><br>
+      รายการด้านล่างนับครั้งแรกแล้วไม่ตรงกับระบบ ให้คนที่ไม่ใช่ผู้นับครั้งแรกนับอีกครั้ง โดยไม่เห็นตัวเลขเดิม แตะรายการหรือสแกนบาร์โค้ดในแท็บนี้ได้เลย
+    </div>
+    <div id="recountList" class="list"></div>
+    <div id="causeWrap" class="hidden">
+      <div class="section-title">ยืนยันว่าไม่ตรง รอระบุสาเหตุ</div>
+      <div id="causeList" class="list"></div>
+    </div>
+  </section>
+
+  <!-- ค้นหา -->
+  <section id="tab-search" class="hidden">
+    <input type="search" id="searchInput" placeholder="ค้นหาชื่อยา บาร์โค้ด หรือ LOT" autocomplete="off">
+    <div class="kbd-hint">แตะสินค้าเพื่อนับ ใช้กับสินค้าที่ไม่มีบาร์โค้ดหรือสแกนไม่ติด</div>
+    <div id="searchList" class="list"></div>
+  </section>
+</main>
+
+<div id="layer"></div>
+<div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
+};
+const qs = new URLSearchParams(location.search);
+if (qs.get('api')) store.set('api', qs.get('api'));
+const cfg = { api: store.get('api', ''), pin: store.get('pin', ''), counter: store.get('counter', '') };
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const normCode = v => String(v == null ? '' : v).replace(/\D/g, '').replace(/^0+/, '');
+const normName = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().toUpperCase();
+
+/* ---------- ข้อมูล ---------- */
+let items = [], counters = [], causes = [];
+let byCode = new Map();   // บาร์โค้ด → Set(ชื่อสินค้า)
+let byName = new Map();   // ชื่อสินค้า → [LOT]
+let queue = store.get('queue', []);
+let online = true;
+
+function buildIndex(barcodes) {
+  byCode = new Map(); byName = new Map();
+  items.forEach(it => {
+    const k = normName(it.n);
+    if (!byName.has(k)) byName.set(k, []);
+    byName.get(k).push(it);
+    if (it.b) addCode(it.b, it.n);
+  });
+  (barcodes || []).forEach(([code, name]) => addCode(code, name));
+}
+function addCode(code, name) {
+  const c = normCode(code); if (c.length < 6) return;
+  if (!byCode.has(c)) byCode.set(c, new Set());
+  byCode.get(c).add(normName(name));
+}
+function productsWithCode() {
+  const s = new Set(); byCode.forEach(names => names.forEach(n => s.add(n))); return s;
+}
+
+/* ---------- เชื่อมต่อ Apps Script ---------- */
+async function api(action, payload, method) {
+  if (!cfg.api) throw new Error('ยังไม่ได้ตั้งค่าลิงก์ระบบ');
+  let res;
+  if (method === 'GET') {
+    const u = new URL(cfg.api); u.searchParams.set('action', action); u.searchParams.set('pin', cfg.pin);
+    res = await fetch(u.toString(), { method: 'GET', redirect: 'follow' });
+  } else {
+    // text/plain เพื่อไม่ให้เบราว์เซอร์ส่ง preflight ที่ Apps Script ไม่รองรับ
+    res = await fetch(cfg.api, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(Object.assign({ action, pin: cfg.pin, counter: cfg.counter, device: deviceName() }, payload || {})) });
+  }
+  const data = await res.json();
+  if (!data.ok) { const e = new Error(data.error || 'เกิดข้อผิดพลาด'); e.server = true; e.code = data.code; throw e; }
+  return data;
+}
+function deviceName() { const ua = navigator.userAgent; return /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : 'คอมพิวเตอร์'; }
+function setOnline(v) { online = v; $('#netDot').classList.toggle('off', !v); }
+
+async function load(silent) {
+  try {
+    const d = await api('init', null, 'GET');
+    items = d.items; counters = d.counters || []; causes = d.causes || [];
+    buildIndex(d.barcodes);
+    setOnline(true);
+    renderAll();
+    if (!silent) toast(`โหลดข้อมูล ${items.length.toLocaleString()} LOT แล้ว`, 'ok', 1800);
+    flushQueue();
+  } catch (e) {
+    if (e.code === 'pin') { openSetup('รหัสร้านไม่ถูกต้อง'); return; }
+    setOnline(false);
+    $('#progTxt').textContent = 'เชื่อมต่อไม่ได้';
+    if (!silent) toast('โหลดข้อมูลไม่ได้: ' + e.message, 'bad', 4000);
+  }
+}
+
+/* ---------- แสดงผลรวม ---------- */
+function renderAll() {
+  const total = items.length, done = items.filter(i => i.c).length;
+  $('#progTxt').textContent = `นับแล้ว ${done.toLocaleString()}/${total.toLocaleString()} LOT`;
+  $('#progBar').style.width = total ? (done / total * 100) + '%' : '0';
+  $('#stCounted').textContent = total ? `${done.toLocaleString()} / ${total.toLocaleString()}` : '–';
+  const names = new Set(items.map(i => normName(i.n))), withCode = productsWithCode();
+  let n = 0; names.forEach(x => { if (withCode.has(x)) n++; });
+  $('#stBarcode').textContent = names.size ? `${n.toLocaleString()} / ${names.size.toLocaleString()}` : '–';
+  $('#queueTxt').textContent = queue.length ? `รอส่ง ${queue.length}` : '';
+  $('#counterName').textContent = cfg.counter || 'เลือกผู้นับ';
+  renderRecount();
+  if (!$('#tab-search').classList.contains('hidden')) renderSearch();
+}
+
+function expPill(it) {
+  if (it.d === null || it.d === undefined) return `<span class="pill p-mute">EXP ${esc(it.e || '-')}</span>`;
+  if (it.d < 0) return `<span class="pill p-bad">หมดอายุแล้ว ${esc(it.e)}</span>`;
+  if (it.d <= 90) return `<span class="pill p-warn">เหลือ ${it.d} วัน · ${esc(it.e)}</span>`;
+  return `<span class="pill p-mute">EXP ${esc(it.e)}</span>`;
+}
+function statusPill(st) {
+  if (!st || st === 'ยังไม่นับ') return '<span class="pill p-mute">ยังไม่นับ</span>';
+  if (/ตรง$/.test(st) && !/ไม่ตรง/.test(st)) return `<span class="pill p-ok">${esc(st)}</span>`;
+  if (st === 'รอส่ง') return '<span class="pill p-warn">รอส่งข้อมูล</span>';
+  if (st === 'รอนับซ้ำ') return '<span class="pill p-warn">รอนับซ้ำ</span>';
+  return `<span class="pill p-bad">${esc(st)}</span>`;
+}
+
+/* ---------- แท็บ ---------- */
+let tab = 'count';
+document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+function setTab(t) {
+  tab = t;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  ['count', 'recount', 'search'].forEach(x => $('#tab-' + x).classList.toggle('hidden', x !== t));
+  if (t === 'search') { renderSearch(); setTimeout(() => $('#searchInput').focus(), 50); }
+  if (t !== 'count') stopCamera();
+}
+
+/* ---------- นับซ้ำ ---------- */
+function renderRecount() {
+  const pend = items.filter(i => i.st === 'รอนับซ้ำ');
+  const needCause = items.filter(i => /^ไม่ตรง/.test(i.st) && !i.cz);
+  $('#recountBadge').textContent = pend.length + needCause.length || '';
+  $('#recountList').innerHTML = pend.length ? pend.map(i => `
+    <button class="row" data-r="${i.r}" data-act="recount">
+      <div class="t"><div class="n">${esc(i.n)}</div>
+      <div class="s">LOT ${esc(i.l || '-')} · ${esc(i.u)}${i.loc ? ' · ' + esc(i.loc) : ''}${i.by ? ' · นับครั้งแรก: ' + esc(i.by) : ''}</div></div>
+      ${expPill(i)}
+    </button>`).join('') : '<div class="empty">ไม่มีรายการที่รอนับซ้ำ</div>';
+  $('#causeWrap').classList.toggle('hidden', !needCause.length);
+  $('#causeList').innerHTML = needCause.map(i => `
+    <button class="row" data-r="${i.r}" data-act="cause">
+      <div class="t"><div class="n">${esc(i.n)}</div>
+      <div class="s">LOT ${esc(i.l || '-')}${i.df !== null && i.df !== undefined ? ' · ส่วนต่าง ' + fmtDiff(i.df) + ' ' + esc(i.u) : ''}</div></div>
+      <span class="pill p-bad">ระบุสาเหตุ</span>
+    </button>`).join('');
+}
+$('#tab-recount').addEventListener('click', e => {
+  const b = e.target.closest('button[data-r]'); if (!b) return;
+  const it = items.find(i => i.r === Number(b.dataset.r)); if (!it) return;
+  if (b.dataset.act === 'cause') openCause(it, it.df); else openSheet([it], 'recount');
+});
+const fmtDiff = d => (d > 0 ? '+' : '') + d;
+
+/* ---------- ค้นหา ---------- */
+$('#searchInput').addEventListener('input', () => renderSearch());
+function renderSearch() {
+  const q = $('#searchInput').value.trim();
+  const box = $('#searchList');
+  if (q.length < 2) { box.innerHTML = '<div class="empty">พิมพ์อย่างน้อย 2 ตัวอักษร</div>'; return; }
+  const nq = normName(q), cq = normCode(q);
+  const groups = new Map();
+  items.forEach(it => {
+    const hit = normName(it.n).includes(nq) || (it.l && normName(it.l) === nq) || (cq.length >= 6 && productCodes(it.n).some(c => c.includes(cq)));
+    if (hit) { const k = normName(it.n); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(it); }
+  });
+  const arr = [...groups.values()].slice(0, 60);
+  box.innerHTML = arr.length ? arr.map(g => {
+    const done = g.filter(i => i.c).length, has = productsWithCode().has(normName(g[0].n));
+    return `<button class="row" data-name="${esc(g[0].n)}">
+      <div class="t"><div class="n">${esc(g[0].n)}</div>
+      <div class="s">${g.length} LOT · นับแล้ว ${done}${has ? '' : ' · ยังไม่มีบาร์โค้ด'}</div></div>
+      ${done === g.length ? '<span class="pill p-ok">ครบ</span>' : ''}
+    </button>`; }).join('') : '<div class="empty">ไม่พบสินค้า</div>';
+}
+function productCodes(name) { const n = normName(name), out = []; byCode.forEach((s, c) => { if (s.has(n)) out.push(c); }); return out; }
+$('#searchList').addEventListener('click', e => {
+  const b = e.target.closest('button[data-name]'); if (!b) return;
+  openSheet(byName.get(normName(b.dataset.name)) || [], 'count');
+});
+
+/* ---------- ผลการสแกน ---------- */
+function handleCode(raw, source) {
+  const code = normCode(raw);
+  if (code.length < 6) { toast('บาร์โค้ดสั้นเกินไป', 'bad'); return; }
+  if (sheetOpen()) return;
+  if (!items.length) { toast('ยังโหลดข้อมูลไม่เสร็จ', 'warn'); return; }
+  const names = byCode.get(code);
+  if (!names || !names.size) { flash('miss'); beep('miss'); openUnknown(raw); return; }
+  flash('hit'); beep('hit');
+  let lots = [];
+  names.forEach(n => (byName.get(n) || []).forEach(i => lots.push(i)));
+  if (tab === 'recount') {
+    lots = lots.filter(i => i.st === 'รอนับซ้ำ');
+    if (!lots.length) { toast('สินค้านี้ไม่มี LOT ที่รอนับซ้ำ', 'warn'); return; }
+    openSheet(lots, 'recount', raw); return;
+  }
+  if (!lots.length) { toast('บาร์โค้ดนี้จับคู่ไว้กับสินค้าที่ไม่อยู่ในรายการนับรอบนี้', 'warn', 3500); return; }
+  if (names.size > 1) { chooseProduct(names, lots, raw); return; }
+  openSheet(lots, 'count', raw);
+}
+function chooseProduct(names, lots, raw) {
+  const list = [...names].map(n => (byName.get(n) || [])[0]).filter(Boolean);
+  openDialog(`<h3>บาร์โค้ดนี้ตรงกับหลายสินค้า</h3><p class="muted small">เลือกสินค้าที่ถืออยู่</p>
+    <div class="choice">${list.map(i => `<button class="row" data-name="${esc(i.n)}"><div class="t"><div class="n">${esc(i.n)}</div></div></button>`).join('')}</div>
+    <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button></div>`, dlg => {
+    dlg.querySelectorAll('[data-name]').forEach(b => b.onclick = () => { closeDialog(); openSheet(byName.get(normName(b.dataset.name)) || [], 'count', raw); });
+  });
+}
+
+/* ---------- สอนบาร์โค้ด: สแกนแล้วไม่รู้จัก ---------- */
+function openUnknown(raw) {
+  openDialog(`<h3>ยังไม่รู้จักบาร์โค้ดนี้</h3>
+    <p class="muted small">บาร์โค้ด <b>${esc(raw)}</b> ยังไม่อยู่ในฐานบาร์โค้ด ค้นหาชื่อสินค้าที่ถืออยู่แล้วแตะเลือก ระบบจะจำไว้ ครั้งต่อไปสแกนติดทันที</p>
+    <input type="search" id="linkQ" placeholder="พิมพ์ชื่อยา เช่น amlo, พาราเซตามอล" autocomplete="off">
+    <div class="list" id="linkList"></div>
+    <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button><button class="btn warn" id="reportBtn">ไม่มีในรายการ</button></div>`, dlg => {
+    const q = dlg.querySelector('#linkQ'), list = dlg.querySelector('#linkList');
+    const withCode = productsWithCode();
+    const render = () => {
+      const t = normName(q.value);
+      if (t.length < 2) { list.innerHTML = '<div class="empty small">พิมพ์อย่างน้อย 2 ตัวอักษร</div>'; return; }
+      const hits = [...byName.keys()].filter(n => n.includes(t))
+        .sort((a, b) => (withCode.has(a) - withCode.has(b)) || a.localeCompare(b)).slice(0, 30);
+      list.innerHTML = hits.length ? hits.map(n => { const it = byName.get(n)[0];
+        return `<button class="row" data-name="${esc(it.n)}"><div class="t"><div class="n">${esc(it.n)}</div>
+          <div class="s">${byName.get(n).length} LOT${withCode.has(n) ? ' · มีบาร์โค้ดอื่นอยู่แล้ว' : ' · ยังไม่มีบาร์โค้ด'}</div></div></button>`; }).join('')
+        : '<div class="empty small">ไม่พบชื่อนี้</div>';
+    };
+    q.addEventListener('input', render); render(); setTimeout(() => q.focus(), 60);
+    list.addEventListener('click', async e => {
+      const b = e.target.closest('[data-name]'); if (!b) return;
+      const name = b.dataset.name;
+      if (!cfg.counter) { closeDialog(); askCounter(); return; }
+      b.disabled = true;
+      try {
+        await api('link', { barcode: raw, name });
+        addCode(raw, name); closeDialog(); renderAll();
+        toast('จำบาร์โค้ดแล้ว ✓', 'ok', 1500);
+        openSheet(byName.get(normName(name)) || [], tab === 'recount' ? 'recount' : 'count', raw);
+      } catch (err) { b.disabled = false; toast('บันทึกไม่ได้: ' + err.message, 'bad', 4000); }
+    });
+    dlg.querySelector('#reportBtn').onclick = () => { closeDialog(); openReport({ barcode: raw }); };
+  });
+}
+
+function openReport(pre) {
+  pre = pre || {};
+  openDialog(`<h3>${pre.type === 'newlot' ? 'พบ LOT ที่ไม่มีในระบบ' : 'สินค้าไม่มีในรายการนับ'}</h3>
+    <p class="muted small">บันทึกไว้ในแท็บ “บันทึกการนับ” ให้เภสัชกรตรวจสอบกับ Arincare ภายหลัง</p>
+    ${pre.type === 'newlot' ? `<div class="field"><label>สินค้า</label><input type="text" value="${esc(pre.name)}" disabled></div>` :
+      `<div class="field"><label>บาร์โค้ด</label><input type="text" id="rpB" value="${esc(pre.barcode || '')}"></div>
+       <div class="field"><label>ชื่อสินค้า (ถ้าทราบ)</label><input type="text" id="rpN"></div>`}
+    <div class="field"><label>LOT</label><input type="text" id="rpL"></div>
+    <div class="field"><label>วันหมดอายุ</label><input type="text" id="rpE" placeholder="เช่น 2028-05-31"></div>
+    <div class="field"><label>จำนวนที่นับได้</label><input type="number" id="rpQ" inputmode="numeric" min="0"></div>
+    <div class="field"><label>หมายเหตุ</label><input type="text" id="rpNote"></div>
+    <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button><button class="btn" id="rpSave">บันทึก</button></div>`, dlg => {
+    dlg.querySelector('#rpSave').onclick = async () => {
+      const v = id => { const el = dlg.querySelector(id); return el ? el.value.trim() : ''; };
+      const body = { type: pre.type || 'notfound', barcode: pre.type === 'newlot' ? (pre.barcode || '') : v('#rpB'),
+        name: pre.type === 'newlot' ? pre.name : v('#rpN'), lot: v('#rpL'), exp: v('#rpE'), note: v('#rpNote') };
+      if (v('#rpQ') !== '') body.q = Number(v('#rpQ'));
+      try { await api('report', body); closeDialog(); toast('บันทึกแล้ว ส่งให้เภสัชกรตรวจสอบ', 'ok'); }
+      catch (e) { toast('บันทึกไม่ได้: ' + e.message, 'bad', 4000); }
+    };
+  });
+}
+
+/* ---------- แผ่นนับ ---------- */
+let sheetCtx = null;
+function sheetOpen() { return !!sheetCtx || !!$('#layer').firstChild; }
+
+function openSheet(lots, mode, raw) {
+  if (!lots.length) return;
+  if (!cfg.counter) { askCounter(() => openSheet(lots, mode, raw)); return; }
+  lots = lots.slice().sort((a, b) => (a.e || '').localeCompare(b.e || ''));
+  sheetCtx = { lots, mode, raw };
+  const p = lots[0];
+  const counted = lots.filter(i => i.c);
+  const firstBy = [...new Set(lots.map(i => i.by).filter(Boolean))];
+  const sameCounter = mode === 'recount' && firstBy.includes(cfg.counter);
+  $('#layer').innerHTML = `<div class="overlay" id="ov"><div class="sheet" role="dialog" aria-modal="true">
+    <div class="sheet-h">
+      <div class="mode">${mode === 'recount' ? 'นับซ้ำ (คนที่ 2) · ไม่แสดงยอดเดิม' : 'นับสต็อก · ไม่แสดงยอดในระบบ'}</div>
+      <div class="pname">${esc(p.n)}</div>
+      <div class="small muted">${raw ? 'บาร์โค้ด ' + esc(raw) + ' · ' : ''}${lots.length} LOT${p.cat ? ' · ' + esc(p.cat) : ''}</div>
+    </div>
+    <div class="sheet-b">
+      ${sameCounter ? `<div class="lot" style="background:var(--warn-soft);border-color:#f3c48c"><b>คุณเป็นผู้นับครั้งแรก</b><div class="small">การนับซ้ำควรเป็นอีกคน เพื่อให้ตรวจสอบได้จริง</div></div>` : ''}
+      ${mode === 'count' && counted.length ? `<div class="note" style="margin:0 0 10px">มี ${counted.length} LOT ที่นับไปแล้ว ถ้ากรอกใหม่จะเป็นการนับรอบใหม่แทนของเดิม</div>` : ''}
+      ${lots.map((i, k) => `
+        <div class="lot ${i.c && mode === 'count' ? 'done' : ''}" data-k="${k}">
+          <div class="lot-top">
+            <div><div class="lot-id">LOT ${esc(i.l || 'ไม่ระบุ')}</div></div>
+            ${statusPill(i.st)}
+          </div>
+          <div class="lot-meta">${expPill(i)}${i.dup ? '<span class="pill p-warn">แถวซ้ำในระบบ</span>' : ''}${i.c && i.by ? `<span class="pill p-mute">นับโดย ${esc(i.by)}</span>` : ''}</div>
+          <div class="stepper">
+            <button type="button" data-step="-1" aria-label="ลด">−</button>
+            <input type="number" inputmode="numeric" min="0" step="1" placeholder="จำนวน" data-q aria-label="จำนวนที่นับได้">
+            <button type="button" data-step="1" aria-label="เพิ่ม">+</button>
+            <span class="unit">${esc(i.u)}</span>
+          </div>
+          <button type="button" class="linkbtn small" data-zero>ไม่พบ LOT นี้บนชั้น (= 0)</button>
+        </div>`).join('')}
+      ${mode === 'count' ? `<button type="button" class="linkbtn" id="newLotBtn">+ พบ LOT ที่ไม่มีในระบบ</button>
+      <div class="field"><label>ตำแหน่ง/ชั้นวาง (ไม่บังคับ)</label><input type="text" id="locInput" value="${esc(p.loc || '')}" placeholder="เช่น A-3-05"></div>` : ''}
+    </div>
+    <div class="sheet-f">
+      <button class="btn ghost" id="sheetCancel">ยกเลิก</button>
+      <button class="btn" id="sheetSave">บันทึก</button>
+    </div>
+  </div></div>`;
+  const ov = $('#ov');
+  ov.addEventListener('click', e => {
+    if (e.target === ov) closeSheet();
+    const st = e.target.closest('[data-step]');
+    if (st) { const inp = st.parentElement.querySelector('[data-q]'); const cur = inp.value === '' ? (Number(st.dataset.step) > 0 ? 0 : 1) : Number(inp.value);
+      inp.value = Math.max(0, cur + Number(st.dataset.step)); updateSave(); vibrate(8); }
+    const z = e.target.closest('[data-zero]');
+    if (z) { z.closest('.lot').querySelector('[data-q]').value = 0; updateSave(); }
+  });
+  ov.querySelectorAll('[data-q]').forEach(inp => inp.addEventListener('input', updateSave));
+  $('#sheetCancel').onclick = closeSheet;
+  $('#sheetSave').onclick = saveSheet;
+  const nl = $('#newLotBtn'); if (nl) nl.onclick = () => { const name = p.n; closeSheet(); openReport({ type: 'newlot', name, barcode: raw || '' }); };
+  updateSave();
+  const first = ov.querySelector('[data-q]'); if (first && lots.length === 1 && !isTouch()) first.focus();
+}
+function isTouch() { return matchMedia('(pointer:coarse)').matches; }
+function sheetEntries() {
+  const out = [];
+  document.querySelectorAll('#ov .lot[data-k]').forEach(el => {
+    const v = el.querySelector('[data-q]').value.trim();
+    if (v !== '') { const it = sheetCtx.lots[Number(el.dataset.k)]; out.push({ it, q: Number(v) }); }
+  });
+  return out;
+}
+function updateSave() {
+  const n = sheetEntries().length, b = $('#sheetSave');
+  if (!b) return;
+  b.disabled = !n; b.textContent = n ? `บันทึก ${n} LOT` : 'กรอกจำนวนก่อนบันทึก';
+}
+function closeSheet() { if (sheetCtx && sheetCtx.raw) cool = { code: sheetCtx.raw, until: Date.now() + 2500 }; sheetCtx = null; $('#layer').innerHTML = ''; resumeScan(); }
+
+async function saveSheet() {
+  const entries = sheetEntries();
+  if (entries.some(e => !Number.isInteger(e.q) || e.q < 0)) { toast('จำนวนต้องเป็นจำนวนเต็มตั้งแต่ 0', 'bad'); return; }
+  const mode = sheetCtx.mode;
+  if (mode === 'count') {
+    const over = entries.filter(e => e.it.c).length;
+    if (over && !confirm(`มี ${over} LOT ที่นับไปแล้ว ต้องการบันทึกทับเป็นรอบใหม่ไหม`)) return;
+  }
+  const locEl = $('#locInput'), loc = locEl ? locEl.value.trim() : '';
+  const payload = { entries: entries.map(e => ({ r: e.it.r, n: e.it.n, l: e.it.l, q: e.q, loc: loc && loc !== e.it.loc ? loc : undefined })) };
+  const btn = $('#sheetSave'); btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
+  try {
+    const d = await api(mode, payload);
+    closeSheet();
+    applyResults(d.results, entries, loc, mode);
+  } catch (e) {
+    if (e.server) { btn.disabled = false; updateSave(); toast(e.message, 'bad', 4500); return; }
+    // ออฟไลน์: เก็บไว้ส่งทีหลัง
+    queue.push({ action: mode, payload, counter: cfg.counter, at: Date.now() });
+    store.set('queue', queue);
+    entries.forEach(e => { if (mode === 'count') { e.it.c = true; e.it.by = cfg.counter; } e.it.st = 'รอส่ง'; });
+    setOnline(false); closeSheet(); renderAll();
+    toast('ไม่มีสัญญาณ เก็บไว้ในเครื่องแล้ว จะส่งเองเมื่อออนไลน์', 'warn', 4000);
+  }
+}
+
+function applyResults(results, entries, loc, mode) {
+  const lines = []; let bad = 0, warn = 0;
+  const askCause = [];
+  results.forEach(res => {
+    const it = items.find(i => i.r === res.r) || (entries.find(e => e.it.r === res.r) || {}).it;
+    if (!res.ok) { bad++; lines.push(`✕ ${it ? 'LOT ' + it.l : 'แถว ' + res.r}: ${res.error}`); return; }
+    if (!it) return;
+    it.st = res.st;
+    if (mode === 'count') { it.c = true; it.by = cfg.counter; it.cz = ''; it.df = null; }
+    if (loc) it.loc = loc;
+    if (res.st === 'รอนับซ้ำ') { warn++; lines.push(`LOT ${it.l}: ไม่ตรง → ส่งให้คนที่ 2 นับซ้ำ`); }
+    else if (/^ไม่ตรง/.test(res.st)) { warn++; it.df = res.diff; askCause.push(it); lines.push(`LOT ${it.l}: ยืนยันว่าไม่ตรง`); }
+    else lines.push(`LOT ${it.l}: ${res.st} ✓`);
+  });
+  renderAll();
+  const kind = bad ? 'bad' : warn ? 'warn' : 'ok';
+  beep(kind === 'ok' ? 'ok' : 'miss');
+  toast(lines.join('<br>'), kind, kind === 'ok' ? 2200 : 4500, true);
+  if (askCause.length) openCauseChain(askCause);
+}
+
+/* ---------- ระบุสาเหตุ ---------- */
+function openCauseChain(list) { const it = list.shift(); if (it) openCause(it, it.df, () => openCauseChain(list)); }
+function openCause(it, diff, next) {
+  const d = diff === null || diff === undefined ? '' :
+    `<div class="lot" style="background:var(--bad-soft);border-color:#f2b8b5"><b>ส่วนต่าง ${fmtDiff(diff)} ${esc(it.u)}</b>
+     <div class="small">${diff < 0 ? 'ของจริงน้อยกว่าในระบบ' : 'ของจริงมากกว่าในระบบ'} (นับ 2 คนแล้ว)</div></div>`;
+  const opts = causes.length ? causes : ['ขายแล้วยังไม่ตัดสต็อก', 'รับเข้าแล้วยังไม่บันทึกในระบบ', 'จ่ายหรือบันทึกผิด LOT', 'วางผิดที่หรือหาไม่เจอ', 'อื่นๆ (ระบุในหมายเหตุ)'];
+  openDialog(`<h3>ระบุสาเหตุของส่วนต่าง</h3>
+    <p class="small muted">${esc(it.n)} · LOT ${esc(it.l)}</p>${d}
+    <div class="field"><label>สาเหตุ</label><select id="czSel"><option value="">เลือกสาเหตุ</option>${opts.map(o => `<option>${esc(o)}</option>`).join('')}</select></div>
+    <div class="field"><label>หมายเหตุ (ไม่บังคับ)</label><input type="text" id="czNote"></div>
+    <div class="acts"><button class="btn ghost" id="czLater">ไว้ทีหลัง</button><button class="btn" id="czSave">บันทึก</button></div>`, dlg => {
+    dlg.querySelector('#czLater').onclick = () => { closeDialog(); next && next(); };
+    dlg.querySelector('#czSave').onclick = async () => {
+      const cause = dlg.querySelector('#czSel').value;
+      if (!cause) { toast('กรุณาเลือกสาเหตุ', 'warn'); return; }
+      try {
+        await api('cause', { r: it.r, n: it.n, l: it.l, cause, note: dlg.querySelector('#czNote').value.trim() });
+        it.cz = cause; closeDialog(); renderAll(); toast('บันทึกสาเหตุแล้ว', 'ok', 1500); next && next();
+      } catch (e) { toast('บันทึกไม่ได้: ' + e.message, 'bad', 4000); }
+    };
+  });
+}
+
+/* ---------- คิวออฟไลน์ ---------- */
+let flushing = false;
+async function flushQueue() {
+  if (flushing || !queue.length || !cfg.api) return;
+  flushing = true;
+  const sent = [];
+  try {
+    while (queue.length) {
+      const job = queue[0];
+      const saved = cfg.counter; cfg.counter = job.counter;
+      let d;
+      try { d = await api(job.action, job.payload); } finally { cfg.counter = saved; }
+      queue.shift(); store.set('queue', queue); sent.push(d);
+      d.results.forEach(res => { const it = items.find(i => i.r === res.r); if (it && res.ok) { it.st = res.st; if (/^ไม่ตรง/.test(res.st)) it.df = res.diff; } });
+    }
+    setOnline(true);
+    if (sent.length) toast(`ส่งข้อมูลที่ค้างไว้ ${sent.length} ครั้งแล้ว`, 'ok');
+  } catch (e) { setOnline(false); }
+  flushing = false; renderAll();
+}
+addEventListener('online', flushQueue);
+setInterval(flushQueue, 30000);
+
+/* ---------- กล้องและตัวอ่านบาร์โค้ด ---------- */
+const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'];
+let detector = null, stream = null, track = null, scanning = false, paused = false, last = { code: '', t: 0 }, cool = { code: '', until: 0 };
+
+async function getDetector() {
+  if (detector) return detector;
+  if ('BarcodeDetector' in window) {
+    try {
+      const sup = await window.BarcodeDetector.getSupportedFormats();
+      if (sup.includes('ean_13')) { detector = new window.BarcodeDetector({ formats: FORMATS.filter(f => sup.includes(f)) }); nativeDet = true; return detector; }
+    } catch (e) {}
+  }
+  detector = new BarcodeDetectionAPI.BarcodeDetector({ formats: FORMATS });
+  return detector;
+}
+
+async function startCamera() {
+  const msg = $('#camMsg');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    msg.innerHTML = '<div>เบราว์เซอร์นี้เปิดกล้องไม่ได้<br><span class="small">ใช้ช่องพิมพ์ หรือเครื่องสแกนบลูทูธแทน</span></div>'; return;
+  }
+  msg.innerHTML = '<div>กำลังเปิดกล้อง…</div>';
+  try {
+    await getDetector();
+    stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: {
+      facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } } });
+    track = stream.getVideoTracks()[0];
+    try { await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) {}
+    const v = $('#video'); v.srcObject = stream; await v.play();
+    msg.classList.add('hidden'); $('#camTools').classList.remove('hidden'); $('#guide').classList.remove('hidden');
+    setupCaps();
+    scanning = true; paused = false; loop();
+  } catch (e) {
+    msg.classList.remove('hidden');
+    msg.innerHTML = `<div>เปิดกล้องไม่ได้ (${esc(e.name || e.message)})<br><span class="small">อนุญาตการใช้กล้องในการตั้งค่าเบราว์เซอร์ หรือใช้ช่องพิมพ์/เครื่องสแกนแทน</span><br><button class="btn" id="camRetry">ลองอีกครั้ง</button></div>`;
+    $('#camRetry').onclick = startCamera;
+  }
+}
+function setupCaps() {
+  const caps = track.getCapabilities ? track.getCapabilities() : {};
+  $('#torchBtn').classList.toggle('hidden', !caps.torch);
+  const z = $('#zoom');
+  if (caps.zoom && caps.zoom.max > caps.zoom.min) {
+    z.min = caps.zoom.min; z.max = Math.min(caps.zoom.max, 5); z.step = caps.zoom.step || 0.1;
+    const s = track.getSettings ? track.getSettings() : {}; z.value = s.zoom || caps.zoom.min;
+    z.classList.remove('hidden'); $('#zoomSpacer').classList.add('hidden');
+  } else { z.classList.add('hidden'); $('#zoomSpacer').classList.remove('hidden'); }
+}
+function stopCamera() {
+  scanning = false;
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = null; track = null;
+  $('#torchBtn').classList.remove('on');
+  $('#camTools').classList.add('hidden'); $('#guide').classList.add('hidden');
+  const msg = $('#camMsg'); msg.classList.remove('hidden');
+  msg.innerHTML = '<div><div>แตะเพื่อเปิดกล้องสแกนบาร์โค้ด</div><button class="btn" id="camStart2">เปิดกล้อง</button></div>';
+  $('#camStart2').onclick = startCamera;
+}
+function resumeScan() { paused = false; last = { code: '', t: 0 }; }
+
+// ตัวกรองทำให้เส้นบาร์โค้ดคมขึ้นในแนวนอน (ทดสอบแล้วอ่านภาพเบลอที่ตัวอ่านปกติอ่านไม่ได้)
+const PASSES = [
+  { k: null },                                 // ภาพปกติ กลางกรอบ
+  { k: [-1, -2, 7, -2, -1] },                  // คมขึ้น
+  { k: [-2, -3, 11, -3, -2] },                 // คมมาก สำหรับภาพเบลอมาก
+  { k: [-1, -1, 5, -1, -1], full: true }       // คมเล็กน้อย ทั้งภาพ เผื่อบาร์โค้ดไม่อยู่กลางกรอบ
+];
+let frameNo = 0, nativeDet = false;
+function sharpenH(img, k) {
+  const { width: w, height: h, data: d } = img, g = new Float32Array(w * h);
+  for (let i = 0, j = 0; i < g.length; i++, j += 4) g[i] = d[j] * 0.299 + d[j + 1] * 0.587 + d[j + 2] * 0.114;
+  for (let y = 0; y < h; y++) {
+    const o = y * w;
+    for (let x = 0; x < w; x++) {
+      const xm2 = x > 1 ? x - 2 : 0, xm1 = x > 0 ? x - 1 : 0, xp1 = x < w - 1 ? x + 1 : w - 1, xp2 = x < w - 2 ? x + 2 : w - 1;
+      let v = k[0] * g[o + xm2] + k[1] * g[o + xm1] + k[2] * g[o + x] + k[3] * g[o + xp1] + k[4] * g[o + xp2];
+      v = v < 0 ? 0 : v > 255 ? 255 : v;
+      const j = (o + x) * 4; d[j] = d[j + 1] = d[j + 2] = v; d[j + 3] = 255;
+    }
+  }
+  return img;
+}
+const canvas = document.createElement('canvas');
+const ctx2d = canvas.getContext('2d', { willReadFrequently: true });
+async function loop() {
+  if (!scanning) return;
+  const v = $('#video');
+  if (!paused && !sheetOpen() && v.readyState >= 2 && v.videoWidth) {
+    // อ่านเฉพาะกลางภาพตามกรอบเล็ง: เร็วขึ้นและไม่หยิบบาร์โค้ดข้างเคียง
+    const W = v.videoWidth, H = v.videoHeight;
+    // สลับวิธีอ่านทีละเฟรม: ภาพปกติ / ทำให้เส้นคมขึ้น 3 แบบ (ทดสอบแล้วช่วยบาร์โค้ดเบลอได้มาก)
+    const pass = (nativeDet && frameNo % 2 === 0) ? PASSES[0] : PASSES[frameNo % PASSES.length]; frameNo++;
+    const sx = pass.full ? 0 : Math.round(W * 0.06), sw = pass.full ? W : Math.round(W * 0.88);
+    const sy = pass.full ? 0 : Math.round(H * 0.24), sh = pass.full ? H : Math.round(H * 0.52);
+    const scale = pass.k ? 1 : Math.min(1, 960 / sw);
+    canvas.width = Math.round(sw * scale); canvas.height = Math.round(sh * scale);
+    ctx2d.drawImage(v, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    let src = canvas;
+    if (pass.k) src = sharpenH(ctx2d.getImageData(0, 0, canvas.width, canvas.height), pass.k);
+    try {
+      const found = await detector.detect(src);
+      if (found && found.length) {
+        const code = found[0].rawValue, now = Date.now();
+        // ต้องอ่านได้ค่าเดียวกัน 2 ครั้งติดกัน เพื่อกันอ่านผิดจากภาพเบลอ
+        if (normCode(code) === normCode(cool.code) && now < cool.until) { /* เพิ่งปิดแผ่นของสินค้านี้ */ }
+        else if (normCode(code) === normCode(last.code) && now - last.t < 2500) {
+          paused = true; handleCode(code, 'camera');
+          // ถ้าไม่ได้เปิดหน้าต่างใด (เช่น ไม่มี LOT รอนับซ้ำ) ให้สแกนต่อได้
+          setTimeout(() => { if (!sheetOpen()) { cool = { code, until: Date.now() + 2500 }; resumeScan(); } }, 1200);
+        }
+        else { last = { code, t: now }; $('#scanStatus').textContent = 'กำลังอ่าน… ถือนิ่งๆ'; }
+      }
+    } catch (e) {}
+  }
+  nextFrame();
+}
+// อ่านทันทีที่กล้องส่งเฟรมใหม่ (เร็วกว่ารอเวลาคงที่) ถ้าเบราว์เซอร์ไม่รองรับใช้ 60 มิลลิวินาที
+function nextFrame() {
+  const v = $('#video');
+  if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(() => loop());
+  else setTimeout(loop, 60);
+}
+$('#camStart').onclick = startCamera;
+$('#camStop').onclick = stopCamera;
+$('#torchBtn').onclick = async () => {
+  if (!track) return; const b = $('#torchBtn'), on = !b.classList.contains('on');
+  try { await track.applyConstraints({ advanced: [{ torch: on }] }); b.classList.toggle('on', on); } catch (e) { toast('เปิดไฟฉายไม่ได้ในเครื่องนี้', 'warn'); }
+};
+$('#zoom').addEventListener('input', async e => { try { await track.applyConstraints({ advanced: [{ zoom: Number(e.target.value) }] }); } catch (err) {} });
+document.addEventListener('visibilitychange', () => { if (document.hidden && stream) stopCamera(); });
+
+function flash(kind) { const g = $('#guide'); g.classList.add(kind); setTimeout(() => g.classList.remove(kind), 450);
+  $('#scanStatus').textContent = 'เล็งบาร์โค้ดให้อยู่ในกรอบ ถือนิ่งๆ ห่างประมาณ 10–15 ซม.'; }
+
+/* ---------- ช่องพิมพ์และเครื่องสแกนบลูทูธ ---------- */
+$('#manualForm').addEventListener('submit', e => {
+  e.preventDefault(); const v = $('#manualInput').value.trim(); if (!v) return;
+  $('#manualInput').value = ''; $('#manualInput').blur();
+  if (/\d{6,}/.test(v.replace(/\D/g, '')) && /^[\d\s-]+$/.test(v)) handleCode(v, 'manual');
+  else { setTab('search'); $('#searchInput').value = v; renderSearch(); }
+});
+// เครื่องสแกนบลูทูธพิมพ์ตัวเลขเร็วมากแล้วกด Enter: จับได้แม้ไม่ได้แตะช่องพิมพ์
+let kb = '', kbT = 0;
+document.addEventListener('keydown', e => {
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  const now = Date.now();
+  if (now - kbT > 80) kb = '';
+  kbT = now;
+  if (e.key === 'Enter') { if (kb.length >= 6) { e.preventDefault(); handleCode(kb, 'scanner'); } kb = ''; return; }
+  if (/^\d$/.test(e.key)) kb += e.key;
+});
+
+/* ---------- เสียงและการสั่น ---------- */
+let actx = null;
+function beep(kind) {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const seq = kind === 'miss' ? [[330, .12], [260, .16]] : kind === 'ok' ? [[880, .08], [1175, .12]] : [[1046, .09]];
+    let t = actx.currentTime;
+    seq.forEach(([f, d]) => { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f; o.type = 'sine';
+      g.gain.setValueAtTime(.18, t); g.gain.exponentialRampToValueAtTime(.001, t + d); o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + d); t += d + .03; });
+  } catch (e) {}
+  vibrate(kind === 'miss' ? [60, 60, 60] : 40);
+}
+function vibrate(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
+
+/* ---------- หน้าต่าง ---------- */
+function openDialog(html, bind) {
+  $('#layer').innerHTML = `<div class="overlay" id="dov" style="align-items:center"><div class="dialog" role="dialog" aria-modal="true">${html}</div></div>`;
+  const d = $('#dov .dialog');
+  d.querySelectorAll('[data-close]').forEach(b => b.onclick = () => { closeDialog(); });
+  bind && bind(d);
+}
+function closeDialog() { $('#layer').innerHTML = ''; resumeScan(); }
+let tTimer = null;
+function toast(msg, kind, ms, html) {
+  const t = $('#toast'); t.className = 'toast ' + (kind || '');
+  if (html) t.innerHTML = msg; else t.textContent = msg;
+  clearTimeout(tTimer); tTimer = setTimeout(() => t.classList.add('hidden'), ms || 2500);
+}
+
+/* ---------- ผู้นับ / ตั้งค่า / เมนู ---------- */
+function askCounter(after) {
+  const list = counters.length ? counters : [];
+  openDialog(`<h3>ใครเป็นผู้นับ</h3><p class="small muted">ชื่อนี้จะถูกบันทึกกับทุกการนับ เพื่อตรวจย้อนหลังได้</p>
+    ${list.length ? `<div class="choice">${list.map(n => `<button class="btn ghost" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div><p class="small muted">หรือพิมพ์ชื่อ</p>` : ''}
+    <input type="text" id="cntName" placeholder="เช่น ภก.สมชาย" value="${esc(cfg.counter)}">
+    <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button><button class="btn" id="cntSave">ตกลง</button></div>`, d => {
+    const set = n => { n = n.trim(); if (!n) return; cfg.counter = n; store.set('counter', n); closeDialog(); renderAll(); after && after(); };
+    d.querySelectorAll('[data-n]').forEach(b => b.onclick = () => set(b.dataset.n));
+    d.querySelector('#cntSave').onclick = () => set(d.querySelector('#cntName').value);
+  });
+}
+$('#counterBtn').onclick = () => askCounter();
+
+function openSetup(err) {
+  openDialog(`<h3>ตั้งค่าการเชื่อมต่อ</h3>
+    <p class="small muted">ทำครั้งเดียวต่อเครื่อง ลิงก์ได้จากขั้นตอน Deploy ใน Apps Script</p>
+    ${err ? `<p class="small" style="color:var(--bad)">${esc(err)}</p>` : ''}
+    <div class="field"><label>ลิงก์ระบบ (Web app URL)</label><input type="url" id="sApi" value="${esc(cfg.api)}" placeholder="https://script.google.com/macros/s/…/exec"></div>
+    <div class="field"><label>รหัสร้าน</label><input type="password" id="sPin" inputmode="numeric" value="${esc(cfg.pin)}"></div>
+    <div class="acts"><button class="btn" id="sSave">เชื่อมต่อ</button></div>`, d => {
+    d.querySelector('#sSave').onclick = async () => {
+      cfg.api = d.querySelector('#sApi').value.trim(); cfg.pin = d.querySelector('#sPin').value.trim();
+      store.set('api', cfg.api); store.set('pin', cfg.pin);
+      try { await api('ping', null, 'GET'); closeDialog(); toast('เชื่อมต่อสำเร็จ', 'ok'); await load(); if (!cfg.counter) askCounter(); }
+      catch (e) { openSetup(e.message); }
+    };
+  });
+}
+$('#menuBtn').onclick = () => openDialog(`<h3>เมนู</h3>
+  <div class="choice">
+    <button class="btn ghost" id="mReload">โหลดข้อมูลล่าสุดจากชีต</button>
+    <button class="btn ghost" id="mFlush">ส่งข้อมูลที่ค้างในเครื่อง (${queue.length})</button>
+    <button class="btn ghost" id="mSetup">ตั้งค่าการเชื่อมต่อ</button>
+  </div>
+  <p class="small muted" style="margin-top:14px">ข้อมูลทุกครั้งที่บันทึกถูกเก็บในแท็บ “บันทึกการนับ” ของชีต</p>
+  <div class="acts"><button class="btn ghost" data-close>ปิด</button></div>`, d => {
+  d.querySelector('#mReload').onclick = () => { closeDialog(); load(); };
+  d.querySelector('#mFlush').onclick = () => { closeDialog(); flushQueue(); };
+  d.querySelector('#mSetup').onclick = () => openSetup();
+});
+
+/* ---------- เริ่มต้น ---------- */
+function fixNavTop() { document.documentElement.style.setProperty('--hh', $('#hdr').offsetHeight + 'px'); }
+addEventListener('resize', fixNavTop); fixNavTop();
+renderAll();
+if (!cfg.api || !cfg.pin) openSetup(); else load(true).then(() => { if (!cfg.counter) askCounter(); });
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) hiddenAt = Date.now();
+  else if (hiddenAt && Date.now() - hiddenAt > 5 * 60 * 1000 && !sheetOpen()) load(true);
+});
+window.__pc = { handleCode, get items() { return items; }, get queue() { return queue; } };
+})();
+</script>
+</body>
+</html>
