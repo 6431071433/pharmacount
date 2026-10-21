@@ -231,13 +231,21 @@ const store = {
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
 };
 const qs = new URLSearchParams(location.search);
+// เปิดจาก LINE: ส่งต่อไปเปิดใน Safari/Chrome (เบราว์เซอร์ใน LINE ใช้กล้องไม่เสถียร และเก็บค่าแยก)
+if (/\bLine\//i.test(navigator.userAgent) && !qs.has('openExternalBrowser')) {
+  try { const u = new URL(location.href); u.searchParams.set('openExternalBrowser', '1'); location.replace(u.toString()); } catch (e) {}
+}
 if (qs.get('api')) store.set('api', qs.get('api'));
 if (qs.get('pin')) store.set('pin', qs.get('pin'));
-if (qs.get('api') || qs.get('pin')) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
+// รหัสร้านที่ซ่อนไว้ท้ายลิงก์ (#k=...) ทำให้ไอคอนหน้าจอโฮมจำรหัสได้
+try { const k = (location.hash.match(/[#&]k=([^&]+)/) || [])[1]; if (k && !store.get('pin', '')) store.set('pin', atob(decodeURIComponent(k))); } catch (e) {}
+function keepKey(pin) { try { history.replaceState(null, '', location.pathname + (pin ? '#k=' + encodeURIComponent(btoa(pin)) : '')); } catch (e) {} }
+if (qs.get('api') || qs.get('pin') || qs.has('openExternalBrowser')) keepKey(store.get('pin', ''));
 // ลิงก์ระบบของร้าน (Apps Script) ฝังไว้ในแอป: ไม่ใช่ความลับ เพราะต้องมีรหัสร้านถึงจะอ่าน/เขียนข้อมูลได้
 const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbw4_JeW_ZdVEFxO4yv0OvTwW61uSk6CtYRPSJBepHLJb31kB-omU2rhOQRDcAIM-FvsNw/exec';
 const validApi = u => /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(String(u || '').trim());
-const cfg = { api: validApi(store.get('api', '')) ? store.get('api', '') : DEFAULT_API, pin: store.get('pin', ''), counter: store.get('counter', '') };
+const cfg = { api: validApi(store.get('api', '')) ? store.get('api', '') : DEFAULT_API, pin: store.get('pin', ''), counter: store.get('counter', ''), cpin: store.get('cpin', '') };
+if (cfg.pin && !/[#&]k=/.test(location.hash)) keepKey(cfg.pin);
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -245,7 +253,7 @@ const normCode = v => String(v == null ? '' : v).replace(/\D/g, '').replace(/^0+
 const normName = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().toUpperCase();
 
 /* ---------- ข้อมูล ---------- */
-let items = [], counters = [], causes = [], shelves = [];
+let items = [], counters = [], causes = [], shelves = [], cpinNames = [];
 let byCode = new Map();   // บาร์โค้ด → Set(ชื่อสินค้า)
 let byName = new Map();   // ชื่อสินค้า → [LOT]
 let queue = store.get('queue', []);
@@ -280,11 +288,15 @@ async function api(action, payload, method) {
   } else {
     // text/plain เพื่อไม่ให้เบราว์เซอร์ส่ง preflight ที่ Apps Script ไม่รองรับ
     res = await fetch(cfg.api, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(Object.assign({ action, pin: cfg.pin, counter: cfg.counter, device: deviceName() }, payload || {})) });
+      body: JSON.stringify(Object.assign({ action, pin: cfg.pin, counter: cfg.counter, cpin: cfg.cpin, device: deviceName() }, payload || {})) });
   }
   let data;
   try { data = await res.json(); } catch (e) { throw new Error('ระบบตอบกลับไม่ถูกต้อง ตรวจสอบลิงก์ระบบ'); }
-  if (!data.ok) { const e = new Error(data.error || 'เกิดข้อผิดพลาด'); e.server = true; e.code = data.code; throw e; }
+  if (!data.ok) {
+    const e = new Error(data.error || 'เกิดข้อผิดพลาด'); e.server = true; e.code = data.code;
+    if (data.code === 'cpin') setTimeout(() => { if (!$('#layer').firstChild) askCounter(null, data.error); }, 50);
+    throw e;
+  }
   return data;
 }
 function deviceName() { const ua = navigator.userAgent; return /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : 'คอมพิวเตอร์'; }
@@ -293,7 +305,7 @@ function setOnline(v) { online = v; $('#netDot').classList.toggle('off', !v); }
 async function load(silent) {
   try {
     const d = await api('init', null, 'GET');
-    items = d.items; counters = d.counters || []; causes = d.causes || []; shelves = d.shelves || [];
+    items = d.items; counters = d.counters || []; causes = d.causes || []; shelves = d.shelves || []; cpinNames = d.cpin || [];
     buildIndex(d.barcodes);
     setOnline(true);
     renderAll();
@@ -474,7 +486,7 @@ function openUnknown(raw) {
         openSheet(byName.get(normName(name)) || [], tab === 'recount' ? 'recount' : 'count', raw);
       } catch (err) {
         if (err.server) { b.disabled = false; toast('บันทึกไม่ได้: ' + err.message, 'bad', 4000); return; }
-        queue.push({ action: 'link', payload: { barcode: raw, name }, counter: cfg.counter, at: Date.now() });
+        queue.push({ action: 'link', payload: { barcode: raw, name }, counter: cfg.counter, cpin: cfg.cpin, at: Date.now() });
         store.set('queue', queue); setOnline(false);
         addCode(raw, name); closeDialog(); renderAll();
         toast('ไม่มีสัญญาณ จำบาร์โค้ดไว้ในเครื่องก่อน จะส่งเข้าชีตเมื่อออนไลน์', 'warn', 3500);
@@ -534,7 +546,7 @@ function openReport(pre) {
         toast(`บันทึกแล้ว${d.saved > 1 ? ' ' + d.saved + ' LOT' : ''} รอเภสัชกรเพิ่มเข้ารายการนับ (เมนู PharmaCount ในชีต)`, 'ok', 3500);
       } catch (e) {
         if (e.server) { btn.disabled = false; renumber(); toast('บันทึกไม่ได้: ' + e.message, 'bad', 4000); return; }
-        queue.push({ action: 'report', payload: body, counter: cfg.counter, at: Date.now() });
+        queue.push({ action: 'report', payload: body, counter: cfg.counter, cpin: cfg.cpin, at: Date.now() });
         store.set('queue', queue); rememberShelf(loc); setOnline(false); closeDialog(); renderAll();
         toast('ไม่มีสัญญาณ เก็บรายการไว้ในเครื่องแล้ว จะส่งเองเมื่อออนไลน์', 'warn', 4000);
       }
@@ -664,7 +676,7 @@ async function saveSheet() {
   } catch (e) {
     if (e.server) { btn.disabled = false; updateSave(); toast(e.message, 'bad', 4500); return; }
     // ออฟไลน์: เก็บไว้ส่งทีหลัง
-    queue.push({ action: mode, payload, counter: cfg.counter, at: Date.now() });
+    queue.push({ action: mode, payload, counter: cfg.counter, cpin: cfg.cpin, at: Date.now() });
     store.set('queue', queue);
     entries.forEach(e => { if (mode === 'count') { e.it.c = true; e.it.by = cfg.counter; } e.it.st = 'รอส่ง'; });
     setOnline(false); closeSheet(); renderAll();
@@ -685,6 +697,7 @@ function applyResults(results, entries, loc, mode) {
     if (res.st === 'รอนับซ้ำ') { warn++; lines.push(`LOT ${it.l}: ไม่ตรง → ส่งให้คนที่ 2 นับซ้ำ`); }
     else if (/^ไม่ตรง/.test(res.st)) { warn++; it.df = res.diff; askCause.push(it); lines.push(`LOT ${it.l}: ยืนยันว่าไม่ตรง`); }
     else lines.push(`LOT ${it.l}: ${res.st} ✓`);
+    if (res.same) { warn++; lines.push('⚠ นับซ้ำโดยคนเดิม (ระบบติดป้ายไว้ให้เภสัชกรเห็น)'); }
   });
   renderAll();
   const kind = bad ? 'bad' : warn ? 'warn' : 'ok';
@@ -726,16 +739,19 @@ async function flushQueue() {
   try {
     while (queue.length) {
       const job = queue[0];
-      const saved = cfg.counter; cfg.counter = job.counter;
+      const saved = cfg.counter, savedPin = cfg.cpin;
+      if (job.counter !== cfg.counter) { cfg.counter = job.counter; if (job.cpin !== undefined) cfg.cpin = job.cpin; }
       let d;
       try { d = await api(job.action, job.payload); }
       catch (e) {
         if (!e.server) throw e;
+        // รหัสส่วนตัวไม่ผ่าน: เก็บรายการไว้ก่อน ส่งใหม่หลังเลือกชื่อและใส่รหัสใหม่
+        if (e.code === 'cpin') throw e;
         // ระบบปฏิเสธรายการนี้ (เช่น ข้อมูลในชีตเปลี่ยน) ไม่ต้องส่งซ้ำ แจ้งผู้ใช้แล้วข้ามไป
         queue.shift(); store.set('queue', queue);
         toast('รายการที่ค้างส่งไม่สำเร็จ 1 รายการ: ' + e.message, 'bad', 5000);
         continue;
-      } finally { cfg.counter = saved; }
+      } finally { cfg.counter = saved; cfg.cpin = savedPin; }
       queue.shift(); store.set('queue', queue); sent.push(d);
       (d.results || []).forEach(res => {
         const it = items.find(i => i.r === res.r);
@@ -975,15 +991,38 @@ function toast(msg, kind, ms, html) {
 }
 
 /* ---------- ผู้นับ / ตั้งค่า / เมนู ---------- */
-function askCounter(after) {
+function askCounter(after, err) {
   const list = counters.length ? counters : [];
+  const strict = cpinNames.length > 0;
   openDialog(`<h3>ใครเป็นผู้นับ</h3><p class="small muted">ชื่อนี้จะถูกบันทึกกับทุกการนับ เพื่อตรวจย้อนหลังได้</p>
-    ${list.length ? `<div class="choice">${list.map(n => `<button class="btn ghost" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div><p class="small muted">หรือพิมพ์ชื่อ</p>` : ''}
-    <input type="text" id="cntName" placeholder="เช่น ภก.สมชาย" value="${esc(cfg.counter)}">
-    <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button><button class="btn" id="cntSave">ตกลง</button></div>`, d => {
-    const set = n => { n = n.trim(); if (!n) return; cfg.counter = n; store.set('counter', n); closeDialog(); renderAll(); after && after(); };
+    ${err ? `<p class="small" style="color:var(--bad)">${esc(err)}</p>` : ''}
+    ${list.length ? `<div class="choice">${list.map(n => `<button class="btn ghost" data-n="${esc(n)}">${esc(n)}${cpinNames.includes(n) ? ' 🔒' : ''}</button>`).join('')}</div>${strict ? '' : '<p class="small muted">หรือพิมพ์ชื่อ</p>'}` : ''}
+    ${strict ? '' : `<input type="text" id="cntName" placeholder="เช่น ภก.สมชาย" value="${esc(cfg.counter)}">`}
+    <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button>${strict ? '' : '<button class="btn" id="cntSave">ตกลง</button>'}</div>`, d => {
+    const done = (n, p) => { cfg.counter = n; cfg.cpin = p || ''; store.set('counter', n); store.set('cpin', cfg.cpin); closeDialog(); renderAll(); toast('ผู้นับ: ' + n, 'ok', 1500); after && after(); };
+    const set = n => {
+      n = n.trim(); if (!n) return;
+      if (!cpinNames.includes(n)) { done(n, ''); return; }
+      closeDialog();
+      openDialog(`<h3>รหัสส่วนตัวของ ${esc(n)}</h3><p class="small muted">ใส่ครั้งเดียวต่อเครื่อง</p>
+        <div class="field"><input type="password" id="cpIn" inputmode="numeric" autocomplete="off"></div>
+        <div class="acts"><button class="btn ghost" id="cpBack">กลับ</button><button class="btn" id="cpOk">ยืนยัน</button></div>`, d2 => {
+        const inp = d2.querySelector('#cpIn'); setTimeout(() => inp.focus(), 60);
+        d2.querySelector('#cpBack').onclick = () => { closeDialog(); askCounter(after); };
+        d2.querySelector('#cpOk').onclick = async () => {
+          const p = inp.value.trim(), btn = d2.querySelector('#cpOk'); if (!p || btn.disabled) return;
+          btn.disabled = true; btn.textContent = 'กำลังตรวจ…';
+          const prev = [cfg.counter, cfg.cpin]; cfg.counter = n; cfg.cpin = p;
+          try { await api('who'); done(n, p); }
+          catch (e) {
+            [cfg.counter, cfg.cpin] = prev; btn.disabled = false; btn.textContent = 'ยืนยัน';
+            toast(e.server ? e.message : 'ตรวจรหัสไม่ได้ ต้องมีอินเทอร์เน็ต', 'bad', 3500);
+          }
+        };
+      });
+    };
     d.querySelectorAll('[data-n]').forEach(b => b.onclick = () => set(b.dataset.n));
-    d.querySelector('#cntSave').onclick = () => set(d.querySelector('#cntName').value);
+    const sv = d.querySelector('#cntSave'); if (sv) sv.onclick = () => set(d.querySelector('#cntName').value);
   });
 }
 $('#counterBtn').onclick = () => askCounter();
@@ -1003,7 +1042,7 @@ function openSetup(err, advanced) {
       const apiIn = d.querySelector('#sApi').value.trim() || DEFAULT_API;
       if (!validApi(apiIn)) { openSetup('ลิงก์ระบบต้องขึ้นต้นด้วย https://script.google.com/macros/s/ และลงท้ายด้วย /exec (ไม่ใช่ลิงก์ github.io ของหน้าแอป)', true); return; }
       cfg.api = apiIn; cfg.pin = d.querySelector('#sPin').value.trim();
-      store.set('api', cfg.api); store.set('pin', cfg.pin);
+      store.set('api', cfg.api); store.set('pin', cfg.pin); keepKey(cfg.pin);
       try { await api('ping', null, 'GET'); closeDialog(); toast('เชื่อมต่อสำเร็จ', 'ok'); await load(); if (!cfg.counter) askCounter(); }
       catch (e) { openSetup(e.code === 'pin' ? 'รหัสร้านไม่ถูกต้อง' : e.server ? e.message : 'เชื่อมต่อไม่ได้ ตรวจสอบอินเทอร์เน็ต แล้วลองอีกครั้ง'); }
     };
