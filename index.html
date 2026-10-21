@@ -244,7 +244,15 @@ if (qs.get('api') || qs.get('pin') || qs.has('openExternalBrowser')) keepKey(sto
 // ลิงก์ระบบของร้าน (Apps Script) ฝังไว้ในแอป: ไม่ใช่ความลับ เพราะต้องมีรหัสร้านถึงจะอ่าน/เขียนข้อมูลได้
 const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbw4_JeW_ZdVEFxO4yv0OvTwW61uSk6CtYRPSJBepHLJb31kB-omU2rhOQRDcAIM-FvsNw/exec';
 const validApi = u => /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(String(u || '').trim());
-const cfg = { api: validApi(store.get('api', '')) ? store.get('api', '') : DEFAULT_API, pin: store.get('pin', ''), counter: store.get('counter', ''), cpin: store.get('cpin', '') };
+// เครื่องกลาง (ใช้ร่วมกันหลายคน): จำชื่อผู้นับไว้แค่จนปิดแอป และถามใหม่เมื่อเปิดกลับมาหลังพักนาน
+const shared = store.get('shared', false);
+const sess = {
+  get(k) { try { return sessionStorage.getItem('pc_' + k) || ''; } catch (e) { return ''; } },
+  set(k, v) { try { sessionStorage.setItem('pc_' + k, v); } catch (e) {} }
+};
+const whoGet = k => shared ? sess.get(k) : store.get(k, '');
+const whoSet = (k, v) => shared ? sess.set(k, v) : store.set(k, v);
+const cfg = { api: validApi(store.get('api', '')) ? store.get('api', '') : DEFAULT_API, pin: store.get('pin', ''), counter: whoGet('counter'), cpin: whoGet('cpin') };
 if (cfg.pin && !/[#&]k=/.test(location.hash)) keepKey(cfg.pin);
 
 const $ = s => document.querySelector(s);
@@ -993,18 +1001,24 @@ function toast(msg, kind, ms, html) {
 /* ---------- ผู้นับ / ตั้งค่า / เมนู ---------- */
 function askCounter(after, err) {
   const list = counters.length ? counters : [];
-  const strict = cpinNames.length > 0;
+  const key = v => String(v || '').replace(/\s+/g, '').toLowerCase();
+  const needPin = n => cpinNames.some(x => key(x) === key(n));
   openDialog(`<h3>ใครเป็นผู้นับ</h3><p class="small muted">ชื่อนี้จะถูกบันทึกกับทุกการนับ เพื่อตรวจย้อนหลังได้</p>
     ${err ? `<p class="small" style="color:var(--bad)">${esc(err)}</p>` : ''}
-    ${list.length ? `<div class="choice">${list.map(n => `<button class="btn ghost" data-n="${esc(n)}">${esc(n)}${cpinNames.includes(n) ? ' 🔒' : ''}</button>`).join('')}</div>${strict ? '' : '<p class="small muted">หรือพิมพ์ชื่อ</p>'}` : ''}
-    ${strict ? '' : `<input type="text" id="cntName" placeholder="เช่น ภก.สมชาย" value="${esc(cfg.counter)}">`}
-    <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button>${strict ? '' : '<button class="btn" id="cntSave">ตกลง</button>'}</div>`, d => {
-    const done = (n, p) => { cfg.counter = n; cfg.cpin = p || ''; store.set('counter', n); store.set('cpin', cfg.cpin); closeDialog(); renderAll(); toast('ผู้นับ: ' + n, 'ok', 1500); after && after(); };
+    ${list.length ? `<div class="choice">${list.map(n => `<button class="btn ghost" data-n="${esc(n)}">${esc(n)}${needPin(n) ? ' 🔒' : ''}</button>`).join('')}</div><p class="small muted">ไม่มีชื่อ? พิมพ์ชื่อของคุณ ระบบจะเพิ่มในรายชื่อให้เอง</p>` : ''}
+    <input type="text" id="cntName" placeholder="เช่น ภก.สมชาย" value="${esc(cfg.counter)}" maxlength="40">
+    <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button><button class="btn" id="cntSave">ตกลง</button></div>`, d => {
+    const done = (n, p) => {
+      cfg.counter = n; cfg.cpin = p || ''; whoSet('counter', n); whoSet('cpin', cfg.cpin);
+      if (!list.some(x => key(x) === key(n))) counters.push(n);
+      closeDialog(); renderAll(); toast('ผู้นับ: ' + n, 'ok', 1500); after && after();
+    };
     const set = n => {
-      n = n.trim(); if (!n) return;
-      if (!cpinNames.includes(n)) { done(n, ''); return; }
+      n = n.replace(/\s+/g, ' ').trim(); if (!n) return;
+      const known = list.find(x => key(x) === key(n)); if (known) n = known;
+      if (!needPin(n)) { done(n, ''); return; }
       closeDialog();
-      openDialog(`<h3>รหัสส่วนตัวของ ${esc(n)}</h3><p class="small muted">ใส่ครั้งเดียวต่อเครื่อง</p>
+      openDialog(`<h3>รหัสส่วนตัวของ ${esc(n)}</h3><p class="small muted">${shared ? 'เครื่องกลาง: ใส่ทุกครั้งที่เริ่มใช้' : 'ใส่ครั้งเดียวต่อเครื่อง'}</p>
         <div class="field"><input type="password" id="cpIn" inputmode="numeric" autocomplete="off"></div>
         <div class="acts"><button class="btn ghost" id="cpBack">กลับ</button><button class="btn" id="cpOk">ยืนยัน</button></div>`, d2 => {
         const inp = d2.querySelector('#cpIn'); setTimeout(() => inp.focus(), 60);
@@ -1022,7 +1036,7 @@ function askCounter(after, err) {
       });
     };
     d.querySelectorAll('[data-n]').forEach(b => b.onclick = () => set(b.dataset.n));
-    const sv = d.querySelector('#cntSave'); if (sv) sv.onclick = () => set(d.querySelector('#cntName').value);
+    d.querySelector('#cntSave').onclick = () => set(d.querySelector('#cntName').value);
   });
 }
 $('#counterBtn').onclick = () => askCounter();
@@ -1052,13 +1066,22 @@ $('#menuBtn').onclick = () => openDialog(`<h3>เมนู</h3>
   <div class="choice">
     <button class="btn ghost" id="mReload">โหลดข้อมูลล่าสุดจากชีต</button>
     <button class="btn ghost" id="mFlush">ส่งข้อมูลที่ค้างในเครื่อง (${queue.length})</button>
+    <button class="btn ghost" id="mWho">เปลี่ยนผู้นับ</button>
+    <button class="btn ghost" id="mShared">${shared ? '✓ ' : ''}เครื่องกลาง (ใช้ร่วมกันหลายคน): ${shared ? 'เปิดอยู่' : 'ปิดอยู่'}</button>
     <button class="btn ghost" id="mSetup">ตั้งค่าการเชื่อมต่อ</button>
   </div>
+  <p class="small muted" style="margin-top:10px">เครื่องกลาง = แอปถามชื่อผู้นับใหม่ทุกครั้งที่เปิด และเมื่อไม่ได้ใช้เกิน 5 นาที เหมาะกับมือถือหรือแท็บเล็ตของร้าน</p>
   <p class="small muted" style="margin-top:14px">ข้อมูลทุกครั้งที่บันทึกถูกเก็บในแท็บ “บันทึกการนับ” ของชีต</p>
   <div class="acts"><button class="btn ghost" data-close>ปิด</button></div>`, d => {
   d.querySelector('#mReload').onclick = () => { closeDialog(); load(); };
   d.querySelector('#mFlush').onclick = () => { closeDialog(); flushQueue(); };
   d.querySelector('#mSetup').onclick = () => openSetup();
+  d.querySelector('#mWho').onclick = () => { closeDialog(); askCounter(); };
+  d.querySelector('#mShared').onclick = () => {
+    store.set('shared', !shared); store.set('counter', ''); store.set('cpin', '');
+    try { sessionStorage.removeItem('pc_counter'); sessionStorage.removeItem('pc_cpin'); } catch (e) {}
+    location.reload();
+  };
 });
 
 /* ---------- เริ่มต้น ---------- */
@@ -1069,7 +1092,10 @@ if (!cfg.pin) openSetup(); else load(true).then(() => { if (!cfg.counter) askCou
 let hiddenAt = 0;
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) hiddenAt = Date.now();
-  else if (hiddenAt && Date.now() - hiddenAt > 5 * 60 * 1000 && !sheetOpen()) load(true);
+  else if (hiddenAt && Date.now() - hiddenAt > 5 * 60 * 1000 && !sheetOpen()) {
+    if (shared) { cfg.counter = ''; cfg.cpin = ''; whoSet('counter', ''); whoSet('cpin', ''); renderAll(); }
+    load(true).then(() => { if (shared && !cfg.counter) askCounter(); });
+  }
 });
 window.__pc = { handleCode, get items() { return items; }, get queue() { return queue; } };
 })();
