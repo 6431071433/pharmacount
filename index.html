@@ -758,13 +758,13 @@ function openSheet(lots, mode, raw, pre, editing) {
             ${pk ? '' : `<button type="button" class="linkbtn small" data-calcbtn>📦 นับเป็นกล่อง/แผง</button>`}
             ${chk(i) ? `<button type="button" class="linkbtn small" data-expt>EXP บนกล่องไม่ตรง</button>` : ''}
           </div>
-          ${chk(i) && mode === 'count' ? `<label class="confirm"><input type="checkbox" data-confirm checked> หน้างานถูกแน่นอน ไม่ต้องนับซ้ำ (รอเจ้าของร้านปรับใน Arincare)</label>` : ''}
+          ${chk(i) && mode === 'count' ? `<label class="confirm"><input type="checkbox" data-confirm> หน้างานถูกแน่นอน ไม่ต้องนับซ้ำ (รอเจ้าของร้านปรับใน Arincare)</label>` : ''}
           ${chk(i) ? '' : `<div class="lotx"><button type="button" data-x="ok">✓ LOT/EXP ตรงกับกล่อง</button><button type="button" data-x="bad">EXP ไม่ตรง</button></div>`}
           <div class="expbox" data-expbox><label class="small muted">EXP ที่เห็นบนกล่อง (LOT ไม่ตรง ให้กด “+ พบ LOT ที่ไม่มีในระบบ” แทน)</label>${expPicker()}</div>
           </div>
         </div>`).join('')}
-      ${mode === 'count' ? `<div id="newLots"></div><button type="button" class="linkbtn" id="newLotBtn">+ พบ LOT ที่ไม่มีในระบบ (กรอกในแผ่นนี้ได้เลย)</button>
-      ${shelfField('locInput', ploc[normName(p.n)] || p.loc || store.get('lastShelf', ''))}` : ''}
+      <div id="newLots"></div><button type="button" class="linkbtn" id="newLotBtn">+ พบ LOT ที่ไม่มีในระบบ (กรอกในแผ่นนี้ได้เลย)</button>
+      ${mode === 'count' ? `${shelfField('locInput', ploc[normName(p.n)] || p.loc || store.get('lastShelf', ''))}` : ''}
     </div>
     <div class="sheet-f">
       <button class="btn ghost" id="sheetCancel">ยกเลิก</button>
@@ -880,6 +880,10 @@ async function saveSheet() {
   if (newLots.some(o => o.q === undefined || !Number.isInteger(o.q) || o.q < 0)) { toast('LOT ใหม่: กรอกจำนวน', 'bad'); return; }
   if (newLots.some(o => !o.exp)) { toast('LOT ใหม่: เลือกเดือนและปีหมดอายุบนกล่อง', 'bad'); return; }
   if (newLots.some(o => sheetCtx.lots.some(i => normKey(i.l) === normKey(o.lot)))) { toast('LOT นี้มีในระบบอยู่แล้ว กรอกที่การ์ดของ LOT นั้นแทน', 'bad'); return; }
+  // EXP ที่เลือกเป็นอดีต (หมดอายุแล้ว) มักเป็นการเลือกปีผิด ถามยืนยันก่อน
+  const ym = new Date().toISOString().slice(0, 7);
+  const past = newLots.map(o => o.exp).concat(sheetEntries().map(e => e.expFound || '')).filter(x => x && x.slice(0, 7) < ym);
+  if (past.length && !confirm(`EXP ${past.join(', ')} หมดอายุไปแล้ว ถูกต้องไหม (ถ้าเลือกปีผิด กดยกเลิกแล้วแก้)`)) return;
   if (entries.some(e => !Number.isInteger(e.q) || e.q < 0)) { toast('จำนวนต้องเป็นจำนวนเต็มตั้งแต่ 0', 'bad'); return; }
   if (entries.some(e => e.expFound === null || e.expFound === '')) { toast('EXP ไม่ตรง: เลือกเดือนและปีที่เห็นบนกล่อง', 'bad'); return; }
   const mode = sheetCtx.mode, editing = sheetCtx.editing;
