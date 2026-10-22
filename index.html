@@ -16,7 +16,8 @@
   --bad:#b3261e; --bad-soft:#fdecea; --radius:14px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Sarabun,system-ui,sans-serif;font-size:16px}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Sarabun,system-ui,sans-serif;font-size:16px;line-height:1.45}
+html.big body{zoom:1.15}   /* ตัวอักษรใหญ่ (เลือกได้ในเมนู) */
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 .hidden{display:none!important}
@@ -37,7 +38,8 @@ header{position:sticky;top:0;z-index:20;background:var(--brand);color:#fff;paddi
 
 /* tabs */
 nav{display:flex;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:var(--hh,84px);z-index:15}
-nav button{flex:1;border:0;background:none;padding:12px 6px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;display:flex;gap:6px;justify-content:center;align-items:center}
+nav button{flex:1;border:0;background:none;padding:10px 4px 9px;font-weight:600;font-size:15px;color:var(--muted);border-bottom:3px solid transparent;display:flex;gap:6px;justify-content:center;align-items:center}
+nav button svg{width:20px;height:20px;flex:none}
 nav button.on{color:var(--brand);border-bottom-color:var(--brand)}
 .badge{background:var(--bad);color:#fff;border-radius:999px;font-size:12px;min-width:20px;padding:0 6px;line-height:20px}
 .badge:empty{display:none}
@@ -50,6 +52,11 @@ h2{font-size:17px;margin:0 0 8px}
 
 /* camera */
 .cam{position:relative;border-radius:var(--radius);overflow:hidden;background:#0b1214;aspect-ratio:4/3;max-height:52vh;width:100%}
+.cam.off{aspect-ratio:auto;height:168px;background:linear-gradient(135deg,#0F5257,#13706f)}
+.cam.off video{display:none}
+.cam-msg .ico{width:46px;height:46px;margin:0 auto 6px;display:block;opacity:.95}
+.cam-msg .ttl{font-size:17px;font-weight:700}
+.cam-msg .btn{background:#fff;color:var(--brand);min-width:160px}
 .cam video{width:100%;height:100%;object-fit:cover;display:block}
 .guide{position:absolute;left:8%;right:8%;top:28%;bottom:28%;border:3px solid rgba(255,255,255,.9);border-radius:12px;box-shadow:0 0 0 999px rgba(0,0,0,.35);transition:border-color .15s}
 .guide.hit{border-color:#7ee2a8}
@@ -73,9 +80,16 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .btn.warn{background:var(--warn)}
 .btn.block{width:100%}
 .btn:disabled{opacity:.5}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.tips{margin-top:8px;font-size:13.5px;color:var(--muted)}
+.tips summary{cursor:pointer;color:var(--brand);font-weight:600;padding:4px 0;list-style:none}
+.tips summary::-webkit-details-marker{display:none}
+.tips summary::before{content:'💡 '}
+.tips ul{margin:4px 0 0;padding-left:20px}
+.tips li{margin:3px 0}
 .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
-.stat b{display:block;font-size:20px;color:var(--brand)}
+.stat b{display:block;font-size:22px;color:var(--brand);line-height:1.2}
+.stat.warn b{color:var(--warn)}
 
 /* list */
 .list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
@@ -99,11 +113,20 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .sheet-h .pname{font-size:18px;font-weight:700;line-height:1.3;margin-top:2px}
 .sheet-b{padding:12px 16px;overflow:auto;flex:1}
 .sheet-f{padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line);display:flex;gap:10px}
-.sheet-f .btn{flex:1}
+.sheet-f .btn{flex:1;white-space:nowrap}
+.sheet-f .btn.ghost{flex:0 0 32%}
 .lot{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
 .lot.done{border-color:#9fd7b3}
 .lot-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
-.lot-id{font-weight:700;font-size:16px}
+.lot-id{font-weight:700;font-size:17px}
+.lot-exp{font-size:14px;color:var(--muted);margin-top:1px}
+.lot-exp.warn{color:var(--warn);font-weight:600}.lot-exp.bad{color:var(--bad);font-weight:700}
+.sysq{text-align:right;flex:none;line-height:1.1}
+.sysq.sys{margin-top:0;padding:6px 12px;border-radius:12px}
+.sysq b{display:block;font-size:28px;color:var(--brand)}
+.sysq span{font-size:12.5px;color:var(--muted)}
+.mode-chip{display:inline-block;background:var(--brand-soft);color:var(--brand);border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:700}
+.mode-chip.blind{background:#eef0ff;color:#3b3fa8}
 .lot-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .stepper{display:flex;align-items:center;gap:8px;margin-top:12px}
 .stepper button{width:52px;height:52px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:26px;font-weight:700;color:var(--brand);flex:none}
@@ -126,8 +149,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .calc input{width:64px;height:40px;text-align:center;font-size:18px;font-weight:700;padding:4px}
 .calc .eq{font-weight:700;color:var(--brand);margin-top:6px}
 .lotx{display:flex;gap:6px;margin-top:10px}
-.lotx button{flex:1;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 6px;font-size:13.5px;font-weight:600;color:var(--muted)}
-.lotx button.on[data-x="ok"]{background:var(--ok-soft);border-color:#9fd7b3;color:var(--ok)}
+.lotx button{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:11px 6px;font-size:15px;font-weight:700;color:var(--ink);min-height:48px}
+.lotx button[data-x="ok"]{color:var(--ok);border-color:#9fd7b3}
+.lotx button.on[data-x="ok"]{background:var(--ok);border-color:var(--ok);color:#fff}
 .lotx button.on[data-x="edit"],.lotx button.on[data-x="bad"]{background:var(--warn-soft);border-color:#f3c48c;color:var(--warn)}
 .expbox{display:none;margin-top:8px}
 .expbox.on{display:block}
@@ -146,6 +170,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .confirm{display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:14px;color:var(--brand);font-weight:600}
 .confirm input{width:20px;height:20px;flex:none;margin-top:1px}
 .allok{width:100%;margin:0 0 12px;padding:14px;font-size:17px}
+.str{color:var(--brand);background:var(--brand-soft);border-radius:5px;padding:0 3px;font-weight:700}
+.newver{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));z-index:55;border:0;border-radius:999px;background:var(--ink);color:#fff;font-weight:700;padding:12px 20px;box-shadow:0 6px 20px rgba(0,0,0,.3);white-space:nowrap}
 .addlot{width:100%;margin-top:10px;border:1px dashed var(--brand-2);border-radius:12px;background:none;color:var(--brand);font-weight:700;padding:12px}
 
 /* dialog */
@@ -180,22 +206,19 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 </header>
 
 <nav id="tabs">
-  <button data-tab="count" class="on">นับสต็อก</button>
-  <button data-tab="recount">นับซ้ำ <span class="badge" id="recountBadge"></span></button>
-  <button data-tab="search">ค้นหา</button>
+  <button data-tab="count" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 8v8M11 8v8M14 8v8M17 8v8"/></svg>สแกนนับ</button>
+  <button data-tab="recount"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>นับซ้ำ <span class="badge" id="recountBadge"></span></button>
+  <button data-tab="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>ค้นชื่อยา</button>
 </nav>
 
 <main>
   <!-- นับสต็อก -->
   <section id="tab-count">
-    <div class="cam" id="cam">
+    <div class="cam off" id="cam">
       <video id="video" playsinline muted autoplay></video>
       <div class="guide hidden" id="guide"><div class="laser"></div></div>
       <div class="cam-msg" id="camMsg">
-        <div>
-          <div>แตะเพื่อเปิดกล้องสแกนบาร์โค้ด</div>
-          <button class="btn" id="camStart">เปิดกล้อง</button>
-        </div>
+        <div><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 8v8M11 8v8M14 8v8M17 8v8"/></svg></span><div class="ttl">สแกนบาร์โค้ดเพื่อนับ</div><button class="btn" id="camStart">เปิดกล้อง</button></div>
       </div>
       <div class="cam-tools hidden" id="camTools">
         <button class="round" id="torchBtn" aria-label="ไฟฉาย" title="ไฟฉาย">
@@ -209,18 +232,21 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
         </button>
       </div>
     </div>
-    <div class="scan-status muted" id="scanStatus">เล็งบาร์โค้ดให้อยู่ในกรอบ ห่างประมาณ 10–15 ซม.</div>
-    <div class="kbd-hint">ป้ายราคาบนชั้น: กดปุ่ม 1× ให้เป็น 2× หรือ 3× ให้บาร์โค้ดกว้างเกือบเต็มกรอบ และเอียงมือถือเล็กน้อยหลบแสงสะท้อนจากพลาสติก</div>
+    <div class="scan-status muted hidden" id="scanStatus">เล็งบาร์โค้ดให้อยู่ในกรอบ ห่างประมาณ 10–15 ซม.</div>
 
     <form class="manual" id="manualForm" autocomplete="off">
       <input type="search" id="manualInput" inputmode="numeric" placeholder="พิมพ์บาร์โค้ด หรือใช้เครื่องสแกน">
       <button class="btn" type="submit">ตกลง</button>
     </form>
-    <div class="kbd-hint">ต่อเครื่องสแกนบาร์โค้ดบลูทูธได้ สแกนได้ทันทีโดยไม่ต้องแตะช่องพิมพ์ · สินค้าไม่มีบาร์โค้ด ใช้แท็บ “ค้นหา”</div>
+    <details class="tips"><summary>เคล็ดลับการสแกน</summary><ul>
+      <li>ถือห่างประมาณ 10–15 ซม. ให้บาร์โค้ดอยู่ในกรอบ</li>
+      <li>ป้ายราคาบนชั้น: กดปุ่ม 1× ให้เป็น 2× หรือ 3× และเอียงมือถือหลบแสงสะท้อน</li>
+      <li>สินค้าไม่มีบาร์โค้ด: ใช้แท็บ “ค้นชื่อยา”</li>
+      <li>ต่อเครื่องสแกนบลูทูธได้ ยิงได้เลยไม่ต้องแตะช่องพิมพ์</li></ul></details>
 
     <div class="stats">
       <div class="stat"><b id="stCounted">–</b><span class="small muted">LOT ที่นับแล้ว</span></div>
-      <div class="stat"><b id="stBarcode">–</b><span class="small muted">สินค้าที่มีบาร์โค้ดแล้ว</span></div>
+      <div class="stat warn" id="stPendBox"><b id="stPend">–</b><span class="small muted">รอนับซ้ำ</span></div>
     </div>
     <div id="recentWrap" class="hidden recent">
       <div class="section-title">นับล่าสุดในเครื่องนี้ · แตะเพื่อแก้ไข</div>
@@ -231,8 +257,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
   <!-- นับซ้ำ -->
   <section id="tab-recount" class="hidden">
     <div class="card small">
-      <b>นับซ้ำโดยเภสัชกรคนที่สอง</b><br>
-      รายการด้านล่างนับครั้งแรกแล้วไม่ตรงกับระบบ ให้คนที่ไม่ใช่ผู้นับครั้งแรกนับอีกครั้ง โดยไม่เห็นตัวเลขเดิม แตะรายการหรือสแกนบาร์โค้ดในแท็บนี้ได้เลย
+      <b>รายการที่นับแล้วไม่ตรงกับระบบ</b><br>
+      <span id="recountHelp">ตรวจอีกครั้ง (ควรเป็นอีกคน) แตะรายการหรือสแกนในแท็บนี้ ถ้าหน้างานถูกแล้วใส่ยอดเดิมซ้ำ = ยืนยัน รอปรับ Arincare</span>
     </div>
     <div id="recountList" class="list"></div>
     <div id="causeWrap" class="hidden">
@@ -243,8 +269,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 
   <!-- ค้นหา -->
   <section id="tab-search" class="hidden">
-    <input type="search" id="searchInput" placeholder="ค้นหาชื่อยา บาร์โค้ด หรือ LOT" autocomplete="off">
-    <div class="kbd-hint">แตะสินค้าเพื่อนับ ใช้กับสินค้าที่ไม่มีบาร์โค้ดหรือสแกนไม่ติด</div>
+    <input type="search" id="searchInput" placeholder="พิมพ์ชื่อยา บาร์โค้ด หรือ LOT" autocomplete="off">
+    <div class="kbd-hint">สำหรับสินค้าที่ไม่มีบาร์โค้ด หรือสแกนไม่ติด · แตะสินค้าเพื่อนับ</div>
     <div id="searchList" class="list"></div>
   </section>
 </main>
@@ -257,6 +283,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
+const APP_VER = '2026-10-22.4';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -289,10 +316,13 @@ if (cfg.pin && !/[#&]k=/.test(location.hash)) keepKey(cfg.pin);
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const normCode = v => String(v == null ? '' : v).replace(/\D/g, '').replace(/^0+/, '');
+// เน้นความแรง/ขนาด/จำนวนในชื่อยา (เช่น 25 MG, 60 ML, 10'S) ให้เห็นชัดตอนเลือก กันเลือกผิดตัว
+const hiName = n => esc(n).replace(/(\d+(?:[.,]\d+)?\s*(?:MG\/\s*\d*\s*ML|MG|MCG|G|ML|%|IU|&#39;S|’S|S|TAB|CAP|แผง|เม็ด|ซอง)?)(?![\w])/gi, m => /\d/.test(m) ? `<b class="str">${m}</b>` : m);
 const normName = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().toUpperCase();
 
 /* ---------- ข้อมูล ---------- */
 let items = [], counters = [], causes = [], shelves = [], cpinNames = [], packs = [], units = [];
+let barcodeStat = '–';
 let ploc = {}, showSys = false;   // showSys = แสดงยอดในระบบ (ตรวจเทียบ ติ๊กตรง/แก้) ตั้งในแท็บ ตั้งค่า   // ชื่อสินค้า (normName) → ชั้นวางล่าสุด (แท็บ ชั้นวางของสินค้า)
 let recent = store.get('recent', []);   // นับล่าสุดในเครื่องนี้ (ไว้แตะแก้ไข) เก็บ 20 รายการ
 const normKey = v => String(v == null ? '' : v).replace(/\s+/g, '').toLowerCase();
@@ -384,7 +414,9 @@ function renderAll() {
   $('#stCounted').textContent = total ? `${done.toLocaleString()} / ${total.toLocaleString()}` : '–';
   const names = new Set(items.map(i => normName(i.n))), withCode = productsWithCode();
   let n = 0; names.forEach(x => { if (withCode.has(x)) n++; });
-  $('#stBarcode').textContent = names.size ? `${n.toLocaleString()} / ${names.size.toLocaleString()}` : '–';
+  barcodeStat = names.size ? `${n.toLocaleString()} / ${names.size.toLocaleString()}` : '–';
+  const pc = items.filter(i => i.st === 'รอนับซ้ำ').length;
+  $('#stPend').textContent = pc.toLocaleString(); $('#stPendBox').classList.toggle('warn', pc > 0);
   $('#queueTxt').textContent = queue.length ? `รอส่ง ${queue.length}` : '';
   $('#counterName').textContent = cfg.counter || 'เลือกผู้นับ';
   renderRecount();
@@ -400,19 +432,52 @@ function pushRecent(entries, mode) {
   });
   recent = recent.slice(0, 20); store.set('recent', recent);
 }
+function pushRecentNew(d, body) {
+  (d.rows || []).forEach(x => recent.unshift({ kind: 'new', row: x.row, n: body.name || '(ไม่ทราบชื่อ)', l: x.lot, e: x.exp, q: x.q, u: body.unit || '', by: cfg.counter, at: Date.now() }));
+  recent = recent.slice(0, 20); store.set('recent', recent); renderRecent();
+}
+function openFixNew(x) {
+  openDialog(`<h3>แก้ไข LOT ใหม่ที่แจ้งไว้</h3><p class="small muted">${esc(x.n)}</p>
+    <div class="field"><label>เลข LOT</label><input type="text" id="fxL" value="${esc(x.l)}" autocapitalize="characters" autocomplete="off"></div>
+    <div class="field" id="fxE"><label>EXP บนกล่อง (ตอนนี้ ${esc(x.e || '-')})</label>${expPicker()}</div>
+    <div class="field"><label>จำนวน (${esc(x.u || 'หน่วย')})</label><input type="number" id="fxQ" inputmode="numeric" min="0" step="1" value="${x.q === '' || x.q === undefined ? '' : x.q}"></div>
+    <div class="acts"><button class="btn ghost" id="fxDel">ยกเลิกรายการนี้</button><button class="btn" id="fxSave">บันทึกการแก้ไข</button></div>
+    <div class="acts" style="margin-top:8px"><button class="btn ghost" data-close>ปิด</button></div>`, dlg => {
+    const m = String(x.e || '').match(/^(\d{4})-(\d{2})(?:-(\d{2}))?/);
+    if (m) { const set = (k, v) => { const el = dlg.querySelector(`[data-e="${k}"]`); if ([...el.options].some(o => o.value === v)) el.value = v; };
+      set('y', m[1]); set('m', String(Number(m[2]))); if (m[3]) set('d', String(Number(m[3]))); }
+    const done = (patch, msg) => { recent = patch ? recent.map(y => y === x ? Object.assign(y, patch) : y) : recent.filter(y => y !== x); store.set('recent', recent); closeDialog(); renderRecent(); toast(msg, 'ok', 2000); };
+    dlg.querySelector('#fxDel').onclick = async e => {
+      if (!confirm('ยกเลิกรายการ LOT ' + x.l + ' นี้ไหม')) return; e.target.disabled = true;
+      try { await api('fixreport', { row: x.row, name: x.n, l: x.l, cancel: true }); done(null, 'ยกเลิกรายการแล้ว'); }
+      catch (err) { e.target.disabled = false; toast('ทำไม่ได้: ' + err.message, 'bad', 4500); }
+    };
+    dlg.querySelector('#fxSave').onclick = async e => {
+      const lot = dlg.querySelector('#fxL').value.trim().toUpperCase(), exp = readExp(dlg.querySelector('#fxE')), q = Number(dlg.querySelector('#fxQ').value);
+      if (!lot) { toast('กรอกเลข LOT', 'bad'); return; }
+      if (!exp) { toast('เลือกเดือนและปีหมดอายุ', 'bad'); return; }
+      if (dlg.querySelector('#fxQ').value === '' || !Number.isInteger(q) || q < 0) { toast('จำนวนต้องเป็นจำนวนเต็มตั้งแต่ 0', 'bad'); return; }
+      if (exp.slice(0, 7) < new Date().toISOString().slice(0, 7) && !confirm('EXP ' + exp + ' หมดอายุไปแล้ว ถูกต้องไหม')) return;
+      e.target.disabled = true;
+      try { const d = await api('fixreport', { row: x.row, name: x.n, l: x.l, lot, exp, q }); done({ l: d.lot, e: d.exp, q: d.q }, 'แก้ไขแล้ว ✓'); }
+      catch (err) { e.target.disabled = false; toast('ทำไม่ได้: ' + err.message, 'bad', 4500); }
+    };
+  });
+}
 function renderRecent() {
   const day = Date.now() - 16 * 3600 * 1000;
-  const list = recent.filter(x => x.at > day && items.some(i => i.r === x.r && i.l === x.l));
+  const list = recent.filter(x => x.at > day && (x.kind === 'new' || items.some(i => i.r === x.r && i.l === x.l)));
   $('#recentWrap').classList.toggle('hidden', !list.length);
   $('#recentList').innerHTML = list.slice(0, 12).map((x, k) => `
     <button class="row" data-rk="${k}">
       <div class="t"><div class="n">${esc(x.n)}</div>
-      <div class="s">LOT ${esc(x.l || '-')}${x.mode === 'recount' ? ' · นับซ้ำ' : ''} · ${new Date(x.at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}${x.by && x.by !== cfg.counter ? ' · ' + esc(x.by) : ''}</div></div>
+      <div class="s">LOT ${esc(x.l || '-')}${x.kind === 'new' ? ' · LOT ใหม่ (รอเพิ่ม) · EXP ' + esc(x.e || '-') : x.mode === 'recount' ? ' · นับซ้ำ' : ''} · ${new Date(x.at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}${x.by && x.by !== cfg.counter ? ' · ' + esc(x.by) : ''}</div></div>
       <span class="q">${x.q} ${esc(x.u)}</span>
     </button>`).join('');
   $('#recentList').onclick = e => {
     const b = e.target.closest('[data-rk]'); if (!b) return;
     const x = list[Number(b.dataset.rk)];
+    if (x.kind === 'new') { openFixNew(x); return; }
     const it = items.find(i => i.r === x.r && i.l === x.l); if (!it) return;
     const lots = byName.get(normName(it.n)) || [it];
     const pre = {}; recent.forEach(y => { if (y.mode === x.mode && y.by === cfg.counter && lots.some(l => l.r === y.r && l.l === y.l) && !(y.r in pre)) pre[y.r] = y.q; });
@@ -420,11 +485,25 @@ function renderRecent() {
   };
 }
 
+// วันหมดอายุแบบอ่านง่าย: 2029-05-07 → 7 พ.ค. 2029 · 2029-05 → พ.ค. 2029 (ใช้ ค.ศ. ตามที่พิมพ์บนกล่อง)
+function fmtExp(e) {
+  const m = String(e || '').match(/^(\d{4})-(\d{2})(?:-(\d{2}))?/);
+  if (!m) return e || '-';
+  return (m[3] ? Number(m[3]) + ' ' : '') + TH_M[Number(m[2]) - 1] + ' ' + m[1];
+}
+function expLine(it) {
+  const t = 'EXP ' + fmtExp(it.e);
+  if (it.d === null || it.d === undefined) return `<div class="lot-exp">${esc(t)}</div>`;
+  if (it.d < 0) return `<div class="lot-exp bad">⚠ หมดอายุแล้ว · ${esc(t)}</div>`;
+  if (it.d <= 90) return `<div class="lot-exp warn">⚠ เหลือ ${it.d} วัน · ${esc(t)}</div>`;
+  return `<div class="lot-exp">${esc(t)}</div>`;
+}
 function expPill(it) {
-  if (it.d === null || it.d === undefined) return `<span class="pill p-mute">EXP ${esc(it.e || '-')}</span>`;
-  if (it.d < 0) return `<span class="pill p-bad">หมดอายุแล้ว ${esc(it.e)}</span>`;
-  if (it.d <= 90) return `<span class="pill p-warn">เหลือ ${it.d} วัน · ${esc(it.e)}</span>`;
-  return `<span class="pill p-mute">EXP ${esc(it.e)}</span>`;
+  const t = fmtExp(it.e);
+  if (it.d === null || it.d === undefined) return `<span class="pill p-mute">EXP ${esc(t)}</span>`;
+  if (it.d < 0) return `<span class="pill p-bad">หมดอายุแล้ว ${esc(t)}</span>`;
+  if (it.d <= 90) return `<span class="pill p-warn">เหลือ ${it.d} วัน · ${esc(t)}</span>`;
+  return `<span class="pill p-mute">EXP ${esc(t)}</span>`;
 }
 function statusPill(st) {
   if (!st || st === 'ยังไม่นับ') return '<span class="pill p-mute">ยังไม่นับ</span>';
@@ -450,6 +529,8 @@ function renderRecount() {
   const pend = items.filter(i => i.st === 'รอนับซ้ำ');
   const needCause = items.filter(i => /^ไม่ตรง/.test(i.st) && !i.cz);
   $('#recountBadge').textContent = pend.length || '';
+  $('#recountHelp').textContent = showSys ? 'ตรวจอีกครั้ง (ควรเป็นอีกคน) แตะรายการหรือสแกนในแท็บนี้ ถ้าหน้างานถูกแล้วใส่ยอดเดิมซ้ำ = ยืนยัน รอปรับ Arincare'
+    : 'ให้คนที่ไม่ใช่ผู้นับครั้งแรกนับอีกครั้ง โดยไม่เห็นตัวเลขเดิม แตะรายการหรือสแกนบาร์โค้ดในแท็บนี้ได้เลย';
   $('#recountList').innerHTML = pend.length ? pend.map(i => `
     <button class="row" data-r="${i.r}" data-act="recount">
       <div class="t"><div class="n">${esc(i.n)}</div>
@@ -487,7 +568,7 @@ function renderSearch() {
   box.innerHTML = arr.length ? arr.map(g => {
     const done = g.filter(i => i.c).length, has = productsWithCode().has(normName(g[0].n));
     return `<button class="row" data-name="${esc(g[0].n)}">
-      <div class="t"><div class="n">${esc(g[0].n)}</div>
+      <div class="t"><div class="n">${hiName(g[0].n)}</div>
       <div class="s">${g.length} LOT · นับแล้ว ${done}${has ? '' : ' · ยังไม่มีบาร์โค้ด'}</div></div>
       ${done === g.length ? '<span class="pill p-ok">ครบ</span>' : ''}
     </button>`; }).join('') : '<div class="empty">ไม่พบสินค้า</div>';
@@ -521,7 +602,7 @@ function handleCode(raw, source) {
 function chooseProduct(names, lots, raw) {
   const list = [...names].map(n => (byName.get(n) || [])[0]).filter(Boolean);
   openDialog(`<h3>บาร์โค้ดนี้ตรงกับหลายสินค้า</h3><p class="muted small">เลือกสินค้าที่ถืออยู่</p>
-    <div class="choice">${list.map(i => `<button class="row" data-name="${esc(i.n)}"><div class="t"><div class="n">${esc(i.n)}</div></div></button>`).join('')}</div>
+    <div class="choice">${list.map(i => `<button class="row" data-name="${esc(i.n)}"><div class="t"><div class="n">${hiName(i.n)}</div></div></button>`).join('')}</div>
     <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button></div>`, dlg => {
     dlg.querySelectorAll('[data-name]').forEach(b => b.onclick = () => { closeDialog(); openSheet(byName.get(normName(b.dataset.name)) || [], 'count', raw); });
   });
@@ -542,7 +623,7 @@ function openUnknown(raw) {
       const hits = [...byName.keys()].filter(n => n.includes(t))
         .sort((a, b) => (withCode.has(a) - withCode.has(b)) || a.localeCompare(b)).slice(0, 30);
       list.innerHTML = hits.length ? hits.map(n => { const it = byName.get(n)[0];
-        return `<button class="row" data-name="${esc(it.n)}"><div class="t"><div class="n">${esc(it.n)}</div>
+        return `<button class="row" data-name="${esc(it.n)}"><div class="t"><div class="n">${hiName(it.n)}</div>
           <div class="s">${byName.get(n).length} LOT${withCode.has(n) ? ' · มีบาร์โค้ดอื่นอยู่แล้ว' : ' · ยังไม่มีบาร์โค้ด'}</div></div></button>`; }).join('')
         : '<div class="empty small">ไม่พบชื่อนี้</div>';
     };
@@ -598,7 +679,7 @@ function openReport(pre) {
       const t = normKey(nIn.value), box2 = dlg.querySelector('#rpSugg');
       if (t.length < 3) { box2.innerHTML = ''; return; }
       const hits = [...byName.keys()].filter(n => normKey(n).includes(t)).slice(0, 6);
-      box2.innerHTML = hits.length ? `<div class="sugg"><div class="h">มีสินค้าชื่อคล้ายกันในรายการแล้ว ถ้าใช่ตัวเดียวกัน แตะเลือก (ไม่ต้องสร้างชื่อใหม่)</div>${hits.map(n => `<button type="button" data-n="${esc(byName.get(n)[0].n)}">${esc(byName.get(n)[0].n)} <span class="small muted">· ${byName.get(n).length} LOT</span></button>`).join('')}</div>` : '';
+      box2.innerHTML = hits.length ? `<div class="sugg"><div class="h">มีสินค้าชื่อคล้ายกันในรายการแล้ว ถ้าใช่ตัวเดียวกัน แตะเลือก (ไม่ต้องสร้างชื่อใหม่)</div>${hits.map(n => `<button type="button" data-n="${esc(byName.get(n)[0].n)}">${hiName(byName.get(n)[0].n)} <span class="small muted">· ${byName.get(n).length} LOT</span></button>`).join('')}</div>` : '';
     });
     dlg.addEventListener('click', e => {
       const b = e.target.closest('#rpSugg [data-n]'); if (!b) return;
@@ -639,7 +720,7 @@ function openReport(pre) {
       const btn = dlg.querySelector('#rpSave'); if (btn.disabled) return; btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
       try {
         const d = await api('report', body);
-        rememberShelf(loc); closeDialog();
+        rememberShelf(loc); closeDialog(); pushRecentNew(d, body);
         toast(`บันทึกแล้ว${d.saved > 1 ? ' ' + d.saved + ' LOT' : ''} รอเภสัชกรเพิ่มเข้ารายการนับ (เมนู PharmaCount ในชีต)`, 'ok', 3500);
       } catch (e) {
         if (e.server) { btn.disabled = false; renumber(); toast('บันทึกไม่ได้: ' + e.message, 'bad', 4000); return; }
@@ -726,7 +807,7 @@ function openSheet(lots, mode, raw, pre, editing) {
   const sameCounter = mode === 'recount' && firstBy.includes(cfg.counter);
   $('#layer').innerHTML = `<div class="overlay" id="ov"><div class="sheet" role="dialog" aria-modal="true">
     <div class="sheet-h">
-      <div class="mode">${showSys ? (mode === 'recount' ? 'นับซ้ำ · ตรวจเทียบกับระบบ' : 'ตรวจเทียบกับระบบ · ตรงแตะ ✓ ไม่ตรงแก้ตัวเลข') : mode === 'recount' ? 'นับซ้ำ (คนที่ 2) · ไม่แสดงยอดเดิม' : 'นับสต็อก · ไม่แสดงยอดในระบบ'}</div>
+      <div class="mode">${showSys ? `<span class="mode-chip">${mode === 'recount' ? 'นับซ้ำ · ' : ''}ตรวจเทียบกับระบบ</span>` : `<span class="mode-chip blind">${mode === 'recount' ? 'นับซ้ำ · ' : ''}นับแบบไม่เห็นยอดในระบบ</span>`}</div>
       <div class="pname">${esc(p.n)}</div>
       <div class="small muted">${raw ? 'บาร์โค้ด ' + esc(raw) + ' · ' : ''}${lots.length} LOT${p.cat ? ' · ' + esc(p.cat) : ''}</div>
     </div>
@@ -738,11 +819,11 @@ function openSheet(lots, mode, raw, pre, editing) {
       ${lots.map((i, k) => `
         <div class="lot ${i.c && mode === 'count' ? 'done' : ''}" data-k="${k}">
           <div class="lot-top">
-            <div><div class="lot-id">LOT ${esc(i.l || 'ไม่ระบุ')}</div></div>
-            ${statusPill(i.st)}
+            <div><div class="lot-id">LOT ${esc(i.l || 'ไม่ระบุ')}</div>${expLine(i)}</div>
+            ${chk(i) ? `<div class="sysq sys"><b>${i.f}</b><span>${esc(i.u)} ในระบบ</span></div>` : statusPill(i.st)}
           </div>
-          <div class="lot-meta">${expPill(i)}${i.dup ? '<span class="pill p-warn">แถวซ้ำในระบบ</span>' : ''}${i.c && i.by ? `<span class="pill p-mute">นับโดย ${esc(i.by)}</span>` : ''}${i.ef ? `<span class="pill p-warn">EXP บนกล่อง ${esc(i.ef)}</span>` : ''}</div>
-          ${chk(i) ? `<div class="sys">ในระบบ <b>${i.f}</b> ${esc(i.u)}</div>
+          ${(i.c && i.st && i.st !== 'ยังไม่นับ' && chk(i)) || i.dup || (i.c && i.by) || i.ef ? `<div class="lot-meta">${chk(i) && i.c ? statusPill(i.st) : ''}${i.dup ? '<span class="pill p-warn">แถวซ้ำในระบบ</span>' : ''}${i.c && i.by ? `<span class="pill p-mute">นับโดย ${esc(i.by)}</span>` : ''}${i.ef ? `<span class="pill p-warn">EXP บนกล่อง ${esc(fmtExp(i.ef))}</span>` : ''}</div>` : ''}
+          ${chk(i) ? `
           <div class="lotx"><button type="button" data-x="ok">✓ ตรง</button><button type="button" data-x="edit">✎ ไม่ตรง · แก้ไข</button></div>` : ''}
           <div class="editbox${!chk(i) || pre[i.r] !== undefined ? ' on' : ''}" data-edit>
           <div class="small" style="margin-top:8px">กรอกเป็นหน่วย <span class="unit-big">${esc(i.u || '-')}</span> ตามระบบ Arincare</div>
@@ -759,7 +840,7 @@ function openSheet(lots, mode, raw, pre, editing) {
             ${chk(i) ? `<button type="button" class="linkbtn small" data-expt>EXP บนกล่องไม่ตรง</button>` : ''}
           </div>
           ${chk(i) && mode === 'count' ? `<label class="confirm"><input type="checkbox" data-confirm> หน้างานถูกแน่นอน ไม่ต้องนับซ้ำ (รอเจ้าของร้านปรับใน Arincare)</label>` : ''}
-          ${chk(i) ? '' : `<div class="lotx"><button type="button" data-x="ok">✓ LOT/EXP ตรงกับกล่อง</button><button type="button" data-x="bad">EXP ไม่ตรง</button></div>`}
+          ${chk(i) ? '' : `<div class="lotx"><button type="button" data-x="ok">✓ LOT/EXP ตรง</button><button type="button" data-x="bad">EXP ไม่ตรง</button></div>`}
           <div class="expbox" data-expbox><label class="small muted">EXP ที่เห็นบนกล่อง (LOT ไม่ตรง ให้กด “+ พบ LOT ที่ไม่มีในระบบ” แทน)</label>${expPicker()}</div>
           </div>
         </div>`).join('')}
@@ -870,7 +951,7 @@ function newLotEntries() {
 function updateSave() {
   const n = sheetEntries().length + newLotEntries().length, b = $('#sheetSave');
   if (!b) return;
-  b.disabled = !n; b.textContent = n ? `บันทึก ${n} LOT` : 'กรอกจำนวนก่อนบันทึก';
+  b.disabled = !n; b.textContent = n ? `บันทึก ${n} LOT` : 'เลือก ✓ หรือกรอกจำนวน';
 }
 function closeSheet() { if (sheetCtx && sheetCtx.raw) cool = { code: sheetCtx.raw, until: Date.now() + 2500 }; sheetCtx = null; $('#layer').innerHTML = ''; resumeScan(); }
 
@@ -880,6 +961,16 @@ async function saveSheet() {
   if (newLots.some(o => o.q === undefined || !Number.isInteger(o.q) || o.q < 0)) { toast('LOT ใหม่: กรอกจำนวน', 'bad'); return; }
   if (newLots.some(o => !o.exp)) { toast('LOT ใหม่: เลือกเดือนและปีหมดอายุบนกล่อง', 'bad'); return; }
   if (newLots.some(o => sheetCtx.lots.some(i => normKey(i.l) === normKey(o.lot)))) { toast('LOT นี้มีในระบบอยู่แล้ว กรอกที่การ์ดของ LOT นั้นแทน', 'bad'); return; }
+  // ตัวเลขผิดสังเกต (โหมดตรวจเทียบ): น่าจะนับคนละหน่วย หรือส่วนต่างมากผิดปกติ → ถามก่อนบันทึก
+  const odd = sheetEntries().filter(e => e.it.f != null && e.q !== e.it.f && !e.pack).map(e => {
+    const f = e.it.f, q = e.q, ratio = q && f ? Math.max(f / q, q / f) : 0;
+    if (ratio >= 2 && Number.isInteger(ratio) && [2, 3, 4, 5, 6, 10, 12, 14, 20, 21, 25, 28, 30, 50, 100].includes(ratio))
+      return `LOT ${e.it.l}: ระบบ ${f} ${e.it.u} กรอก ${q} (ต่างกัน ${ratio} เท่า) นับคนละหน่วยหรือเปล่า?`;
+    if (q === 0 && f >= 3) return `LOT ${e.it.l}: ระบบมี ${f} ${e.it.u} แต่กรอก 0`;
+    if (Math.abs(q - f) >= Math.max(5, f * 0.5)) return `LOT ${e.it.l}: ระบบ ${f} กรอก ${q} (ต่าง ${q - f > 0 ? '+' : ''}${q - f})`;
+    return '';
+  }).filter(Boolean);
+  if (odd.length && !confirm('ตรวจตัวเลขอีกครั้ง\n\n' + odd.join('\n') + '\n\nถูกต้องแล้ว กด OK เพื่อบันทึก')) return;
   // EXP ที่เลือกเป็นอดีต (หมดอายุแล้ว) มักเป็นการเลือกปีผิด ถามยืนยันก่อน
   const ym = new Date().toISOString().slice(0, 7);
   const past = newLots.map(o => o.exp).concat(sheetEntries().map(e => e.expFound || '')).filter(x => x && x.slice(0, 7) < ym);
@@ -912,7 +1003,8 @@ async function saveSheet() {
   toast('กำลังบันทึก… สแกนชิ้นต่อไปได้เลย', 'ok', 1500);
   if (newLots.length) {
     const body = { type: 'newlot', name: p0.n, barcode: raw0, lots: newLots, loc, unit: p0.u, note: '' };
-    api('report', body).then(() => { if (!entries.length) { beep('ok'); toast(`บันทึก LOT ใหม่ ${newLots.length} LOT แล้ว รอเพิ่มเข้ารายการ`, 'ok', 2500); } })
+    api('report', body).then(d => { if (d.duplicate) { toast('LOT นี้แจ้งไว้แล้ว ไม่บันทึกซ้ำ · ถ้าจะแก้ แตะรายการใน "นับล่าสุด"', 'warn', 4500); return; }
+      pushRecentNew(d, body); if (!entries.length) { beep('ok'); toast(`บันทึก LOT ใหม่ ${newLots.length} LOT แล้ว รอเพิ่มเข้ารายการ`, 'ok', 2500); } })
       .catch(e => {
         if (e.server) { toast('บันทึก LOT ใหม่ไม่ได้: ' + e.message, 'bad', 5000); return; }
         queue.push({ action: 'report', payload: body, counter: cfg.counter, cpin: cfg.cpin, at: Date.now() }); store.set('queue', queue); setOnline(false); renderAll();
@@ -955,6 +1047,9 @@ function applyResults(results, entries, loc, mode) {
   beep(kind === 'ok' ? 'ok' : 'miss');
   toast(lines.join('<br>'), kind, kind === 'ok' ? 2200 : 4500, true);
   // ถ้ากำลังนับชิ้นอื่นอยู่ ไม่เด้งหน้าหมายเหตุขัด ใส่ภายหลังได้ที่แท็บ นับซ้ำ
+  // ของหมดอายุแล้วแต่ยังอยู่บนชั้น
+  const exp0 = entries.filter(e => e.it.d !== null && e.it.d !== undefined && e.it.d < 0 && e.q > 0);
+  if (exp0.length) setTimeout(() => { beep('miss'); toast(exp0.map(e => `⚠ LOT ${esc(e.it.l)} หมดอายุแล้ว (${esc(fmtExp(e.it.e))}) เก็บออกจากชั้นขาย ${e.q} ${esc(e.it.u)}`).join('<br>'), 'bad', 6000, true); }, kind === 'ok' ? 2300 : 4600);
   // ไม่ถามสาเหตุแล้ว (ส่วนใหญ่ไม่รู้ว่าหายไปไหน) ใส่หมายเหตุเองได้ที่แท็บ นับซ้ำ ถ้าต้องการ
 }
 
@@ -1051,7 +1146,7 @@ async function startCamera() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     msg.innerHTML = '<div>เบราว์เซอร์นี้เปิดกล้องไม่ได้<br><span class="small">ใช้ช่องพิมพ์ หรือเครื่องสแกนบลูทูธแทน</span></div>'; return;
   }
-  msg.innerHTML = '<div>กำลังเปิดกล้อง…</div>';
+  msg.innerHTML = '<div>กำลังเปิดกล้อง…</div>'; $('#cam').classList.remove('off'); $('#scanStatus').classList.remove('hidden');
   try {
     await getDetector();
     stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: {
@@ -1087,7 +1182,8 @@ function stopCamera() {
   $('#torchBtn').classList.remove('on');
   $('#camTools').classList.add('hidden'); $('#guide').classList.add('hidden');
   const msg = $('#camMsg'); msg.classList.remove('hidden');
-  msg.innerHTML = '<div><div>แตะเพื่อเปิดกล้องสแกนบาร์โค้ด</div><button class="btn" id="camStart2">เปิดกล้อง</button></div>';
+  msg.innerHTML = '<div><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 8v8M11 8v8M14 8v8M17 8v8"/></svg></span><div class="ttl">สแกนบาร์โค้ดเพื่อนับ</div><button class="btn" id="camStart2">เปิดกล้อง</button></div>';
+  $('#cam').classList.add('off'); $('#scanStatus').classList.add('hidden');
   $('#camStart2').onclick = startCamera;
 }
 function resumeScan() { paused = false; }
@@ -1317,14 +1413,17 @@ $('#menuBtn').onclick = () => openDialog(`<h3>เมนู</h3>
     <button class="btn ghost" id="mFlush">ส่งข้อมูลที่ค้างในเครื่อง (${queue.length})</button>
     <button class="btn ghost" id="mWho">เปลี่ยนผู้นับ</button>
     <button class="btn ghost" id="mShared">${shared ? '✓ ' : ''}เครื่องกลาง (ใช้ร่วมกันหลายคน): ${shared ? 'เปิดอยู่' : 'ปิดอยู่'}</button>
+    <button class="btn ghost" id="mBig">${document.documentElement.classList.contains('big') ? '✓ ' : ''}ตัวอักษรใหญ่: ${document.documentElement.classList.contains('big') ? 'เปิดอยู่' : 'ปิดอยู่'}</button>
     <button class="btn ghost" id="mSetup">ตั้งค่าการเชื่อมต่อ</button>
   </div>
+  <p class="small muted" style="margin-top:10px">เวอร์ชันแอป ${APP_VER} · สินค้าที่สแกนติดแล้ว ${barcodeStat} · ${showSys ? 'โหมดตรวจเทียบ (เห็นยอดในระบบ)' : 'โหมดนับแบบไม่เห็นยอด'} (เปลี่ยนได้ในชีต ตั้งค่า B8)</p>
   <p class="small muted" style="margin-top:10px">เครื่องกลาง = แอปถามชื่อผู้นับใหม่ทุกครั้งที่เปิด และเมื่อไม่ได้ใช้เกิน 5 นาที เหมาะกับมือถือหรือแท็บเล็ตของร้าน</p>
   <p class="small muted" style="margin-top:14px">ข้อมูลทุกครั้งที่บันทึกถูกเก็บในแท็บ “บันทึกการนับ” ของชีต</p>
   <div class="acts"><button class="btn ghost" data-close>ปิด</button></div>`, d => {
   d.querySelector('#mReload').onclick = () => { closeDialog(); load(); };
   d.querySelector('#mFlush').onclick = () => { closeDialog(); flushQueue(); };
   d.querySelector('#mSetup').onclick = () => openSetup();
+  d.querySelector('#mBig').onclick = () => { const on = !document.documentElement.classList.contains('big'); document.documentElement.classList.toggle('big', on); store.set('big', on); closeDialog(); fixNavTop(); };
   d.querySelector('#mWho').onclick = () => { closeDialog(); askCounter(); };
   d.querySelector('#mShared').onclick = () => {
     store.set('shared', !shared); store.set('counter', ''); store.set('cpin', '');
@@ -1333,7 +1432,27 @@ $('#menuBtn').onclick = () => openDialog(`<h3>เมนู</h3>
   };
 });
 
+/* ---------- เช็กเวอร์ชันใหม่ (หลังอัปโหลด index.html ใน GitHub) ---------- */
+let newVerShown = false;
+async function checkVersion() {
+  if (newVerShown || !/^https?:/.test(location.protocol)) return;
+  try {
+    const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
+    const m = t.match(/const APP_VER = '([^']+)'/);
+    if (m && m[1] !== APP_VER) {
+      newVerShown = true;
+      const b = document.createElement('button');
+      b.className = 'newver'; b.textContent = '🔄 มีแอปเวอร์ชันใหม่ แตะเพื่ออัปเดต';
+      b.onclick = () => { if (queue.length && !confirm('มีข้อมูลรอส่ง ' + queue.length + ' รายการ จะเก็บไว้ในเครื่องและส่งต่อหลังอัปเดต ตกลงไหม')) return; location.reload(); };
+      document.body.appendChild(b);
+    }
+  } catch (e) {}
+}
+setTimeout(checkVersion, 4000); setInterval(checkVersion, 10 * 60 * 1000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
+
 /* ---------- เริ่มต้น ---------- */
+if (store.get('big', false)) document.documentElement.classList.add('big');
 function fixNavTop() { document.documentElement.style.setProperty('--hh', $('#hdr').offsetHeight + 'px'); }
 addEventListener('resize', fixNavTop); fixNavTop();
 renderAll();
