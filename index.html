@@ -119,6 +119,33 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .rlot-h button{background:none;border:0;color:var(--muted);font-size:14px;padding:4px 0 4px 10px}
 .rlot .two{display:grid;grid-template-columns:1fr 112px;gap:8px}
 .rlot .field{margin-top:8px}
+.unit-big{display:inline-block;background:var(--brand);color:#fff;border-radius:8px;padding:2px 8px;font-size:13px;font-weight:700}
+.calc{display:none;margin-top:10px;padding:10px;border:1px dashed var(--brand-2);border-radius:12px;background:#f6fbfb;font-size:14px}
+.calc.on{display:block}
+.calc .crow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.calc input{width:64px;height:40px;text-align:center;font-size:18px;font-weight:700;padding:4px}
+.calc .eq{font-weight:700;color:var(--brand);margin-top:6px}
+.lotx{display:flex;gap:6px;margin-top:10px}
+.lotx button{flex:1;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 6px;font-size:13.5px;font-weight:600;color:var(--muted)}
+.lotx button.on[data-x="ok"]{background:var(--ok-soft);border-color:#9fd7b3;color:var(--ok)}
+.lotx button.on[data-x="edit"],.lotx button.on[data-x="bad"]{background:var(--warn-soft);border-color:#f3c48c;color:var(--warn)}
+.expbox{display:none;margin-top:8px}
+.expbox.on{display:block}
+.expp{display:grid;grid-template-columns:.8fr 1fr 1.3fr;gap:6px}
+.expp select{padding:8px 4px;font-size:15px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chips button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font-size:13.5px}
+.sugg{border:1px solid var(--line);border-radius:12px;margin-top:6px;overflow:hidden}
+.sugg button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:#fff;padding:9px 12px;font-size:14px}
+.sugg button:last-child{border-bottom:0}
+.sugg .h{font-size:12.5px;color:var(--warn);padding:8px 12px;background:var(--warn-soft)}
+.recent .row .q{font-weight:700;font-size:16px;color:var(--brand);white-space:nowrap}
+.sys{margin-top:8px;background:#eef6f6;border-radius:10px;padding:8px 10px;font-size:15px}
+.sys b{font-size:18px;color:var(--brand)}
+.editbox{display:none}.editbox.on{display:block}
+.confirm{display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:14px;color:var(--brand);font-weight:600}
+.confirm input{width:20px;height:20px;flex:none;margin-top:1px}
+.allok{width:100%;margin:0 0 12px;padding:14px;font-size:17px}
 .addlot{width:100%;margin-top:10px;border:1px dashed var(--brand-2);border-radius:12px;background:none;color:var(--brand);font-weight:700;padding:12px}
 
 /* dialog */
@@ -195,6 +222,10 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
       <div class="stat"><b id="stCounted">–</b><span class="small muted">LOT ที่นับแล้ว</span></div>
       <div class="stat"><b id="stBarcode">–</b><span class="small muted">สินค้าที่มีบาร์โค้ดแล้ว</span></div>
     </div>
+    <div id="recentWrap" class="hidden recent">
+      <div class="section-title">นับล่าสุดในเครื่องนี้ · แตะเพื่อแก้ไข</div>
+      <div id="recentList" class="list"></div>
+    </div>
   </section>
 
   <!-- นับซ้ำ -->
@@ -205,7 +236,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
     </div>
     <div id="recountList" class="list"></div>
     <div id="causeWrap" class="hidden">
-      <div class="section-title">ยืนยันว่าไม่ตรง รอระบุสาเหตุ</div>
+      <div class="section-title">นับ 2 ครั้งแล้วยังไม่ตรง · ใส่หมายเหตุได้ (ไม่บังคับ)</div>
       <div id="causeList" class="list"></div>
     </div>
   </section>
@@ -261,7 +292,10 @@ const normCode = v => String(v == null ? '' : v).replace(/\D/g, '').replace(/^0+
 const normName = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().toUpperCase();
 
 /* ---------- ข้อมูล ---------- */
-let items = [], counters = [], causes = [], shelves = [], cpinNames = [];
+let items = [], counters = [], causes = [], shelves = [], cpinNames = [], packs = [], units = [];
+let ploc = {}, showSys = false;   // showSys = แสดงยอดในระบบ (ตรวจเทียบ ติ๊กตรง/แก้) ตั้งในแท็บ ตั้งค่า   // ชื่อสินค้า (normName) → ชั้นวางล่าสุด (แท็บ ชั้นวางของสินค้า)
+let recent = store.get('recent', []);   // นับล่าสุดในเครื่องนี้ (ไว้แตะแก้ไข) เก็บ 20 รายการ
+const normKey = v => String(v == null ? '' : v).replace(/\s+/g, '').toLowerCase();
 let byCode = new Map();   // บาร์โค้ด → Set(ชื่อสินค้า)
 let byName = new Map();   // ชื่อสินค้า → [LOT]
 let queue = store.get('queue', []);
@@ -313,7 +347,9 @@ function setOnline(v) { online = v; $('#netDot').classList.toggle('off', !v); }
 async function load(silent) {
   try {
     const d = await api('init', null, 'GET');
-    items = d.items; counters = d.counters || []; causes = d.causes || []; shelves = d.shelves || []; cpinNames = d.cpin || [];
+    // LOT ที่ไม่มีใน Arincare แล้ว (ยอด 0) และยังไม่มีใครนับ ไม่ต้องนับ จึงไม่แสดงและไม่นับรวมในความคืบหน้า
+    items = d.items.filter(i => !i.g); counters = d.counters || []; causes = d.causes || []; cpinNames = d.cpin || [];
+    shelves = dedupeShelves(d.shelves || []); packs = d.packs || []; units = d.units || []; ploc = d.ploc || {}; showSys = !!d.show;
     buildIndex(d.barcodes);
     setOnline(true);
     renderAll();
@@ -352,7 +388,36 @@ function renderAll() {
   $('#queueTxt').textContent = queue.length ? `รอส่ง ${queue.length}` : '';
   $('#counterName').textContent = cfg.counter || 'เลือกผู้นับ';
   renderRecount();
+  renderRecent();
   if (!$('#tab-search').classList.contains('hidden')) renderSearch();
+}
+
+/* ---------- นับล่าสุด (แก้ไขหลังบันทึก) ---------- */
+function pushRecent(entries, mode) {
+  entries.forEach(e => {
+    recent = recent.filter(x => !(x.r === e.it.r && x.l === e.it.l && x.mode === mode));
+    recent.unshift({ r: e.it.r, n: e.it.n, l: e.it.l, u: e.it.u, q: e.q, mode, by: cfg.counter, at: Date.now() });
+  });
+  recent = recent.slice(0, 20); store.set('recent', recent);
+}
+function renderRecent() {
+  const day = Date.now() - 16 * 3600 * 1000;
+  const list = recent.filter(x => x.at > day && items.some(i => i.r === x.r && i.l === x.l));
+  $('#recentWrap').classList.toggle('hidden', !list.length);
+  $('#recentList').innerHTML = list.slice(0, 12).map((x, k) => `
+    <button class="row" data-rk="${k}">
+      <div class="t"><div class="n">${esc(x.n)}</div>
+      <div class="s">LOT ${esc(x.l || '-')}${x.mode === 'recount' ? ' · นับซ้ำ' : ''} · ${new Date(x.at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}${x.by && x.by !== cfg.counter ? ' · ' + esc(x.by) : ''}</div></div>
+      <span class="q">${x.q} ${esc(x.u)}</span>
+    </button>`).join('');
+  $('#recentList').onclick = e => {
+    const b = e.target.closest('[data-rk]'); if (!b) return;
+    const x = list[Number(b.dataset.rk)];
+    const it = items.find(i => i.r === x.r && i.l === x.l); if (!it) return;
+    const lots = byName.get(normName(it.n)) || [it];
+    const pre = {}; recent.forEach(y => { if (y.mode === x.mode && y.by === cfg.counter && lots.some(l => l.r === y.r && l.l === y.l) && !(y.r in pre)) pre[y.r] = y.q; });
+    if (x.mode === 'recount') openSheet([it], 'recount', '', { [it.r]: x.q }, true); else openSheet(lots, 'count', '', pre, true);
+  };
 }
 
 function expPill(it) {
@@ -384,19 +449,19 @@ function setTab(t) {
 function renderRecount() {
   const pend = items.filter(i => i.st === 'รอนับซ้ำ');
   const needCause = items.filter(i => /^ไม่ตรง/.test(i.st) && !i.cz);
-  $('#recountBadge').textContent = pend.length + needCause.length || '';
+  $('#recountBadge').textContent = pend.length || '';
   $('#recountList').innerHTML = pend.length ? pend.map(i => `
     <button class="row" data-r="${i.r}" data-act="recount">
       <div class="t"><div class="n">${esc(i.n)}</div>
       <div class="s">LOT ${esc(i.l || '-')} · ${esc(i.u)}${i.loc ? ' · ' + esc(i.loc) : ''}${i.by ? ' · นับครั้งแรก: ' + esc(i.by) : ''}</div></div>
       ${expPill(i)}
     </button>`).join('') : '<div class="empty">ไม่มีรายการที่รอนับซ้ำ</div>';
-  $('#causeWrap').classList.toggle('hidden', !needCause.length);
+  $('#causeWrap').classList.toggle('hidden', true);   // ไม่ใช้ขั้นระบุสาเหตุแล้ว
   $('#causeList').innerHTML = needCause.map(i => `
     <button class="row" data-r="${i.r}" data-act="cause">
       <div class="t"><div class="n">${esc(i.n)}</div>
       <div class="s">LOT ${esc(i.l || '-')}${i.df !== null && i.df !== undefined ? ' · ส่วนต่าง ' + fmtDiff(i.df) + ' ' + esc(i.u) : ''}</div></div>
-      <span class="pill p-bad">ระบุสาเหตุ</span>
+      <span class="pill p-mute">ใส่หมายเหตุ</span>
     </button>`).join('');
 }
 $('#tab-recount').addEventListener('click', e => {
@@ -486,20 +551,14 @@ function openUnknown(raw) {
       const b = e.target.closest('[data-name]'); if (!b) return;
       const name = b.dataset.name;
       if (!cfg.counter) { closeDialog(); askCounter(); return; }
-      b.disabled = true;
-      try {
-        await api('link', { barcode: raw, name });
-        addCode(raw, name); closeDialog(); renderAll();
-        toast('จำบาร์โค้ดแล้ว ✓', 'ok', 1500);
-        openSheet(byName.get(normName(name)) || [], tab === 'recount' ? 'recount' : 'count', raw);
-      } catch (err) {
-        if (err.server) { b.disabled = false; toast('บันทึกไม่ได้: ' + err.message, 'bad', 4000); return; }
+      // จำบาร์โค้ดในเครื่องแล้วเปิดแผ่นนับทันที ส่งเข้าชีตเบื้องหลัง (ไม่ต้องรอ)
+      addCode(raw, name); closeDialog(); renderAll();
+      openSheet(byName.get(normName(name)) || [], tab === 'recount' ? 'recount' : 'count', raw);
+      api('link', { barcode: raw, name }).catch(err => {
+        if (err.server) { toast('จำบาร์โค้ดเข้าชีตไม่ได้: ' + err.message, 'bad', 4000); return; }
         queue.push({ action: 'link', payload: { barcode: raw, name }, counter: cfg.counter, cpin: cfg.cpin, at: Date.now() });
-        store.set('queue', queue); setOnline(false);
-        addCode(raw, name); closeDialog(); renderAll();
-        toast('ไม่มีสัญญาณ จำบาร์โค้ดไว้ในเครื่องก่อน จะส่งเข้าชีตเมื่อออนไลน์', 'warn', 3500);
-        openSheet(byName.get(normName(name)) || [], tab === 'recount' ? 'recount' : 'count', raw);
-      }
+        store.set('queue', queue); setOnline(false); renderAll();
+      });
     });
     dlg.querySelector('#reportBtn').onclick = () => { closeDialog(); openReport({ barcode: raw }); };
   });
@@ -511,14 +570,17 @@ function openReport(pre) {
       <div class="rlot-h"><span>LOT ที่ ${n}</span><button type="button" data-del>ลบ</button></div>
       <div class="field"><label>LOT</label><input type="text" data-f="lot" autocapitalize="characters" autocomplete="off"></div>
       <div class="two">
-        <div class="field"><label>วันหมดอายุ</label><input type="text" data-f="exp" placeholder="เช่น 2028-05-31" autocomplete="off"></div>
         <div class="field"><label>จำนวน</label><input type="number" data-f="q" inputmode="numeric" min="0" step="1"></div>
-      </div></div>`;
+        <div></div>
+      </div>
+      <div class="field"><label>วันหมดอายุ (ไม่มีวันที่ เลือกแค่เดือน/ปี ได้)</label>${expPicker()}</div></div>`;
+  const unitOpts = units.length ? units : ['กล่อง', 'ขวด', 'แผง', 'ชิ้น', 'ซอง', 'หลอด', 'เม็ด'];
   openDialog(`<h3>${pre.type === 'newlot' ? 'พบ LOT ที่ไม่มีในระบบ' : 'สินค้าไม่มีในรายการนับ'}</h3>
     <p class="muted small">บันทึกไว้ในแท็บ “บันทึกการนับ” ให้เภสัชกรตรวจสอบกับ Arincare ภายหลัง ถ้าบนชั้นมีหลาย LOT กด “+ เพิ่ม LOT” แล้วกรอกจำนวนแยกกัน</p>
     ${pre.type === 'newlot' ? `<div class="field"><label>สินค้า</label><input type="text" value="${esc(pre.name)}" disabled></div>` :
       `<div class="field"><label>บาร์โค้ด</label><input type="text" id="rpB" value="${esc(pre.barcode || '')}"></div>
-       <div class="field"><label>ชื่อสินค้า (ถ้าทราบ)</label><input type="text" id="rpN"></div>`}
+       <div class="field"><label>ชื่อสินค้า (ถ้าทราบ)</label><input type="text" id="rpN" autocomplete="off"><div id="rpSugg"></div></div>
+       <div class="field"><label>หน่วยที่นับ</label><select id="rpU"><option value="">— เลือกหน่วย —</option>${unitOpts.map(u => `<option>${esc(u)}</option>`).join('')}</select></div>`}
     <div id="rpLots">${lotRow(1)}</div>
     <button type="button" class="addlot" id="rpAdd">+ เพิ่ม LOT</button>
     ${shelfField('rpLoc', store.get('lastShelf', ''))}
@@ -530,23 +592,50 @@ function openReport(pre) {
       const btn = dlg.querySelector('#rpSave'); if (!btn.disabled) btn.textContent = rows.length > 1 ? `บันทึก ${rows.length} LOT` : 'บันทึก'; };
     renumber();
     bindShelf(dlg, 'rpLoc');
+    // พิมพ์ชื่อแล้วมีสินค้านี้ในรายการอยู่แล้ว → แนะนำให้นับในรายการเดิม / แจ้งเป็น LOT ใหม่ของสินค้าเดิม (กันชื่อซ้ำ)
+    const nIn = dlg.querySelector('#rpN');
+    if (nIn) nIn.addEventListener('input', () => {
+      const t = normKey(nIn.value), box2 = dlg.querySelector('#rpSugg');
+      if (t.length < 3) { box2.innerHTML = ''; return; }
+      const hits = [...byName.keys()].filter(n => normKey(n).includes(t)).slice(0, 6);
+      box2.innerHTML = hits.length ? `<div class="sugg"><div class="h">มีสินค้าชื่อคล้ายกันในรายการแล้ว ถ้าใช่ตัวเดียวกัน แตะเลือก (ไม่ต้องสร้างชื่อใหม่)</div>${hits.map(n => `<button type="button" data-n="${esc(byName.get(n)[0].n)}">${esc(byName.get(n)[0].n)} <span class="small muted">· ${byName.get(n).length} LOT</span></button>`).join('')}</div>` : '';
+    });
+    dlg.addEventListener('click', e => {
+      const b = e.target.closest('#rpSugg [data-n]'); if (!b) return;
+      const name = b.dataset.n, lots = byName.get(normName(name)) || [], bc = v('#rpB');
+      closeDialog();
+      openDialog(`<h3>${esc(name)}</h3><p class="small muted">มีในรายการนับ ${lots.length} LOT</p>
+        <div class="choice"><button class="btn" id="sgCount">นับ LOT ที่มีในรายการ</button>
+        <button class="btn ghost" id="sgNew">LOT ที่ถืออยู่ไม่มีในรายการ (แจ้ง LOT ใหม่)</button>
+        ${bc ? `<button class="btn ghost" id="sgLink">จำบาร์โค้ด ${esc(bc)} ให้สินค้านี้ด้วย</button>` : ''}</div>
+        <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button></div>`, d2 => {
+        d2.querySelector('#sgCount').onclick = () => { closeDialog(); openSheet(lots, 'count', bc); };
+        d2.querySelector('#sgNew').onclick = () => { closeDialog(); openReport({ type: 'newlot', name, barcode: bc }); };
+        const lk = d2.querySelector('#sgLink');
+        if (lk) lk.onclick = async () => { lk.disabled = true;
+          try { await api('link', { barcode: bc, name }); } catch (err) { if (!err.server) { queue.push({ action: 'link', payload: { barcode: bc, name }, counter: cfg.counter, cpin: cfg.cpin, at: Date.now() }); store.set('queue', queue); } }
+          addCode(bc, name); closeDialog(); toast('จำบาร์โค้ดแล้ว ✓', 'ok', 1500); openSheet(lots, 'count', bc); };
+      });
+    });
     dlg.querySelector('#rpAdd').onclick = () => {
       box.insertAdjacentHTML('beforeend', lotRow(box.children.length + 1)); renumber();
       box.lastElementChild.querySelector('[data-f="lot"]').focus();
     };
     box.addEventListener('click', e => { const d = e.target.closest('[data-del]'); if (d && box.children.length > 1) { d.closest('[data-lot]').remove(); renumber(); } });
+    function v(id) { const el = dlg.querySelector(id); return el ? el.value.trim() : ''; }
     dlg.querySelector('#rpSave').onclick = async () => {
-      const v = id => { const el = dlg.querySelector(id); return el ? el.value.trim() : ''; };
       const lots = [...box.querySelectorAll('[data-lot]')].map(r => {
         const f = k => r.querySelector(`[data-f="${k}"]`).value.trim();
-        const o = { lot: f('lot'), exp: f('exp') }; if (f('q') !== '') o.q = Number(f('q')); return o;
+        const o = { lot: f('lot'), exp: readExp(r) }; if (f('q') !== '') o.q = Number(f('q')); return o;
       }).filter((o, i) => i === 0 || o.lot || o.exp || o.q !== undefined);
       if (lots.some(o => o.q !== undefined && (!Number.isInteger(o.q) || o.q < 0))) { toast('จำนวนต้องเป็นจำนวนเต็มตั้งแต่ 0', 'bad'); return; }
+      if (lots.some(o => o.exp === null)) { toast('วันหมดอายุ: เลือกทั้งเดือนและปี (วันที่ไม่บังคับ)', 'bad'); return; }
       const seenLot = new Set();
       if (lots.some(o => o.lot && (seenLot.has(o.lot.toUpperCase()) || !seenLot.add(o.lot.toUpperCase())))) { toast('มี LOT ซ้ำกัน ตรวจสอบอีกครั้ง', 'bad'); return; }
       const loc = readShelf(dlg, 'rpLoc');
       const body = { type: pre.type || 'notfound', barcode: pre.type === 'newlot' ? (pre.barcode || '') : v('#rpB'),
-        name: pre.type === 'newlot' ? pre.name : v('#rpN'), lots, loc, note: v('#rpNote') };
+        name: pre.type === 'newlot' ? pre.name : v('#rpN'), lots, loc, note: v('#rpNote'),
+        unit: pre.type === 'newlot' ? ((byName.get(normName(pre.name)) || [])[0] || {}).u || '' : v('#rpU') };
       const btn = dlg.querySelector('#rpSave'); if (btn.disabled) return; btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
       try {
         const d = await api('report', body);
@@ -562,14 +651,33 @@ function openReport(pre) {
   });
 }
 
+/* ---------- วันหมดอายุ: เลือก วัน (ไม่บังคับ) / เดือน / ปี ---------- */
+const TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+function expPicker() {
+  const y0 = new Date().getFullYear() - 2;
+  return `<div class="expp" data-exp>
+    <select data-e="d" aria-label="วัน"><option value="">วัน –</option>${Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('')}</select>
+    <select data-e="m" aria-label="เดือน"><option value="">เดือน</option>${TH_M.map((m, i) => `<option value="${i + 1}">${i + 1} ${m}</option>`).join('')}</select>
+    <select data-e="y" aria-label="ปี"><option value="">ปี</option>${Array.from({ length: 14 }, (_, i) => `<option value="${y0 + i}">${y0 + i} (${y0 + i + 543})</option>`).join('')}</select></div>`;
+}
+// '' = ไม่ได้กรอก, null = กรอกไม่ครบ, ไม่งั้นได้ YYYY-MM หรือ YYYY-MM-DD
+function readExp(root) {
+  const g = k => root.querySelector(`[data-exp] [data-e="${k}"]`).value;
+  const d = g('d'), m = g('m'), y = g('y'), p = n => ('0' + n).slice(-2);
+  if (!d && !m && !y) return '';
+  if (!m || !y) return null;
+  return y + '-' + p(m) + (d ? '-' + p(d) : '');
+}
+function dedupeShelves(list) { const seen = new Set(); return list.filter(x => { const k = normKey(x); if (!k || seen.has(k)) return false; seen.add(k); return true; }); }
+
 /* ---------- เลือกชั้นวาง (dropdown) ---------- */
 const OTHER_SHELF = '__other__';
 function shelfField(id, cur) {
   cur = cur || '';
   const list = shelves.slice();
-  if (cur && !list.some(x => normName(x) === normName(cur))) list.unshift(cur);
+  if (cur && !list.some(x => normKey(x) === normKey(cur))) list.unshift(cur);
   return `<div class="field"><label>ชั้นที่วางยา (ไม่บังคับ)</label>
-    <select id="${id}"><option value="">— ไม่ระบุ —</option>${list.map(x => `<option${normName(x) === normName(cur) ? ' selected' : ''}>${esc(x)}</option>`).join('')}
+    <select id="${id}"><option value="">— ไม่ระบุ —</option>${list.map(x => `<option${normKey(x) === normKey(cur) ? ' selected' : ''}>${esc(x)}</option>`).join('')}
     <option value="${OTHER_SHELF}">+ ชั้นอื่น (พิมพ์เอง)</option></select>
     <input type="text" id="${id}Txt" placeholder="พิมพ์ชื่อชั้น" style="display:none;margin-top:8px" autocomplete="off"></div>`;
 }
@@ -580,53 +688,83 @@ function bindShelf(root, id) {
 }
 function readShelf(root, id) {
   const sel = root.querySelector('#' + id); if (!sel) return '';
-  return sel.value === OTHER_SHELF ? root.querySelector('#' + id + 'Txt').value.trim() : sel.value.trim();
+  const v = sel.value === OTHER_SHELF ? root.querySelector('#' + id + 'Txt').value.replace(/\s+/g, ' ').trim() : sel.value.trim();
+  return shelves.find(x => normKey(x) === normKey(v)) || v;   // พิมพ์ชื่อชั้นที่มีอยู่แล้ว (เว้นวรรคต่าง) → ใช้ชื่อเดิม
 }
 function rememberShelf(loc) {
   if (!loc) return;
   store.set('lastShelf', loc);
-  if (!shelves.some(x => normName(x) === normName(loc))) shelves.push(loc);
+  if (!shelves.some(x => normKey(x) === normKey(loc))) shelves.push(loc);
 }
 
 /* ---------- แผ่นนับ ---------- */
 let sheetCtx = null;
 function sheetOpen() { return !!sheetCtx || !!$('#layer').firstChild; }
 
-function openSheet(lots, mode, raw) {
+const BIG_UNITS = ['กล่อง', 'แผง', 'ขวด', 'แพ็ค', 'โหล', 'ลัง'];
+function packFor(name) { const k = normName(name); let hit = null; packs.forEach(x => { if (normName(x[0]) === k) hit = { big: x[1], n: Number(x[2]) }; }); return hit; }
+function calcBox(i, pk) {
+  const big = pk ? pk.big : (i.u === 'แผง' ? 'กล่อง' : i.u === 'เม็ด' ? 'แผง' : 'กล่อง');
+  return `<div class="calc${pk ? ' on' : ''}" data-calc>
+    <div class="crow"><input type="number" inputmode="numeric" min="0" step="1" data-cb placeholder="0" aria-label="จำนวน${esc(big)}">
+      <select data-cbig aria-label="หน่วยที่นับ">${BIG_UNITS.concat(BIG_UNITS.includes(big) ? [] : [big]).map(u => `<option${u === big ? ' selected' : ''}>${esc(u)}</option>`).join('')}</select>
+      <span>+ เศษ</span><input type="number" inputmode="numeric" min="0" step="1" data-cl placeholder="0" aria-label="เศษ"><span>${esc(i.u)}</span></div>
+    <div class="crow small muted" style="margin-top:6px">1 <span data-cbn>${esc(big)}</span> = <input type="number" inputmode="numeric" min="1" step="1" data-cn value="${pk ? pk.n : ''}" placeholder="?" style="width:56px;height:34px;font-size:15px"> ${esc(i.u)} ${pk ? '(ตั้งไว้ในแท็บ ขนาดบรรจุ)' : '(ระบบจะจำไว้)'}</div>
+    <div class="eq" data-ceq></div></div>`;
+}
+function openSheet(lots, mode, raw, pre, editing) {
   if (!lots.length) return;
-  if (!cfg.counter) { askCounter(() => openSheet(lots, mode, raw)); return; }
+  if (!cfg.counter) { askCounter(() => openSheet(lots, mode, raw, pre, editing)); return; }
   lots = lots.slice().sort((a, b) => (a.e || '').localeCompare(b.e || ''));
-  sheetCtx = { lots, mode, raw };
+  pre = pre || {};
+  sheetCtx = { lots, mode, raw, editing };
+  const pk = packFor(lots[0].n);
+  const chk = i => showSys && i.f !== null && i.f !== undefined;   // โหมดตรวจเทียบ: LOT ที่รู้ยอดในระบบ
   const p = lots[0];
   const counted = lots.filter(i => i.c);
   const firstBy = [...new Set(lots.map(i => i.by).filter(Boolean))];
   const sameCounter = mode === 'recount' && firstBy.includes(cfg.counter);
   $('#layer').innerHTML = `<div class="overlay" id="ov"><div class="sheet" role="dialog" aria-modal="true">
     <div class="sheet-h">
-      <div class="mode">${mode === 'recount' ? 'นับซ้ำ (คนที่ 2) · ไม่แสดงยอดเดิม' : 'นับสต็อก · ไม่แสดงยอดในระบบ'}</div>
+      <div class="mode">${showSys ? (mode === 'recount' ? 'นับซ้ำ · ตรวจเทียบกับระบบ' : 'ตรวจเทียบกับระบบ · ตรงแตะ ✓ ไม่ตรงแก้ตัวเลข') : mode === 'recount' ? 'นับซ้ำ (คนที่ 2) · ไม่แสดงยอดเดิม' : 'นับสต็อก · ไม่แสดงยอดในระบบ'}</div>
       <div class="pname">${esc(p.n)}</div>
       <div class="small muted">${raw ? 'บาร์โค้ด ' + esc(raw) + ' · ' : ''}${lots.length} LOT${p.cat ? ' · ' + esc(p.cat) : ''}</div>
     </div>
     <div class="sheet-b">
       ${sameCounter ? `<div class="lot" style="background:var(--warn-soft);border-color:#f3c48c"><b>คุณเป็นผู้นับครั้งแรก</b><div class="small">การนับซ้ำควรเป็นอีกคน เพื่อให้ตรวจสอบได้จริง</div></div>` : ''}
-      ${mode === 'count' && counted.length ? `<div class="note" style="margin:0 0 10px">มี ${counted.length} LOT ที่นับไปแล้ว ถ้ากรอกใหม่จะเป็นการนับรอบใหม่แทนของเดิม</div>` : ''}
+      ${showSys && !editing ? `<button type="button" class="btn allok" id="allOk">✓ ตรงทั้งหมด ${lots.length > 1 ? lots.length + ' LOT ' : ''}แล้วบันทึก</button>` : ''}
+      ${editing ? `<div class="note" style="margin:0 0 10px">แก้ไขยอดที่นับไว้ แก้ตัวเลขแล้วกดบันทึก (LOT ที่ไม่แก้ปล่อยว่างได้)</div>` :
+        mode === 'count' && counted.length ? `<div class="note" style="margin:0 0 10px">มี ${counted.length} LOT ที่นับไปแล้ว ถ้ากรอกใหม่จะเป็นการนับรอบใหม่แทนของเดิม</div>` : ''}
       ${lots.map((i, k) => `
         <div class="lot ${i.c && mode === 'count' ? 'done' : ''}" data-k="${k}">
           <div class="lot-top">
             <div><div class="lot-id">LOT ${esc(i.l || 'ไม่ระบุ')}</div></div>
             ${statusPill(i.st)}
           </div>
-          <div class="lot-meta">${expPill(i)}${i.dup ? '<span class="pill p-warn">แถวซ้ำในระบบ</span>' : ''}${i.c && i.by ? `<span class="pill p-mute">นับโดย ${esc(i.by)}</span>` : ''}</div>
+          <div class="lot-meta">${expPill(i)}${i.dup ? '<span class="pill p-warn">แถวซ้ำในระบบ</span>' : ''}${i.c && i.by ? `<span class="pill p-mute">นับโดย ${esc(i.by)}</span>` : ''}${i.ef ? `<span class="pill p-warn">EXP บนกล่อง ${esc(i.ef)}</span>` : ''}</div>
+          ${chk(i) ? `<div class="sys">ในระบบ <b>${i.f}</b> ${esc(i.u)}</div>
+          <div class="lotx"><button type="button" data-x="ok">✓ ตรง</button><button type="button" data-x="edit">✎ ไม่ตรง · แก้ไข</button></div>` : ''}
+          <div class="editbox${!chk(i) || pre[i.r] !== undefined ? ' on' : ''}" data-edit>
+          <div class="small" style="margin-top:8px">กรอกเป็นหน่วย <span class="unit-big">${esc(i.u || '-')}</span> ตามระบบ Arincare</div>
           <div class="stepper">
             <button type="button" data-step="-1" aria-label="ลด">−</button>
-            <input type="number" inputmode="numeric" min="0" step="1" placeholder="จำนวน" data-q aria-label="จำนวนที่นับได้">
+            <input type="number" inputmode="numeric" min="0" step="1" placeholder="จำนวน" data-q aria-label="จำนวนที่นับได้" value="${pre[i.r] !== undefined ? pre[i.r] : ''}">
             <button type="button" data-step="1" aria-label="เพิ่ม">+</button>
             <span class="unit">${esc(i.u)}</span>
           </div>
-          <button type="button" class="linkbtn small" data-zero>ไม่พบ LOT นี้บนชั้น (= 0)</button>
+          ${calcBox(i, pk)}
+          <div style="display:flex;gap:14px;flex-wrap:wrap">
+            <button type="button" class="linkbtn small" data-zero>ไม่พบ LOT นี้บนชั้น (= 0)</button>
+            ${pk ? '' : `<button type="button" class="linkbtn small" data-calcbtn>📦 นับเป็นกล่อง/แผง</button>`}
+            ${chk(i) ? `<button type="button" class="linkbtn small" data-expt>EXP บนกล่องไม่ตรง</button>` : ''}
+          </div>
+          ${chk(i) && mode === 'count' ? `<label class="confirm"><input type="checkbox" data-confirm checked> หน้างานถูกแน่นอน ไม่ต้องนับซ้ำ (รอเจ้าของร้านปรับใน Arincare)</label>` : ''}
+          ${chk(i) ? '' : `<div class="lotx"><button type="button" data-x="ok">✓ LOT/EXP ตรงกับกล่อง</button><button type="button" data-x="bad">EXP ไม่ตรง</button></div>`}
+          <div class="expbox" data-expbox><label class="small muted">EXP ที่เห็นบนกล่อง (LOT ไม่ตรง ให้กด “+ พบ LOT ที่ไม่มีในระบบ” แทน)</label>${expPicker()}</div>
+          </div>
         </div>`).join('')}
       ${mode === 'count' ? `<button type="button" class="linkbtn" id="newLotBtn">+ พบ LOT ที่ไม่มีในระบบ</button>
-      ${shelfField('locInput', p.loc || store.get('lastShelf', ''))}` : ''}
+      ${shelfField('locInput', ploc[normName(p.n)] || p.loc || store.get('lastShelf', ''))}` : ''}
     </div>
     <div class="sheet-f">
       <button class="btn ghost" id="sheetCancel">ยกเลิก</button>
@@ -640,9 +778,48 @@ function openSheet(lots, mode, raw) {
     if (st) { const inp = st.parentElement.querySelector('[data-q]'); const cur = inp.value === '' ? (Number(st.dataset.step) > 0 ? 0 : 1) : Number(inp.value);
       inp.value = Math.max(0, cur + Number(st.dataset.step)); updateSave(); vibrate(8); }
     const z = e.target.closest('[data-zero]');
-    if (z) { z.closest('.lot').querySelector('[data-q]').value = 0; updateSave(); }
+    if (z) { const L = z.closest('.lot'); L.querySelector('[data-q]').value = 0; L.querySelectorAll('[data-cb],[data-cl]').forEach(x => x.value = ''); updateSave(); }
+    const cb = e.target.closest('[data-calcbtn]');
+    if (cb) { const c = cb.closest('.lot').querySelector('[data-calc]'); c.classList.toggle('on'); if (c.classList.contains('on')) c.querySelector(c.querySelector('[data-cn]').value ? '[data-cb]' : '[data-cn]').focus(); }
+    const x = e.target.closest('[data-x]');
+    if (x) { const L = x.closest('.lot'), it = lots[Number(L.dataset.k)], q = L.querySelector('[data-q]');
+      const on = x.dataset.x === 'edit' ? true : !x.classList.contains('on');
+      L.querySelectorAll('[data-x]').forEach(b => b.classList.remove('on')); if (on) x.classList.add('on');
+      if (x.dataset.x === 'bad') L.querySelector('[data-expbox]').classList.toggle('on', on);
+      if (chk(it) && x.dataset.x === 'ok') {   // ตรง: ใช้ยอดในระบบ ปิดช่องแก้
+        q.value = on ? it.f : ''; L.querySelector('[data-edit]').classList.remove('on'); L.querySelector('[data-expbox]').classList.remove('on');
+        L.querySelectorAll('[data-cb],[data-cl]').forEach(v => v.value = '');
+      }
+      if (x.dataset.x === 'edit') { L.querySelector('[data-edit]').classList.add('on'); if (q.value === String(it.f)) q.value = ''; q.focus(); }
+      if (!chk(it) && on && x.dataset.x === 'ok' && q.value === '' && showSys && it.f != null) q.value = it.f;
+      updateSave(); }
+    const et = e.target.closest('[data-expt]');
+    if (et) et.closest('.lot').querySelector('[data-expbox]').classList.toggle('on');
   });
   ov.querySelectorAll('[data-q]').forEach(inp => inp.addEventListener('input', updateSave));
+  // ตัวช่วยแปลงหน่วย: กล่อง × จำนวนต่อกล่อง + เศษ → ใส่ในช่องจำนวน (หน่วยตามระบบ)
+  ov.querySelectorAll('[data-calc]').forEach(c => {
+    const L = c.closest('.lot'), it = lots[Number(L.dataset.k)];
+    const run = () => {
+      const b = c.querySelector('[data-cb]').value, l = c.querySelector('[data-cl]').value, n = Number(c.querySelector('[data-cn]').value);
+      c.querySelector('[data-cbn]').textContent = c.querySelector('[data-cbig]').value;
+      if (b === '' && l === '') { c.querySelector('[data-ceq]').textContent = ''; return; }
+      if (b !== '' && !(n > 0)) { c.querySelector('[data-ceq]').textContent = 'ใส่จำนวน ' + it.u + ' ต่อ 1 ' + c.querySelector('[data-cbig]').value + ' ก่อน'; return; }
+      const tot = (Number(b) || 0) * (n || 0) + (Number(l) || 0);
+      L.querySelector('[data-q]').value = tot;
+      c.querySelector('[data-ceq]').textContent = `= ${tot} ${it.u}`;
+      updateSave();
+    };
+    c.addEventListener('input', run); c.addEventListener('change', run);
+  });
+  const ao = $('#allOk');
+  if (ao) ao.onclick = () => {
+    ov.querySelectorAll('.lot[data-k]').forEach(L => { const it = lots[Number(L.dataset.k)], q = L.querySelector('[data-q]');
+      if (it.f === null || it.f === undefined) return;
+      if (L.querySelector('[data-edit]').classList.contains('on') && L.querySelector('[data-q]').value !== '' && !L.querySelector('[data-x="ok"].on')) return;   // LOT ที่แก้ตัวเลขไว้แล้ว ไม่ทับ
+      q.value = it.f; L.querySelectorAll('[data-x]').forEach(b => b.classList.toggle('on', b.dataset.x === 'ok')); L.querySelector('[data-expbox]').classList.remove('on'); });
+    updateSave(); saveSheet();
+  };
   $('#sheetCancel').onclick = closeSheet;
   $('#sheetSave').onclick = saveSheet;
   bindShelf(ov, 'locInput');
@@ -655,7 +832,17 @@ function sheetEntries() {
   const out = [];
   document.querySelectorAll('#ov .lot[data-k]').forEach(el => {
     const v = el.querySelector('[data-q]').value.trim();
-    if (v !== '') { const it = sheetCtx.lots[Number(el.dataset.k)]; out.push({ it, q: Number(v) }); }
+    if (v !== '') {
+      const it = sheetCtx.lots[Number(el.dataset.k)], o = { it, q: Number(v) };
+      const x = el.querySelector('[data-x].on');
+      if (x && x.dataset.x === 'ok') o.expOk = true;
+      const cf = el.querySelector('[data-confirm]');
+      if (cf && cf.checked && el.querySelector('[data-edit]').classList.contains('on') && it.f != null && o.q !== it.f) o.confirm = true;
+      if (el.querySelector('[data-expbox]').classList.contains('on')) o.expFound = readExp(el.querySelector('[data-expbox]'));
+      const c = el.querySelector('[data-calc]');
+      if (c.classList.contains('on') && c.querySelector('[data-cb]').value !== '') o.pack = { big: c.querySelector('[data-cbig]').value, n: Number(c.querySelector('[data-cn]').value) };
+      out.push(o);
+    }
   });
   return out;
 }
@@ -669,25 +856,42 @@ function closeSheet() { if (sheetCtx && sheetCtx.raw) cool = { code: sheetCtx.ra
 async function saveSheet() {
   const entries = sheetEntries();
   if (entries.some(e => !Number.isInteger(e.q) || e.q < 0)) { toast('จำนวนต้องเป็นจำนวนเต็มตั้งแต่ 0', 'bad'); return; }
-  const mode = sheetCtx.mode;
-  if (mode === 'count') {
-    const over = entries.filter(e => e.it.c).length;
-    if (over && !confirm(`มี ${over} LOT ที่นับไปแล้ว ต้องการบันทึกทับเป็นรอบใหม่ไหม`)) return;
+  if (entries.some(e => e.expFound === null || e.expFound === '')) { toast('EXP ไม่ตรง: เลือกเดือนและปีที่เห็นบนกล่อง', 'bad'); return; }
+  const mode = sheetCtx.mode, editing = sheetCtx.editing;
+  if (mode === 'count' && !editing) {
+    const over = entries.filter(e => e.it.c && e.it.by !== cfg.counter).length;
+    if (over && !confirm(`มี ${over} LOT ที่คนอื่นนับไปแล้ว ต้องการบันทึกทับเป็นรอบใหม่ไหม`)) return;
   }
   const loc = readShelf(document, 'locInput');
-  const payload = { entries: entries.map(e => ({ r: e.it.r, n: e.it.n, l: e.it.l, q: e.q, loc: loc && loc !== e.it.loc ? loc : undefined, seen: mode === 'count' ? !!e.it.c : undefined })) };
-  const btn = $('#sheetSave'); btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
+  const payload = { entries: entries.map(e => ({ r: e.it.r, n: e.it.n, l: e.it.l, q: e.q, loc: loc || undefined,
+    seen: mode === 'count' ? !!e.it.c : undefined, expOk: e.expOk, expFound: e.expFound || undefined, confirm: e.confirm || undefined })) };
+  // จำขนาดบรรจุที่ใช้ครั้งแรก/เปลี่ยนใหม่ ไว้ใช้ครั้งต่อไป
+  const pe = entries.find(e => e.pack && e.pack.n > 0);
+  if (pe) { const old = packFor(pe.it.n);
+    if (!old || old.n !== pe.pack.n || old.big !== pe.pack.big) {
+      packs.push([pe.it.n, pe.pack.big, pe.pack.n]);
+      api('pack', { name: pe.it.n, unit: pe.it.u, big: pe.pack.big, n: pe.pack.n }).catch(() => {});
+    } }
+  // ปิดแผ่นนับทันที ให้สแกนชิ้นต่อไปได้เลย ผลตรง/ไม่ตรงจะเด้งขึ้นมาเมื่อระบบตอบกลับ
+  const snap = entries.map(e => ({ it: e.it, c: e.it.c, by: e.it.by, st: e.it.st }));
+  entries.forEach(e => { if (mode === 'count') { e.it.c = true; e.it.by = cfg.counter; } e.it.st = 'รอส่ง'; if (loc) e.it.loc = loc;
+    if (e.expFound) e.it.ef = e.expFound; else if (e.expOk) e.it.ef = ''; });
+  if (loc) ploc[normName(entries[0].it.n)] = loc;
+  pushRecent(entries, mode);
+  closeSheet(); rememberShelf(loc); renderAll();
+  toast('กำลังบันทึก… สแกนชิ้นต่อไปได้เลย', 'ok', 1500);
   try {
     const d = await api(mode, payload);
-    closeSheet(); rememberShelf(loc);
     applyResults(d.results, entries, loc, mode);
   } catch (e) {
-    if (e.server) { btn.disabled = false; updateSave(); toast(e.message, 'bad', 4500); return; }
+    if (e.server) {
+      snap.forEach(x => { x.it.c = x.c; x.it.by = x.by; x.it.st = x.st; });
+      renderAll(); beep('miss'); toast('บันทึกไม่ได้: ' + e.message, 'bad', 5000); return;
+    }
     // ออฟไลน์: เก็บไว้ส่งทีหลัง
     queue.push({ action: mode, payload, counter: cfg.counter, cpin: cfg.cpin, at: Date.now() });
     store.set('queue', queue);
-    entries.forEach(e => { if (mode === 'count') { e.it.c = true; e.it.by = cfg.counter; } e.it.st = 'รอส่ง'; });
-    setOnline(false); closeSheet(); renderAll();
+    setOnline(false); renderAll();
     toast('ไม่มีสัญญาณ เก็บไว้ในเครื่องแล้ว จะส่งเองเมื่อออนไลน์', 'warn', 4000);
   }
 }
@@ -703,7 +907,7 @@ function applyResults(results, entries, loc, mode) {
     if (mode === 'count') { it.c = true; it.by = cfg.counter; it.cz = ''; it.df = null; }
     if (loc) it.loc = loc;
     if (res.st === 'รอนับซ้ำ') { warn++; lines.push(`LOT ${it.l}: ไม่ตรง → ส่งให้คนที่ 2 นับซ้ำ`); }
-    else if (/^ไม่ตรง/.test(res.st)) { warn++; it.df = res.diff; askCause.push(it); lines.push(`LOT ${it.l}: ยืนยันว่าไม่ตรง`); }
+    else if (/^ไม่ตรง/.test(res.st)) { warn++; it.df = res.diff; askCause.push(it); lines.push(mode === 'count' ? `LOT ${it.l}: บันทึกตามหน้างาน รอปรับ Arincare` : `LOT ${it.l}: ยืนยันว่าไม่ตรง`); }
     else lines.push(`LOT ${it.l}: ${res.st} ✓`);
     if (res.same) { warn++; lines.push('⚠ นับซ้ำโดยคนเดิม (ระบบติดป้ายไว้ให้เภสัชกรเห็น)'); }
   });
@@ -711,7 +915,8 @@ function applyResults(results, entries, loc, mode) {
   const kind = bad ? 'bad' : warn ? 'warn' : 'ok';
   beep(kind === 'ok' ? 'ok' : 'miss');
   toast(lines.join('<br>'), kind, kind === 'ok' ? 2200 : 4500, true);
-  if (askCause.length) openCauseChain(askCause);
+  // ถ้ากำลังนับชิ้นอื่นอยู่ ไม่เด้งหน้าหมายเหตุขัด ใส่ภายหลังได้ที่แท็บ นับซ้ำ
+  // ไม่ถามสาเหตุแล้ว (ส่วนใหญ่ไม่รู้ว่าหายไปไหน) ใส่หมายเหตุเองได้ที่แท็บ นับซ้ำ ถ้าต้องการ
 }
 
 /* ---------- ระบุสาเหตุ ---------- */
@@ -719,21 +924,26 @@ function openCauseChain(list) { const it = list.shift(); if (it) openCause(it, i
 function openCause(it, diff, next) {
   const d = diff === null || diff === undefined ? '' :
     `<div class="lot" style="background:var(--bad-soft);border-color:#f2b8b5"><b>ส่วนต่าง ${fmtDiff(diff)} ${esc(it.u)}</b>
-     <div class="small">${diff < 0 ? 'ของจริงน้อยกว่าในระบบ' : 'ของจริงมากกว่าในระบบ'} (นับ 2 คนแล้ว)</div></div>`;
-  const opts = causes.length ? causes : ['ขายแล้วยังไม่ตัดสต็อก', 'รับเข้าแล้วยังไม่บันทึกในระบบ', 'จ่ายหรือบันทึกผิด LOT', 'วางผิดที่หรือหาไม่เจอ', 'อื่นๆ (ระบุในหมายเหตุ)'];
-  openDialog(`<h3>ระบุสาเหตุของส่วนต่าง</h3>
+     <div class="small">${diff < 0 ? 'ของจริงน้อยกว่าในระบบ' : 'ของจริงมากกว่าในระบบ'} (นับ 2 ครั้งแล้ว)</div></div>`;
+  const chips = ['นับผิดครั้งแรก', 'หน่วยในระบบไม่ตรง', 'สลับ LOT', 'ขายแล้วยังไม่ตัดสต็อก', 'รับเข้ายังไม่บันทึก', 'ไม่ทราบสาเหตุ'];
+  openDialog(`<h3>หมายเหตุส่วนต่าง (ไม่บังคับ)</h3>
     <p class="small muted">${esc(it.n)} · LOT ${esc(it.l)}</p>${d}
-    <div class="field"><label>สาเหตุ</label><select id="czSel"><option value="">เลือกสาเหตุ</option>${opts.map(o => `<option>${esc(o)}</option>`).join('')}</select></div>
-    <div class="field"><label>หมายเหตุ (ไม่บังคับ)</label><input type="text" id="czNote"></div>
-    <div class="acts"><button class="btn ghost" id="czLater">ไว้ทีหลัง</button><button class="btn" id="czSave">บันทึก</button></div>`, dlg => {
+    <div class="chips">${chips.map(c => `<button type="button" data-chip>${esc(c)}</button>`).join('')}</div>
+    <div class="field"><label>หมายเหตุ (แตะด้านบน หรือพิมพ์เอง)</label><input type="text" id="czNote" value="${esc(it.cz || '')}" autocomplete="off"></div>
+    <div class="acts"><button class="btn ghost" id="czLater">ข้าม</button><button class="btn" id="czSave">บันทึก</button></div>`, dlg => {
+    const inp = dlg.querySelector('#czNote');
+    dlg.querySelectorAll('[data-chip]').forEach(b => b.onclick = () => { const t = b.textContent; inp.value = inp.value.trim() ? inp.value.trim() + ', ' + t : t; });
     dlg.querySelector('#czLater').onclick = () => { closeDialog(); next && next(); };
-    dlg.querySelector('#czSave').onclick = async () => {
-      const cause = dlg.querySelector('#czSel').value;
-      if (!cause) { toast('กรุณาเลือกสาเหตุ', 'warn'); return; }
+    const btn = dlg.querySelector('#czSave');
+    btn.onclick = async () => {
+      if (btn.disabled) return;   // กันกดซ้ำ
+      const note = inp.value.trim();
+      if (!note) { closeDialog(); next && next(); return; }
+      btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
       try {
-        await api('cause', { r: it.r, n: it.n, l: it.l, cause, note: dlg.querySelector('#czNote').value.trim() });
-        it.cz = cause; closeDialog(); renderAll(); toast('บันทึกสาเหตุแล้ว', 'ok', 1500); next && next();
-      } catch (e) { toast('บันทึกไม่ได้: ' + e.message, 'bad', 4000); }
+        await api('cause', { r: it.r, n: it.n, l: it.l, note });
+        it.cz = note; closeDialog(); renderAll(); toast('บันทึกหมายเหตุแล้ว', 'ok', 1500); next && next();
+      } catch (e) { btn.disabled = false; btn.textContent = 'บันทึก'; toast('บันทึกไม่ได้: ' + e.message, 'bad', 4000); }
     };
   });
 }
