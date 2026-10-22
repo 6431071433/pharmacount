@@ -763,7 +763,7 @@ function openSheet(lots, mode, raw, pre, editing) {
           <div class="expbox" data-expbox><label class="small muted">EXP ที่เห็นบนกล่อง (LOT ไม่ตรง ให้กด “+ พบ LOT ที่ไม่มีในระบบ” แทน)</label>${expPicker()}</div>
           </div>
         </div>`).join('')}
-      ${mode === 'count' ? `<button type="button" class="linkbtn" id="newLotBtn">+ พบ LOT ที่ไม่มีในระบบ</button>
+      ${mode === 'count' ? `<div id="newLots"></div><button type="button" class="linkbtn" id="newLotBtn">+ พบ LOT ที่ไม่มีในระบบ (กรอกในแผ่นนี้ได้เลย)</button>
       ${shelfField('locInput', ploc[normName(p.n)] || p.loc || store.get('lastShelf', ''))}` : ''}
     </div>
     <div class="sheet-f">
@@ -823,7 +823,22 @@ function openSheet(lots, mode, raw, pre, editing) {
   $('#sheetCancel').onclick = closeSheet;
   $('#sheetSave').onclick = saveSheet;
   bindShelf(ov, 'locInput');
-  const nl = $('#newLotBtn'); if (nl) nl.onclick = () => { const name = p.n; closeSheet(); openReport({ type: 'newlot', name, barcode: raw || '' }); };
+  // LOT ที่มีบนชั้นแต่ไม่มีในระบบ: กรอกต่อท้ายในแผ่นเดียวกัน บันทึกพร้อมกันครั้งเดียว (เลขของ LOT อื่นไม่หาย)
+  const nl = $('#newLotBtn');
+  if (nl) nl.onclick = () => {
+    const box = $('#newLots');
+    box.insertAdjacentHTML('beforeend', `<div class="lot newlot" data-new>
+      <div class="lot-top"><div class="lot-id">LOT ใหม่ (ไม่มีในระบบ)</div><button type="button" class="linkbtn small" data-delnew>ลบ</button></div>
+      <div class="field"><label>เลข LOT บนกล่อง</label><input type="text" data-nl autocapitalize="characters" autocomplete="off"></div>
+      <div class="field"><label>EXP บนกล่อง (วันไม่บังคับ)</label>${expPicker()}</div>
+      <div class="stepper"><button type="button" data-step="-1" aria-label="ลด">−</button>
+        <input type="number" inputmode="numeric" min="0" step="1" placeholder="จำนวน" data-q aria-label="จำนวน">
+        <button type="button" data-step="1" aria-label="เพิ่ม">+</button><span class="unit">${esc(p.u)}</span></div>
+    </div>`);
+    box.lastElementChild.querySelector('[data-nl]').focus(); updateSave();
+  };
+  ov.addEventListener('click', e => { const d = e.target.closest('[data-delnew]'); if (d) { d.closest('[data-new]').remove(); updateSave(); } });
+  ov.addEventListener('input', e => { if (e.target.closest('[data-new]')) updateSave(); });
   updateSave();
   const first = ov.querySelector('[data-q]'); if (first && lots.length === 1 && !isTouch()) first.focus();
 }
@@ -846,15 +861,25 @@ function sheetEntries() {
   });
   return out;
 }
+function newLotEntries() {
+  return [...document.querySelectorAll('#ov [data-new]')].map(el => {
+    const lot = el.querySelector('[data-nl]').value.trim().toUpperCase(), qv = el.querySelector('[data-q]').value.trim();
+    return { lot, exp: readExp(el), q: qv === '' ? undefined : Number(qv) };
+  }).filter(o => o.lot || o.q !== undefined);
+}
 function updateSave() {
-  const n = sheetEntries().length, b = $('#sheetSave');
+  const n = sheetEntries().length + newLotEntries().length, b = $('#sheetSave');
   if (!b) return;
   b.disabled = !n; b.textContent = n ? `บันทึก ${n} LOT` : 'กรอกจำนวนก่อนบันทึก';
 }
 function closeSheet() { if (sheetCtx && sheetCtx.raw) cool = { code: sheetCtx.raw, until: Date.now() + 2500 }; sheetCtx = null; $('#layer').innerHTML = ''; resumeScan(); }
 
 async function saveSheet() {
-  const entries = sheetEntries();
+  const entries = sheetEntries(), newLots = newLotEntries();
+  if (newLots.some(o => !o.lot)) { toast('LOT ใหม่: กรอกเลข LOT บนกล่อง', 'bad'); return; }
+  if (newLots.some(o => o.q === undefined || !Number.isInteger(o.q) || o.q < 0)) { toast('LOT ใหม่: กรอกจำนวน', 'bad'); return; }
+  if (newLots.some(o => !o.exp)) { toast('LOT ใหม่: เลือกเดือนและปีหมดอายุบนกล่อง', 'bad'); return; }
+  if (newLots.some(o => sheetCtx.lots.some(i => normKey(i.l) === normKey(o.lot)))) { toast('LOT นี้มีในระบบอยู่แล้ว กรอกที่การ์ดของ LOT นั้นแทน', 'bad'); return; }
   if (entries.some(e => !Number.isInteger(e.q) || e.q < 0)) { toast('จำนวนต้องเป็นจำนวนเต็มตั้งแต่ 0', 'bad'); return; }
   if (entries.some(e => e.expFound === null || e.expFound === '')) { toast('EXP ไม่ตรง: เลือกเดือนและปีที่เห็นบนกล่อง', 'bad'); return; }
   const mode = sheetCtx.mode, editing = sheetCtx.editing;
@@ -876,10 +901,20 @@ async function saveSheet() {
   const snap = entries.map(e => ({ it: e.it, c: e.it.c, by: e.it.by, st: e.it.st }));
   entries.forEach(e => { if (mode === 'count') { e.it.c = true; e.it.by = cfg.counter; } e.it.st = 'รอส่ง'; if (loc) e.it.loc = loc;
     if (e.expFound) e.it.ef = e.expFound; else if (e.expOk) e.it.ef = ''; });
-  if (loc) ploc[normName(entries[0].it.n)] = loc;
+  const p0 = sheetCtx.lots[0], raw0 = sheetCtx.raw || '';
+  if (loc) ploc[normName(p0.n)] = loc;
   pushRecent(entries, mode);
   closeSheet(); rememberShelf(loc); renderAll();
   toast('กำลังบันทึก… สแกนชิ้นต่อไปได้เลย', 'ok', 1500);
+  if (newLots.length) {
+    const body = { type: 'newlot', name: p0.n, barcode: raw0, lots: newLots, loc, unit: p0.u, note: '' };
+    api('report', body).then(() => { if (!entries.length) { beep('ok'); toast(`บันทึก LOT ใหม่ ${newLots.length} LOT แล้ว รอเพิ่มเข้ารายการ`, 'ok', 2500); } })
+      .catch(e => {
+        if (e.server) { toast('บันทึก LOT ใหม่ไม่ได้: ' + e.message, 'bad', 5000); return; }
+        queue.push({ action: 'report', payload: body, counter: cfg.counter, cpin: cfg.cpin, at: Date.now() }); store.set('queue', queue); setOnline(false); renderAll();
+      });
+  }
+  if (!entries.length) return;
   try {
     const d = await api(mode, payload);
     applyResults(d.results, entries, loc, mode);
