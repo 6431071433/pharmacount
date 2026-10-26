@@ -67,6 +67,9 @@ h2{font-size:17px;margin:0 0 8px}
 .cam-tools{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;align-items:center;padding:10px;background:linear-gradient(transparent,rgba(0,0,0,.55))}
 .round{width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.9);color:var(--ink);display:grid;place-items:center;flex:none}
 .round.on{background:#ffe27a}
+.round.ocr{width:auto;border-radius:22px;padding:0 14px;font-weight:800;font-size:15px;letter-spacing:.5px}
+.round.ocr.busy{background:#ffe27a}
+.ocr-hint{position:absolute;left:50%;transform:translateX(-50%);top:10px;background:rgba(0,0,0,.65);color:#fff;border-radius:999px;padding:6px 14px;font-size:13.5px;white-space:nowrap;pointer-events:none}
 .round svg{width:22px;height:22px}
 .zoom{flex:1;accent-color:#fff}
 .scan-status{margin:10px 2px 0;font-size:14px;min-height:20px}
@@ -217,6 +220,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
     <div class="cam off" id="cam">
       <video id="video" playsinline muted autoplay></video>
       <div class="guide hidden" id="guide"><div class="laser"></div></div>
+      <div class="ocr-hint hidden" id="ocrHint">สแกนไม่ติด? กด 123 อ่านตัวเลขใต้บาร์โค้ด</div>
       <div class="cam-msg" id="camMsg">
         <div><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 8v8M11 8v8M14 8v8M17 8v8"/></svg></span><div class="ttl">สแกนบาร์โค้ดเพื่อนับ</div><button class="btn" id="camStart">เปิดกล้อง</button></div>
       </div>
@@ -227,6 +231,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
         <button class="round hidden" id="zoomBtn" aria-label="ซูมด่วน" title="ซูมด่วน" style="font-weight:700;font-size:15px">1×</button>
         <input type="range" class="zoom hidden" id="zoom" aria-label="ซูม">
         <span style="flex:1" id="zoomSpacer"></span>
+        <button class="round ocr" id="ocrBtn" aria-label="อ่านตัวเลขใต้บาร์โค้ด" title="อ่านตัวเลขใต้บาร์โค้ด">123</button>
         <button class="round" id="camStop" aria-label="ปิดกล้อง" title="ปิดกล้อง">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
@@ -283,7 +288,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-10-22.4';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-10-22.5';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -1125,6 +1130,171 @@ setInterval(() => {
   if (online && !document.hidden && !sheetOpen() && !typing && !queue.length && cfg.pin) load(true);
 }, 5 * 60 * 1000);
 
+/* ---------- อ่านตัวเลขใต้บาร์โค้ด (เมื่อเส้นบาร์โค้ดเสีย/ไม่ชัด) ---------- */
+// ใช้ Tesseract (OCR) โหลดครั้งแรกตอนกดปุ่ม 123 (~7 MB จากนั้นเบราว์เซอร์จำไว้)
+// ขั้นตอน: ตัดภาพในกรอบ → หาองศาเอียงแล้วหมุนให้ตรง → หาแถวตัวเลขใต้เส้นบาร์โค้ด → อ่านเฉพาะตัวเลข
+// → ตรวจเลขตรวจสอบหลักสุดท้าย (check digit) ถ้าไม่ผ่านแต่ต่างจากบาร์โค้ดที่มีในระบบแค่ 1 หลัก ใช้ตัวในระบบ
+const OCR_CDN = { js: 'https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.min.js',
+  worker: 'https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/worker.min.js',
+  core: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@6.1.2',
+  lang: 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int' };
+let ocrWorker = null;
+function loadScript(src) { return new Promise((ok, bad) => { const el = document.createElement('script'); el.src = src; el.onload = ok; el.onerror = () => bad(new Error('โหลดตัวอ่านตัวเลขไม่ได้ (ต้องใช้อินเทอร์เน็ตครั้งแรก)')); document.head.appendChild(el); }); }
+async function getOcr() {
+  if (ocrWorker) return ocrWorker;
+  if (!window.Tesseract) await loadScript(OCR_CDN.js);
+  ocrWorker = await Tesseract.createWorker('eng', 1, { workerPath: OCR_CDN.worker, corePath: OCR_CDN.core, langPath: OCR_CDN.lang });
+  await ocrWorker.setParameters({ tessedit_char_whitelist: '0123456789', tessedit_pageseg_mode: '7', user_defined_dpi: '300' });
+  return ocrWorker;
+}
+function eanOk(c) {   // EAN-13 / EAN-8 / UPC-A (12 หลัก)
+  if (!/^\d+$/.test(c) || ![8, 12, 13].includes(c.length)) return false;
+  const d = c.split('').map(Number), chk = d.pop();
+  let sum = 0; d.reverse().forEach((v, i) => { sum += v * (i % 2 === 0 ? 3 : 1); });
+  return (10 - sum % 10) % 10 === chk;
+}
+// จากตัวเลขที่อ่านได้ → บาร์โค้ดที่น่าเชื่อถือ { code, how } หรือ { guess }
+function pickCode(texts, final) {
+  const cands = new Set(), seen = {};
+  texts.forEach(t => {
+    const digits = String(t || '').replace(/\D/g, ''), mine = new Set();
+    [13, 12, 11, 8].forEach(L => { for (let i = 0; i + L <= digits.length; i++) mine.add(digits.substr(i, L)); });
+    mine.forEach(c => { cands.add(c); seen[c] = (seen[c] || 0) + 1; });
+  });
+  const list = [...cands], known = c => byCode.has(normCode(c));
+  // 1) ผ่านเลขตรวจสอบ และมีในระบบ → ใช้ได้ทันที
+  const vk = list.find(c => eanOk(c) && known(c)); if (vk) return { code: vk, how: 'ok' };
+  if (!final) return {};
+  // 2) ผ่านเลขตรวจสอบแต่ยังไม่มีในระบบ: ต้องอ่านได้ "ทั้งแถว" ตรงกันอย่างน้อย 2 ครั้ง (อ่านผิดแล้วบังเอิญผ่านได้ราว 1 ใน 10)
+  const whole = {}; texts.forEach(t => { const dd = String(t || '').replace(/\D/g, ''); if (dd.length === 12 || dd.length === 13) whole[dd] = (whole[dd] || 0) + 1; });
+  const v13 = Object.keys(whole).filter(c => eanOk(c) && whole[c] >= 2).sort((p, q) => whole[q] - whole[p])[0];
+  if (v13) return { code: v13, how: 'ok' };
+  // 3) อ่านผิด/ตก/เกิน เทียบกับบาร์โค้ดในระบบ: ต่าง 1 ตัวและใกล้อยู่ตัวเดียว → ใช้เลย · ต่าง 2 ตัว → ให้คนยืนยันจากชื่อสินค้า
+  const codes = [...byCode.keys()];
+  const lev = (x, y) => {
+    if (Math.abs(x.length - y.length) > 2) return 9;
+    let prev = Array.from({ length: y.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= x.length; i++) { const cur = [i];
+      for (let j = 1; j <= y.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
+      prev = cur; }
+    return prev[y.length];
+  };
+  const long = list.filter(c => c.length >= 10);
+  const score = {};
+  long.forEach(c => { const n = normCode(c); codes.forEach(k => { if (k.length < 10) return; const d = lev(k, n); if (d <= 2 && (score[k] === undefined || d < score[k])) score[k] = d; }); });
+  const d1 = Object.keys(score).filter(k => score[k] <= 1);
+  if (d1.length === 1) return { code: d1[0], how: 'fixed' };
+  const sug = Object.keys(score).sort((p, q) => score[p] - score[q]).slice(0, 3);
+  const pref = L => list.filter(c => c.length === L).sort((p, q) => seen[q] - seen[p])[0];
+  const g = pref(13) || pref(12) || list.sort((p, q) => q.length - p.length)[0];
+  return { guess: g || '', suggest: sug };
+}
+function grayOf(cv) {
+  const { width: w, height: h } = cv, d = cv.getContext('2d').getImageData(0, 0, w, h).data, g = new Uint8Array(w * h);
+  for (let i = 0, j = 0; i < g.length; i++, j += 4) g[i] = (d[j] * 0.299 + d[j + 1] * 0.587 + d[j + 2] * 0.114) | 0;
+  return g;
+}
+function otsu(g) {
+  const hist = new Array(256).fill(0); g.forEach(v => hist[v]++);
+  let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
+  let sB = 0, wB = 0, best = 0, th = 128;
+  for (let t = 0; t < 256; t++) { wB += hist[t]; if (!wB) continue; const wF = g.length - wB; if (!wF) break;
+    sB += t * hist[t]; const mB = sB / wB, mF = (sum - sB) / wF, v = wB * wF * (mB - mF) * (mB - mF); if (v > best) { best = v; th = t; } }
+  return th;
+}
+// หาองศาเอียง: หมุนแล้วดูว่าแถวที่มีจุดดำ "คม" ที่สุด (ขอบล่างของเส้นบาร์โค้ด/แถวตัวเลขขนานแกนนอน)
+function skewAngle(g, w, h, th) {
+  const pts = []; for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x++) if (g[y * w + x] < th) pts.push(x, y);   // x ทุกพิกเซล (เว้นแล้วจะเกิดค่าหลอกที่ 0 องศา)
+  let best = 0, bestA = 0;
+  for (let a = -12; a <= 12; a += 0.5) {
+    // เส้นบาร์โค้ดเป็นเส้นตั้ง: หมุนถูกองศาแล้วผลรวมจุดดำแต่ละคอลัมน์จะคมที่สุด (ตัวเลขพิมพ์ขนานกับเส้นจึงตรงไปด้วย)
+    const r = a * Math.PI / 180, sn = Math.sin(r), cs = Math.cos(r), bins = new Float32Array(w * 2 + h * 2 + 2);
+    for (let i = 0; i < pts.length; i += 2) { const x2 = Math.round(pts[i] * cs + pts[i + 1] * sn) + h; if (x2 >= 0 && x2 < bins.length) bins[x2]++; }
+    let sc = 0; for (let i = 1; i < bins.length; i++) { const dd = bins[i] - bins[i - 1]; sc += dd * dd; }
+    if (sc > best) { best = sc; bestA = a; }
+  }
+  return bestA;
+}
+async function readDigits(src) {
+  const W0 = Math.min(900, src.width), s0 = W0 / src.width;
+  const a = document.createElement('canvas'); a.width = W0; a.height = Math.round(src.height * s0);
+  a.getContext('2d').drawImage(src, 0, 0, a.width, a.height);
+  let g = grayOf(a); const th = otsu(g), ang = skewAngle(g, a.width, a.height, th);
+  // หมุนให้ตรง (ขยาย 2 เท่า ให้ตัวเลขใหญ่พอสำหรับ OCR)
+  const b = document.createElement('canvas'), K = 2; b.width = a.width * K; b.height = a.height * K;
+  const bc = b.getContext('2d'); bc.fillStyle = '#fff'; bc.fillRect(0, 0, b.width, b.height);
+  bc.translate(b.width / 2, b.height / 2); bc.rotate(-ang * Math.PI / 180); bc.drawImage(a, -b.width / 2, -b.height / 2, b.width, b.height);
+  g = grayOf(b); const w = b.width, h = b.height, t2 = otsu(g);
+  // สัดส่วนจุดดำต่อแถว: แถวเส้นบาร์โค้ดดำเยอะ แถวตัวเลขน้อยกว่า
+  const frac = new Float32Array(h), x0 = Math.round(w * 0.05), x1 = Math.round(w * 0.95);
+  for (let y = 0; y < h; y++) { let n = 0; for (let x = x0; x < x1; x += 2) if (g[y * w + x] < t2) n++; frac[y] = n / ((x1 - x0) / 2); }
+  let barEnd = -1, run = 0, bestRun = 0;
+  let fmax = 0; for (let y = 0; y < h; y++) fmax = Math.max(fmax, frac[y]);
+  const fth = Math.max(0.06, fmax * 0.55);   // แถวที่มีเส้นบาร์โค้ด (เทียบกับแถวที่ดำที่สุด เพราะบาร์โค้ดอาจไม่เต็มกรอบ)
+  for (let y = 0; y < h; y++) { if (frac[y] > fth) { run++; if (run >= bestRun) { bestRun = run; barEnd = y; } } else run = 0; }
+  const bands = [];
+  // ความสูงตัวเลขใต้บาร์โค้ดประมาณ 7–10% ของความกว้างบาร์โค้ด
+  if (bestRun > h * 0.08) [[-0.03, 0.12], [-0.01, 0.10], [-0.05, 0.16], [0.0, 0.14]].forEach(([u, v]) => bands.push([barEnd + w * u, barEnd + w * v]));
+  for (let i = 0; i < 6; i++) bands.push([h * (0.45 + i * 0.09), h * (0.45 + i * 0.09) + h * 0.16]);   // สำรอง: ไล่อ่านทีละแถบครึ่งล่าง
+  const worker = await getOcr(), texts = [];
+  const c = document.createElement('canvas');
+  const plan = [];
+  bands.forEach((bd, i) => plan.push([bd, false]));
+  bands.slice(0, 4).forEach(bd => plan.push([bd, true]));
+  for (const [[y0, y1], binar] of plan) {
+    const top = Math.max(0, Math.round(y0)), hh = Math.min(h - top, Math.round(y1 - y0));
+    if (hh < 12) continue;
+    c.width = w; c.height = hh + 20; const cc = c.getContext('2d'); cc.fillStyle = '#fff'; cc.fillRect(0, 0, c.width, c.height);
+    cc.drawImage(b, 0, top, w, hh, 0, 10, w, hh);
+    if (binar) {   // รอบสอง: ทำเป็นขาวดำ (ช่วยตอนมีรอยเปื้อน/เงา)
+      const im = cc.getImageData(0, 0, c.width, c.height), d = im.data, gg = new Uint8Array(c.width * c.height);
+      for (let i = 0, j = 0; i < gg.length; i++, j += 4) gg[i] = (d[j] * 0.299 + d[j + 1] * 0.587 + d[j + 2] * 0.114) | 0;
+      const tt = otsu(gg); for (let i = 0, j = 0; i < gg.length; i++, j += 4) { const v = gg[i] < tt ? 0 : 255; d[j] = d[j + 1] = d[j + 2] = v; }
+      cc.putImageData(im, 0, 0);
+    }
+    const r = await worker.recognize(c);
+    const t = (r.data.text || '').trim(); texts.push(t);
+    if (window.__ocrDebug) window.__ocrDebug.push({ ang, barEnd, bestRun, h, band: [top, hh], t, img: c.toDataURL('image/png') });
+    const pk = pickCode(texts, false); if (pk.code) return Object.assign(pk, { texts });
+  }
+  return Object.assign(pickCode(texts, true), { texts });
+}
+window.__pcOcr = { readDigits, pickCode, eanOk, skewAngle, otsu, grayOf };   // ใช้ทดสอบ
+let ocrBusy = false;
+async function ocrScan() {
+  const v = $('#video'); if (ocrBusy || !v.videoWidth) return;
+  ocrBusy = true; paused = true; $('#ocrBtn').classList.add('busy');
+  $('#scanStatus').textContent = ocrWorker ? 'กำลังอ่านตัวเลข… ถือนิ่งๆ' : 'กำลังโหลดตัวอ่านตัวเลข (ครั้งแรกใช้เวลาสักครู่)…';
+  try {
+    const W = v.videoWidth, H = v.videoHeight, R = guideRect(v, W, H);
+    const extra = Math.round(R.h * 0.35), y = Math.max(0, R.y - Math.round(R.h * 0.1)), hh = Math.min(H - y, R.h + extra + Math.round(R.h * 0.1));
+    const cv = document.createElement('canvas'), sc = Math.min(1, 1400 / R.w); cv.width = Math.round(R.w * sc); cv.height = Math.round(hh * sc);
+    cv.getContext('2d').drawImage(v, R.x, y, R.w, hh, 0, 0, cv.width, cv.height);
+    const res = await readDigits(cv);
+    if (res.code) {
+      flash('hit'); beep('hit');
+      if (res.how === 'fixed') toast('อ่านตัวเลขได้ไม่ครบ ใช้บาร์โค้ดที่ใกล้เคียงที่สุดในระบบ ' + res.code + ' ตรวจชื่อสินค้าอีกครั้ง', 'warn', 3500);
+      handleCode(res.code, 'ocr');
+    } else {
+      flash('miss'); beep('miss');
+      const sug = (res.suggest || []).map(c => [c, [...(byCode.get(c) || [])][0]]).filter(x => x[1]);
+      openDialog(`<h3>อ่านตัวเลขได้ไม่ชัด</h3>
+        ${sug.length ? `<p class="small muted">ใช่สินค้านี้ไหม (ตรวจกับกล่อง)</p><div class="choice">${sug.map(([c, n]) => `<button class="row" data-oc="${esc(c)}"><div class="t"><div class="n">${hiName((byName.get(n) || [{ n }])[0].n)}</div><div class="s">${esc(c)}</div></div></button>`).join('')}</div>
+        <p class="small muted" style="margin-top:12px">ถ้าไม่ใช่ แก้ตัวเลขให้ตรงกับใต้บาร์โค้ดแล้วกดตกลง</p>` : '<p class="small muted">ตรวจกับตัวเลขใต้บาร์โค้ดบนกล่อง แก้ให้ถูกแล้วกดตกลง</p>'}
+        <input type="text" id="ocrIn" inputmode="numeric" value="${esc(res.guess || '')}" autocomplete="off">
+        <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button><button class="btn" id="ocrOk">ตกลง</button></div>`, d => {
+        const inp = d.querySelector('#ocrIn'); if (!sug.length) setTimeout(() => inp.focus(), 60);
+        d.querySelectorAll('[data-oc]').forEach(bt => bt.onclick = () => { closeDialog(); handleCode(bt.dataset.oc, 'ocr'); });
+        d.querySelector('#ocrOk').onclick = () => { const c = normCode(inp.value); if (c.length < 8) { toast('กรอกตัวเลขให้ครบ', 'bad'); return; }
+          if (!eanOk(inp.value.replace(/\D/g, '')) && !confirm('ตัวเลขนี้ไม่ผ่านการตรวจเลขท้ายบาร์โค้ด อาจพิมพ์ผิด ใช้ต่อไหม')) return;
+          closeDialog(); handleCode(inp.value.replace(/\D/g, ''), 'ocr'); };
+      });
+    }
+  } catch (e) { toast(e.message || 'อ่านตัวเลขไม่ได้', 'bad', 4000); }
+  ocrBusy = false; $('#ocrBtn').classList.remove('busy'); $('#scanStatus').textContent = 'เล็งบาร์โค้ดให้อยู่ในกรอบ ห่างประมาณ 10–15 ซม.';
+  if (!sheetOpen()) resumeScan();
+}
+
 /* ---------- กล้องและตัวอ่านบาร์โค้ด ---------- */
 const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'];
 let detector = null, stream = null, track = null, scanning = false, paused = false, cool = { code: '', until: 0 };
@@ -1156,7 +1326,7 @@ async function startCamera() {
     const v = $('#video'); v.srcObject = stream; await v.play();
     msg.classList.add('hidden'); $('#camTools').classList.remove('hidden'); $('#guide').classList.remove('hidden');
     setupCaps();
-    scanning = true; paused = false; loop();
+    scanning = true; paused = false; lastSeen = Date.now(); loop();
   } catch (e) {
     msg.classList.remove('hidden');
     msg.innerHTML = `<div>เปิดกล้องไม่ได้ (${esc(e.name || e.message)})<br><span class="small">อนุญาตการใช้กล้องในการตั้งค่าเบราว์เซอร์ หรือใช้ช่องพิมพ์/เครื่องสแกนแทน</span><br><button class="btn" id="camRetry">ลองอีกครั้ง</button></div>`;
@@ -1180,13 +1350,13 @@ function stopCamera() {
   if (stream) stream.getTracks().forEach(t => t.stop());
   stream = null; track = null;
   $('#torchBtn').classList.remove('on');
-  $('#camTools').classList.add('hidden'); $('#guide').classList.add('hidden');
+  $('#camTools').classList.add('hidden'); $('#guide').classList.add('hidden'); $('#ocrHint').classList.add('hidden');
   const msg = $('#camMsg'); msg.classList.remove('hidden');
   msg.innerHTML = '<div><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 8v8M11 8v8M14 8v8M17 8v8"/></svg></span><div class="ttl">สแกนบาร์โค้ดเพื่อนับ</div><button class="btn" id="camStart2">เปิดกล้อง</button></div>';
   $('#cam').classList.add('off'); $('#scanStatus').classList.add('hidden');
   $('#camStart2').onclick = startCamera;
 }
-function resumeScan() { paused = false; }
+function resumeScan() { paused = false; lastSeen = Date.now(); const h = document.getElementById('ocrHint'); if (h) h.classList.add('hidden'); }
 
 // แปลงตำแหน่งกรอบเล็งบนจอ → พิกัดในภาพกล้อง (วิดีโอแสดงแบบเต็มกรอบ จึงถูกตัดขอบ)
 function mapRect(v, W, H, r) {
@@ -1242,7 +1412,9 @@ async function loop() {
           found = await detector.detect(sharpenH(ctx2d.getImageData(0, 0, canvas.width, canvas.height), k));
         }
       }
+      if (!(found && found.length) && Date.now() - lastSeen > 6000) $('#ocrHint').classList.remove('hidden');
       if (found && found.length) {
+        lastSeen = Date.now(); $('#ocrHint').classList.add('hidden');
         const code = found[0].rawValue;
         // บาร์โค้ดสินค้า (EAN/UPC/Code 128) มีเลขตรวจสอบในตัว อ่านได้ครั้งเดียวก็เชื่อได้ ไม่ต้องรออ่านซ้ำ
         // และหน้าถัดไปแสดงชื่อสินค้าให้ตรวจด้วยตาอีกชั้น
@@ -1258,7 +1430,7 @@ async function loop() {
 }
 // ค่าความคมแนวนอนแบบเร็ว (ใช้ภาพย่อ) ภาพที่เบลอจากมือสั่นจะได้ค่าต่ำ
 const mini = document.createElement('canvas'), miniCtx = mini.getContext('2d', { willReadFrequently: true });
-let peak = 0, sharpNo = 0;
+let peak = 0, sharpNo = 0, lastSeen = 0;
 function frameSharpness(src) {
   const w = 240, h = Math.max(8, Math.round(src.height * 240 / src.width));
   mini.width = w; mini.height = h; miniCtx.drawImage(src, 0, 0, w, h);
@@ -1274,6 +1446,7 @@ function nextFrame() {
 }
 $('#camStart').onclick = startCamera;
 $('#camStop').onclick = stopCamera;
+$('#ocrBtn').onclick = ocrScan;
 $('#torchBtn').onclick = async () => {
   if (!track) return; const b = $('#torchBtn'), on = !b.classList.contains('on');
   try { await track.applyConstraints({ advanced: [{ torch: on }] }); b.classList.toggle('on', on); } catch (e) { toast('เปิดไฟฉายไม่ได้ในเครื่องนี้', 'warn'); }
