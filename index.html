@@ -288,7 +288,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-10-22.5';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-10-27.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -1186,7 +1186,8 @@ function pickCode(texts, final) {
   if (d1.length === 1) return { code: d1[0], how: 'fixed' };
   const sug = Object.keys(score).sort((p, q) => score[p] - score[q]).slice(0, 3);
   const pref = L => list.filter(c => c.length === L).sort((p, q) => seen[q] - seen[p])[0];
-  const g = pref(13) || pref(12) || list.sort((p, q) => q.length - p.length)[0];
+  const okWhole = Object.keys(whole).filter(eanOk).sort((p, q) => whole[q] - whole[p])[0];   // อ่านได้ทั้งแถวและผ่านเลขตรวจสอบ → เติมให้ก่อน
+  const g = okWhole || pref(13) || pref(12) || list.sort((p, q) => q.length - p.length)[0];
   return { guess: g || '', suggest: sug };
 }
 function grayOf(cv) {
@@ -1215,6 +1216,58 @@ function skewAngle(g, w, h, th) {
   }
   return bestA;
 }
+// หาแถวตัวเลขแบบเดียวกับระบบอ่านป้ายทะเบียน: แยกก้อนสีดำที่ติดกัน (connected components)
+// เลือกก้อนขนาดตัวอักษร (ไม่ใช่เส้นบาร์โค้ดที่ผอมยาว ไม่ใช่นิ้ว/แถบสีที่ใหญ่) ที่เรียงเป็นแถวเดียวกันมากที่สุด
+function findDigitRow(g, w, h, th) {
+  const lab = new Int32Array(w * h).fill(-1), comps = [], stack = new Int32Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    if (lab[i] >= 0 || g[i] >= th) continue;
+    let sp = 0, n = 0, x0 = w, x1 = 0, y0 = h, y1 = 0; stack[sp++] = i; lab[i] = comps.length;
+    while (sp) { const k = stack[--sp], x = k % w, y = (k / w) | 0; n++;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      if (x > 0 && lab[k - 1] < 0 && g[k - 1] < th) { lab[k - 1] = comps.length; stack[sp++] = k - 1; }
+      if (x < w - 1 && lab[k + 1] < 0 && g[k + 1] < th) { lab[k + 1] = comps.length; stack[sp++] = k + 1; }
+      if (y > 0 && lab[k - w] < 0 && g[k - w] < th) { lab[k - w] = comps.length; stack[sp++] = k - w; }
+      if (y < h - 1 && lab[k + w] < 0 && g[k + w] < th) { lab[k + w] = comps.length; stack[sp++] = k + w; } }
+    comps.push({ id: comps.length, x0, x1, y0, y1, n, cw: x1 - x0 + 1, ch: y1 - y0 + 1 });
+  }
+  const cand = comps.filter(c => c.ch >= h * 0.04 && c.ch <= h * 0.4 && c.cw / c.ch >= 0.18 && c.cw / c.ch <= 1.1 && c.n / (c.cw * c.ch) > 0.12 && c.n / (c.cw * c.ch) < 0.85);
+  let best = null;
+  cand.forEach(a => {   // ก้อนที่สูงใกล้กันและอยู่บรรทัดเดียวกับก้อน a
+    const cy = (a.y0 + a.y1) / 2;
+    const row = cand.filter(b => Math.abs((b.y0 + b.y1) / 2 - cy) < a.ch * 0.35 && b.ch > a.ch * 0.7 && b.ch < a.ch * 1.3);
+    if (row.length >= 6 && (!best || row.length > best.length)) best = row;
+  });
+  if (!best) return null;
+  best.sort((p, q) => p.x0 - q.x0);
+  // ตัดก้อนที่อยู่ห่างกลุ่มเกินไป (เกิน 3 เท่าความสูงตัวอักษร)
+  const dh = best.reduce((s, c) => s + c.ch, 0) / best.length;
+  let run = [best[0]], keep = run;
+  for (let i = 1; i < best.length; i++) { if (best[i].x0 - best[i - 1].x1 > dh * 3) run = []; run.push(best[i]); if (run.length > keep.length) keep = run; }
+  if (keep.length < 6) return null;
+  const box = { x0: Math.min(...keep.map(c => c.x0)), x1: Math.max(...keep.map(c => c.x1)), y0: Math.min(...keep.map(c => c.y0)), y1: Math.max(...keep.map(c => c.y1)), n: keep.length, dh };
+  // เลขตัวแรกของ EAN-13 อยู่ห่างกลุ่มออกไปทางซ้าย และเลข 1 ผอม: รวมก้อนที่สูงเท่าตัวอักษรในแถวเดียวกันด้วย
+  // ส่วนเส้นกั้นบาร์โค้ดที่ยาวลงมาแทรกระหว่างตัวเลข (สูงกว่าตัวอักษร) ไม่เอา
+  const ids = new Set(comps.filter(c => c.ch > dh * 0.75 && c.ch < dh * 1.25 && c.y0 > box.y0 - dh * 0.3 && c.y1 < box.y1 + dh * 0.3 &&
+    c.x1 > box.x0 - dh * 2.5 && c.x0 < box.x1 + dh * 1.5 && c.cw < dh * 1.2).map(c => c.id));
+  ids.forEach(i => { const c = comps[i]; box.x0 = Math.min(box.x0, c.x0); box.x1 = Math.max(box.x1, c.x1); });
+  // ตัวเลขที่ติดกับเส้นกั้นบาร์โค้ด (ก้อนสูงกว่าตัวอักษร): เก็บเฉพาะส่วนในแถวตัวเลข ตัดคอลัมน์ที่เป็นเส้นยาวขึ้นไปด้านบนออก
+  const merged = new Set(), barCol = new Uint8Array(w), topY = Math.round(box.y0 - dh * 0.2);
+  comps.filter(c => c.ch >= dh * 1.25 && c.cw >= dh * 0.3 && c.y1 > box.y0 + dh * 0.5 && c.y0 < box.y1 && c.x1 > box.x0 - dh && c.x0 < box.x1 + dh).forEach(c => {
+    merged.add(c.id);
+    // คอลัมน์ที่เป็นเส้น = มีส่วนยื่นขึ้นไปเหนือแถวตัวเลข และดำเกือบตลอดความสูงแถวตัวเลข (ตัวเลขที่แค่แตะเส้นด้านบนไม่ถูกตัด)
+    const ya = Math.max(0, Math.round(box.y0)), yb = Math.min(h - 1, Math.round(box.y1));
+    for (let x = c.x0; x <= c.x1; x++) {
+      let up = false; for (let y = c.y0; y < Math.max(c.y0, topY); y++) if (lab[y * w + x] === c.id) { up = true; break; }
+      if (!up) continue;
+      // เส้นยาวต่อเนื่องลงมาในแถวตัวเลขเกินครึ่ง = เส้นกั้น (ตัวเลขที่แค่แตะเส้น ส่วนที่ต่อกันจะสั้น)
+      let n = 0; for (let y = ya; y <= yb && lab[y * w + x] === c.id; y++) n++;
+      if (n >= (yb - ya + 1) * 0.45) barCol[x] = 1;
+    }
+  });
+  box.ids = ids; box.lab = lab; box.merged = merged; box.barCol = barCol;
+  return box;
+}
 async function readDigits(src) {
   const W0 = Math.min(900, src.width), s0 = W0 / src.width;
   const a = document.createElement('canvas'); a.width = W0; a.height = Math.round(src.height * s0);
@@ -1232,20 +1285,56 @@ async function readDigits(src) {
   let fmax = 0; for (let y = 0; y < h; y++) fmax = Math.max(fmax, frac[y]);
   const fth = Math.max(0.06, fmax * 0.55);   // แถวที่มีเส้นบาร์โค้ด (เทียบกับแถวที่ดำที่สุด เพราะบาร์โค้ดอาจไม่เต็มกรอบ)
   for (let y = 0; y < h; y++) { if (frac[y] > fth) { run++; if (run >= bestRun) { bestRun = run; barEnd = y; } } else run = 0; }
-  const bands = [];
-  // ความสูงตัวเลขใต้บาร์โค้ดประมาณ 7–10% ของความกว้างบาร์โค้ด
-  if (bestRun > h * 0.08) [[-0.03, 0.12], [-0.01, 0.10], [-0.05, 0.16], [0.0, 0.14]].forEach(([u, v]) => bands.push([barEnd + w * u, barEnd + w * v]));
+  // หาขอบซ้าย–ขวาของบาร์โค้ด (ไม่เอาขอบกล่อง แถบสี นิ้ว ที่อยู่ในกรอบมาอ่านด้วย)
+  let bx0 = Math.round(w * 0.03), bx1 = Math.round(w * 0.97);
+  if (bestRun > h * 0.08) {
+    // นับการเปลี่ยนขาว↔ดำแนวนอนในแถวที่มีเส้น: ช่วงบาร์โค้ดเปลี่ยนถี่ ส่วนนิ้ว/แถบสี/ขอบกล่องเปลี่ยนน้อย
+    const ys = barEnd - bestRun + 1, tr = new Float32Array(w);
+    for (let y = ys; y <= barEnd; y += 2) { const o = y * w; for (let x = 0; x < w - 1; x++) if ((g[o + x] < t2) !== (g[o + x + 1] < t2)) tr[x]++; }
+    const win = Math.max(6, Math.round(w * 0.025)), pre = new Float32Array(w + 1);
+    for (let x = 0; x < w; x++) pre[x + 1] = pre[x] + tr[x];
+    let dmax = 0; const dens = new Float32Array(w);
+    for (let x = 0; x < w; x++) { const a0 = Math.max(0, x - win), a1 = Math.min(w, x + win); dens[x] = (pre[a1] - pre[a0]) / (a1 - a0); dmax = Math.max(dmax, dens[x]); }
+    // ช่วงที่มีเส้นหนาแน่น แล้วรวมช่วงที่ห่างกันไม่มาก (บาร์โค้ดถูกนิ้ว/รอยขาดแบ่งเป็นท่อนๆ)
+    const segs = []; let st = -1;
+    for (let x = 0; x <= w; x++) {
+      const on = x < w && dens[x] > dmax * 0.25;
+      if (on && st < 0) st = x; if (!on && st >= 0) { segs.push([st, x - 1]); st = -1; }
+    }
+    const merged = [];
+    segs.forEach(sg => { const l = merged[merged.length - 1]; if (l && sg[0] - l[1] < w * 0.08) l[1] = sg[1]; else merged.push(sg.slice()); });
+    const big = merged.sort((p, q) => (q[1] - q[0]) - (p[1] - p[0]))[0];
+    if (big && big[1] - big[0] > w * 0.12) { bx0 = big[0]; bx1 = big[1]; }
+  }
+  const bw = Math.max(40, bx1 - bx0);
+  const cx0 = Math.max(0, Math.round(bx0 - bw * 0.13)), cx1 = Math.min(w, Math.round(bx1 + bw * 0.06));
+  const bands = [], row = findDigitRow(g, w, h, t2);
+  // พบแถวตัวเลขจากรูปทรงตัวอักษร → อ่านเฉพาะกรอบนั้นก่อน (แม่นและเร็วที่สุด)
+  if (row) { const m = row.dh * 0.5; bands.push([row.y0 - row.dh * 0.3, row.y1 + row.dh * 0.3, row.x0 - m, row.x1 + m, 'clean']); bands.push([row.y0 - row.dh * 0.25, row.y1 + row.dh * 0.25, row.x0 - m, row.x1 + m]); }
+  // ตัวเลขอยู่ใต้ขอบล่างของเส้นบาร์โค้ด สูงประมาณ 8–10% ของความกว้างบาร์โค้ด
+  if (bestRun > h * 0.08) [[-0.015, 0.12], [-0.03, 0.15], [0.0, 0.11], [-0.05, 0.18]].forEach(([u, v]) => bands.push([barEnd + bw * u, barEnd + bw * v]));
   for (let i = 0; i < 6; i++) bands.push([h * (0.45 + i * 0.09), h * (0.45 + i * 0.09) + h * 0.16]);   // สำรอง: ไล่อ่านทีละแถบครึ่งล่าง
   const worker = await getOcr(), texts = [];
   const c = document.createElement('canvas');
   const plan = [];
   bands.forEach((bd, i) => plan.push([bd, false]));
-  bands.slice(0, 4).forEach(bd => plan.push([bd, true]));
-  for (const [[y0, y1], binar] of plan) {
+  bands.slice(0, row ? 2 : 4).filter(bd => bd[4] !== 'clean').forEach(bd => plan.push([bd, true]));
+  for (const [[y0, y1, bx, ex, mode], binar] of plan) {
     const top = Math.max(0, Math.round(y0)), hh = Math.min(h - top, Math.round(y1 - y0));
     if (hh < 12) continue;
-    c.width = w; c.height = hh + 20; const cc = c.getContext('2d'); cc.fillStyle = '#fff'; cc.fillRect(0, 0, c.width, c.height);
-    cc.drawImage(b, 0, top, w, hh, 0, 10, w, hh);
+    const L = bx === undefined ? cx0 : Math.max(0, Math.round(bx)), R2 = ex === undefined ? cx1 : Math.min(w, Math.round(ex)), cw = R2 - L;
+    c.width = cw + 40; c.height = hh + 20; const cc = c.getContext('2d'); cc.fillStyle = '#fff'; cc.fillRect(0, 0, c.width, c.height);
+    cc.drawImage(b, L, top, cw, hh, 20, 10, cw, hh);
+    if (mode === 'clean') {   // วาดเฉพาะก้อนที่เป็นตัวเลข พื้นขาวล้วน (ตัดเส้นบาร์โค้ด/รอยเปื้อนออก)
+      const im = cc.getImageData(0, 0, c.width, c.height), d = im.data;
+      for (let yy = 0; yy < c.height; yy++) for (let xx = 0; xx < c.width; xx++) {
+        const sx = xx - 20 + L, sy = yy - 10 + top, j = (yy * c.width + xx) * 4;
+        const lb = sx >= 0 && sx < w && sy >= 0 && sy < h ? row.lab[sy * w + sx] : -1;
+        const on = row.ids.has(lb) || (row.merged.has(lb) && sy >= row.y0 - row.dh * 0.05 && !row.barCol[sx] && !row.barCol[sx - 1] && !row.barCol[sx + 1]);
+        d[j] = d[j + 1] = d[j + 2] = on ? 0 : 255; d[j + 3] = 255;
+      }
+      cc.putImageData(im, 0, 0);
+    }
     if (binar) {   // รอบสอง: ทำเป็นขาวดำ (ช่วยตอนมีรอยเปื้อน/เงา)
       const im = cc.getImageData(0, 0, c.width, c.height), d = im.data, gg = new Uint8Array(c.width * c.height);
       for (let i = 0, j = 0; i < gg.length; i++, j += 4) gg[i] = (d[j] * 0.299 + d[j + 1] * 0.587 + d[j + 2] * 0.114) | 0;
@@ -1254,12 +1343,12 @@ async function readDigits(src) {
     }
     const r = await worker.recognize(c);
     const t = (r.data.text || '').trim(); texts.push(t);
-    if (window.__ocrDebug) window.__ocrDebug.push({ ang, barEnd, bestRun, h, band: [top, hh], t, img: c.toDataURL('image/png') });
+    if (window.__ocrDebug) window.__ocrDebug.push({ ang, barEnd, bestRun, h, row: row && row.n, band: [top, hh, bx === undefined ? cx0 : Math.round(bx)], t, img: c.toDataURL('image/png') });
     const pk = pickCode(texts, false); if (pk.code) return Object.assign(pk, { texts });
   }
   return Object.assign(pickCode(texts, true), { texts });
 }
-window.__pcOcr = { readDigits, pickCode, eanOk, skewAngle, otsu, grayOf };   // ใช้ทดสอบ
+window.__pcOcr = { readDigits, pickCode, eanOk, skewAngle, otsu, grayOf, addCode };   // ใช้ทดสอบ
 let ocrBusy = false;
 async function ocrScan() {
   const v = $('#video'); if (ocrBusy || !v.videoWidth) return;
@@ -1268,9 +1357,15 @@ async function ocrScan() {
   try {
     const W = v.videoWidth, H = v.videoHeight, R = guideRect(v, W, H);
     const extra = Math.round(R.h * 0.35), y = Math.max(0, R.y - Math.round(R.h * 0.1)), hh = Math.min(H - y, R.h + extra + Math.round(R.h * 0.1));
-    const cv = document.createElement('canvas'), sc = Math.min(1, 1400 / R.w); cv.width = Math.round(R.w * sc); cv.height = Math.round(hh * sc);
-    cv.getContext('2d').drawImage(v, R.x, y, R.w, hh, 0, 0, cv.width, cv.height);
-    const res = await readDigits(cv);
+    // นิ้วแตะปุ่มทำให้มือถือขยับ: รอให้นิ่งแล้วเก็บหลายเฟรม เลือกเฟรมที่คมที่สุด
+    const grab = () => { const cv = document.createElement('canvas'), sc = Math.min(1, 1400 / R.w); cv.width = Math.round(R.w * sc); cv.height = Math.round(hh * sc);
+      cv.getContext('2d').drawImage(v, R.x, y, R.w, hh, 0, 0, cv.width, cv.height); return cv; };
+    await new Promise(r => setTimeout(r, 350));
+    const shots = [];
+    for (let i = 0; i < 6; i++) { const cv = grab(); shots.push([frameSharpness(cv), cv]); await new Promise(r => setTimeout(r, 90)); }
+    shots.sort((p, q) => q[0] - p[0]);
+    let res = await readDigits(shots[0][1]);
+    if (!res.code) { const r2 = await readDigits(shots[1][1]); if (r2.code) res = r2; else res = Object.assign(res, { suggest: (res.suggest || []).concat(r2.suggest || []).filter((c, i, a) => a.indexOf(c) === i).slice(0, 3) }); }
     if (res.code) {
       flash('hit'); beep('hit');
       if (res.how === 'fixed') toast('อ่านตัวเลขได้ไม่ครบ ใช้บาร์โค้ดที่ใกล้เคียงที่สุดในระบบ ' + res.code + ' ตรวจชื่อสินค้าอีกครั้ง', 'warn', 3500);
