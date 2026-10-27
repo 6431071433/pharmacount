@@ -175,6 +175,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .allok{width:100%;margin:0 0 12px;padding:14px;font-size:17px}
 .str{color:var(--brand);background:var(--brand-soft);border-radius:5px;padding:0 3px;font-weight:700}
 .newver{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));z-index:55;border:0;border-radius:999px;background:var(--ink);color:#fff;font-weight:700;padding:12px 20px;box-shadow:0 6px 20px rgba(0,0,0,.3);white-space:nowrap}
+.sugrow{border:2px solid var(--brand-2)}
+.sugrow .pick{flex:none;background:var(--brand);color:#fff;border-radius:10px;padding:8px 12px;font-weight:700;font-size:14px}
 .addlot{width:100%;margin-top:10px;border:1px dashed var(--brand-2);border-radius:12px;background:none;color:var(--brand);font-weight:700;padding:12px}
 
 /* dialog */
@@ -220,7 +222,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
     <div class="cam off" id="cam">
       <video id="video" playsinline muted autoplay></video>
       <div class="guide hidden" id="guide"><div class="laser"></div></div>
-      <div class="ocr-hint hidden" id="ocrHint">สแกนไม่ติด? กด 123 อ่านตัวเลขใต้บาร์โค้ด</div>
+      <div class="ocr-hint hidden" id="ocrHint">กำลังลองอ่านตัวเลขใต้บาร์โค้ด… หรือกด 123</div>
       <div class="cam-msg" id="camMsg">
         <div><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 8v8M11 8v8M14 8v8M17 8v8"/></svg></span><div class="ttl">สแกนบาร์โค้ดเพื่อนับ</div><button class="btn" id="camStart">เปิดกล้อง</button></div>
       </div>
@@ -288,7 +290,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-10-27.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-10-27.2';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -1158,7 +1160,7 @@ function pickCode(texts, final) {
   const cands = new Set(), seen = {};
   texts.forEach(t => {
     const digits = String(t || '').replace(/\D/g, ''), mine = new Set();
-    [13, 12, 11, 8].forEach(L => { for (let i = 0; i + L <= digits.length; i++) mine.add(digits.substr(i, L)); });
+    [13, 12, 11, 10, 8].forEach(L => { for (let i = 0; i + L <= digits.length; i++) mine.add(digits.substr(i, L)); });
     mine.forEach(c => { cands.add(c); seen[c] = (seen[c] || 0) + 1; });
   });
   const list = [...cands], known = c => byCode.has(normCode(c));
@@ -1184,6 +1186,11 @@ function pickCode(texts, final) {
   long.forEach(c => { const n = normCode(c); codes.forEach(k => { if (k.length < 10) return; const d = lev(k, n); if (d <= 2 && (score[k] === undefined || d < score[k])) score[k] = d; }); });
   const d1 = Object.keys(score).filter(k => score[k] <= 1);
   if (d1.length === 1) return { code: d1[0], how: 'fixed' };
+  // อ่านได้ตรงเป๊ะแต่ขาดหัวหรือท้าย (เช่น ภาพตัดเลข 88 ตัวหน้า) ≥ 10 หลักติดกัน และตรงกับบาร์โค้ดในระบบตัวเดียว
+  for (const c of long.filter(c => c.length >= 10).sort((p, q) => q.length - p.length)) {
+    const hit = codes.filter(k => k.length > c.length && (k.endsWith(c) || k.startsWith(c)));
+    if (hit.length === 1) return { code: hit[0], how: 'fixed' };
+  }
   const sug = Object.keys(score).sort((p, q) => score[p] - score[q]).slice(0, 3);
   const pref = L => list.filter(c => c.length === L).sort((p, q) => seen[q] - seen[p])[0];
   const okWhole = Object.keys(whole).filter(eanOk).sort((p, q) => whole[q] - whole[p])[0];   // อ่านได้ทั้งแถวและผ่านเลขตรวจสอบ → เติมให้ก่อน
@@ -1268,7 +1275,7 @@ function findDigitRow(g, w, h, th) {
   box.ids = ids; box.lab = lab; box.merged = merged; box.barCol = barCol;
   return box;
 }
-async function readDigits(src) {
+async function readDigits(src, quick) {
   const W0 = Math.min(900, src.width), s0 = W0 / src.width;
   const a = document.createElement('canvas'); a.width = W0; a.height = Math.round(src.height * s0);
   a.getContext('2d').drawImage(src, 0, 0, a.width, a.height);
@@ -1313,12 +1320,13 @@ async function readDigits(src) {
   if (row) { const m = row.dh * 0.5; bands.push([row.y0 - row.dh * 0.3, row.y1 + row.dh * 0.3, row.x0 - m, row.x1 + m, 'clean']); bands.push([row.y0 - row.dh * 0.25, row.y1 + row.dh * 0.25, row.x0 - m, row.x1 + m]); }
   // ตัวเลขอยู่ใต้ขอบล่างของเส้นบาร์โค้ด สูงประมาณ 8–10% ของความกว้างบาร์โค้ด
   if (bestRun > h * 0.08) [[-0.015, 0.12], [-0.03, 0.15], [0.0, 0.11], [-0.05, 0.18]].forEach(([u, v]) => bands.push([barEnd + bw * u, barEnd + bw * v]));
-  for (let i = 0; i < 6; i++) bands.push([h * (0.45 + i * 0.09), h * (0.45 + i * 0.09) + h * 0.16]);   // สำรอง: ไล่อ่านทีละแถบครึ่งล่าง
+  if (quick) { if (!row) return { texts: [] }; bands.length = 2; }   // โหมดอ่านอัตโนมัติ: อ่านเฉพาะเมื่อเห็นแถวตัวเลขชัด (เร็ว ไม่กินแบต)
+  else for (let i = 0; i < 6; i++) bands.push([h * (0.45 + i * 0.09), h * (0.45 + i * 0.09) + h * 0.16]);   // สำรอง: ไล่อ่านทีละแถบครึ่งล่าง
   const worker = await getOcr(), texts = [];
   const c = document.createElement('canvas');
   const plan = [];
   bands.forEach((bd, i) => plan.push([bd, false]));
-  bands.slice(0, row ? 2 : 4).filter(bd => bd[4] !== 'clean').forEach(bd => plan.push([bd, true]));
+  if (!quick) bands.slice(0, row ? 2 : 4).filter(bd => bd[4] !== 'clean').forEach(bd => plan.push([bd, true]));
   for (const [[y0, y1, bx, ex, mode], binar] of plan) {
     const top = Math.max(0, Math.round(y0)), hh = Math.min(h - top, Math.round(y1 - y0));
     if (hh < 12) continue;
@@ -1349,7 +1357,27 @@ async function readDigits(src) {
   return Object.assign(pickCode(texts, true), { texts });
 }
 window.__pcOcr = { readDigits, pickCode, eanOk, skewAngle, otsu, grayOf, addCode };   // ใช้ทดสอบ
-let ocrBusy = false;
+let ocrBusy = false, autoBusy = false, lastAuto = 0, autoOcrOn = true;
+async function autoOcr() {
+  const v = $('#video'); if (!v.videoWidth) return;
+  autoBusy = true; lastAuto = Date.now();
+  try {
+    const W = v.videoWidth, H = v.videoHeight, R = guideRect(v, W, H);
+    const y = Math.max(0, R.y - Math.round(R.h * 0.1)), hh = Math.min(H - y, R.h + Math.round(R.h * 0.45));
+    const cv = document.createElement('canvas'), sc = Math.min(1, 1100 / R.w); cv.width = Math.round(R.w * sc); cv.height = Math.round(hh * sc);
+    cv.getContext('2d').drawImage(v, R.x, y, R.w, hh, 0, 0, cv.width, cv.height);
+    const res = await readDigits(cv, true);
+    // อัตโนมัติรับเฉพาะบาร์โค้ดที่มีในระบบ (กันอ่านผิดแล้วเปิดสินค้าผิดตัว) ที่เหลือใช้ปุ่ม 123
+    if (res.code && byCode.has(normCode(res.code)) && scanning && !paused && !sheetOpen() && !ocrBusy &&
+        !(normCode(res.code) === normCode(cool.code) && Date.now() < cool.until)) {
+      paused = true; flash('hit'); beep('hit'); lastSeen = Date.now(); $('#ocrHint').classList.add('hidden');
+      if (res.how === 'fixed') toast('อ่านจากตัวเลขใต้บาร์โค้ด ตรวจชื่อสินค้าอีกครั้ง', 'warn', 2500);
+      handleCode(res.code, 'ocr-auto');
+      setTimeout(() => { if (!sheetOpen()) { cool = { code: res.code, until: Date.now() + 2500 }; resumeScan(); } }, 1200);
+    }
+  } catch (e) { if (/โหลดตัวอ่าน/.test(e.message)) autoOcrOn = false; }   // ไม่มีเน็ตโหลดตัวอ่านไม่ได้ → ปิดอัตโนมัติ ใช้ปุ่ม 123 แทน
+  autoBusy = false;
+}
 async function ocrScan() {
   const v = $('#video'); if (ocrBusy || !v.videoWidth) return;
   ocrBusy = true; paused = true; $('#ocrBtn').classList.add('busy');
@@ -1374,7 +1402,7 @@ async function ocrScan() {
       flash('miss'); beep('miss');
       const sug = (res.suggest || []).map(c => [c, [...(byCode.get(c) || [])][0]]).filter(x => x[1]);
       openDialog(`<h3>อ่านตัวเลขได้ไม่ชัด</h3>
-        ${sug.length ? `<p class="small muted">ใช่สินค้านี้ไหม (ตรวจกับกล่อง)</p><div class="choice">${sug.map(([c, n]) => `<button class="row" data-oc="${esc(c)}"><div class="t"><div class="n">${hiName((byName.get(n) || [{ n }])[0].n)}</div><div class="s">${esc(c)}</div></div></button>`).join('')}</div>
+        ${sug.length ? `<p class="small muted">ใช่สินค้านี้ไหม (ตรวจกับกล่อง)</p><div class="choice">${sug.map(([c, n]) => `<button class="row sugrow" data-oc="${esc(c)}"><div class="t"><div class="n">${hiName((byName.get(n) || [{ n }])[0].n)}</div><div class="s">${esc(c)}</div></div><span class="pick">✓ ใช่ ตัวนี้</span></button>`).join('')}</div>
         <p class="small muted" style="margin-top:12px">ถ้าไม่ใช่ แก้ตัวเลขให้ตรงกับใต้บาร์โค้ดแล้วกดตกลง</p>` : '<p class="small muted">ตรวจกับตัวเลขใต้บาร์โค้ดบนกล่อง แก้ให้ถูกแล้วกดตกลง</p>'}
         <input type="text" id="ocrIn" inputmode="numeric" value="${esc(res.guess || '')}" autocomplete="off">
         <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button><button class="btn" id="ocrOk">ตกลง</button></div>`, d => {
@@ -1422,6 +1450,7 @@ async function startCamera() {
     msg.classList.add('hidden'); $('#camTools').classList.remove('hidden'); $('#guide').classList.remove('hidden');
     setupCaps();
     scanning = true; paused = false; lastSeen = Date.now(); loop();
+    if (navigator.onLine !== false) setTimeout(() => getOcr().catch(() => {}), 1500);   // โหลดตัวอ่านตัวเลขรอไว้
   } catch (e) {
     msg.classList.remove('hidden');
     msg.innerHTML = `<div>เปิดกล้องไม่ได้ (${esc(e.name || e.message)})<br><span class="small">อนุญาตการใช้กล้องในการตั้งค่าเบราว์เซอร์ หรือใช้ช่องพิมพ์/เครื่องสแกนแทน</span><br><button class="btn" id="camRetry">ลองอีกครั้ง</button></div>`;
@@ -1508,6 +1537,8 @@ async function loop() {
         }
       }
       if (!(found && found.length) && Date.now() - lastSeen > 6000) $('#ocrHint').classList.remove('hidden');
+      // สแกนเส้นไม่ติดเกิน 1.5 วินาที → ลองอ่านตัวเลขใต้บาร์โค้ดเองเบื้องหลัง (ไม่ต้องกด 123)
+      if (!(found && found.length) && Date.now() - lastSeen > 1500 && !ocrBusy && !autoBusy && Date.now() - lastAuto > 1200 && autoOcrOn) autoOcr();
       if (found && found.length) {
         lastSeen = Date.now(); $('#ocrHint').classList.add('hidden');
         const code = found[0].rawValue;
