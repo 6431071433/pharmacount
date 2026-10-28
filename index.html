@@ -83,6 +83,15 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .btn.warn{background:var(--warn)}
 .btn.block{width:100%}
 .btn:disabled{opacity:.5}
+.shelfbar{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.shelfbar.on{border-color:var(--brand-2);background:#f2f9f9}
+.shelfbar .t{flex:1;min-width:0}
+.shelfbar .k{font-size:12.5px;color:var(--muted)}
+.shelfbar .v{font-weight:700;color:var(--brand);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shelfbar .bar{height:6px;background:#e3ecec;border-radius:9px;margin-top:6px;overflow:hidden}
+.shelfbar .bar i{display:block;height:100%;background:var(--ok)}
+.shelfbar button{flex:none}
+.sbtn{border:1px solid var(--line);background:#fff;color:var(--brand);border-radius:10px;padding:8px 12px;font-weight:600;font-size:14px;min-height:40px}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
 .tips{margin-top:8px;font-size:13.5px;color:var(--muted)}
 .tips summary{cursor:pointer;color:var(--brand);font-weight:600;padding:4px 0;list-style:none}
@@ -219,6 +228,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 <main>
   <!-- นับสต็อก -->
   <section id="tab-count">
+    <div class="shelfbar" id="shelfBar"></div>
     <div class="cam off" id="cam">
       <video id="video" playsinline muted autoplay></video>
       <div class="guide hidden" id="guide"><div class="laser"></div></div>
@@ -290,7 +300,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-10-28.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-10-28.2';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -428,6 +438,7 @@ function renderAll() {
   $('#counterName').textContent = cfg.counter || 'เลือกผู้นับ';
   renderRecount();
   renderRecent();
+  renderShelfBar();
   if (!$('#tab-search').classList.contains('hidden')) renderSearch();
 }
 
@@ -785,6 +796,68 @@ function rememberShelf(loc) {
   if (!shelves.some(x => normKey(x) === normKey(loc))) shelves.push(loc);
 }
 
+/* ---------- นับทีละชั้น ---------- */
+// เลือกชั้นที่กำลังนับ → แผ่นนับใส่ชั้นนี้ให้อัตโนมัติ ระบบจึงค่อยๆ รู้ว่ายาแต่ละตัวอยู่ชั้นไหน
+// รอบต่อไปจะเห็นว่ายาที่เคยอยู่ชั้นนี้ ตัวไหนยังไม่ได้นับ
+let curShelf = store.get('curShelf', '');
+const sameShelf = (a, b) => !!a && !!b && normKey(a) === normKey(b);
+function shelfProducts(sh) {
+  const out = new Map();
+  items.forEach(i => {
+    const k = normName(i.n), loc = ploc[k] || i.loc;
+    if (sameShelf(loc, sh)) { if (!out.has(k)) out.set(k, []); out.get(k).push(i); }
+  });
+  return [...out.values()].map(lots => {
+    const live = lots.filter(i => !i.g), todo = live.filter(i => !i.c);
+    return { name: lots[0].n, lots: byName.get(normName(lots[0].n)) || lots, done: live.length > 0 && todo.length === 0, todo: todo.length };
+  }).filter(p => p.lots.some(i => !i.g));
+}
+function renderShelfBar() {
+  const b = $('#shelfBar'); if (!b) return;
+  if (!curShelf) {
+    b.className = 'shelfbar';
+    b.innerHTML = `<div class="t"><div class="v" style="color:var(--ink)">นับทีละชั้น</div><div class="k">เลือกชั้นที่กำลังนับ ระบบจะจำว่ายาอยู่ชั้นไหน และบอกว่าเหลือตัวไหน</div></div>
+      <button class="sbtn" id="shelfPick">เลือกชั้น</button>`;
+  } else {
+    const ps = shelfProducts(curShelf), done = ps.filter(p => p.done).length, left = ps.length - done;
+    b.className = 'shelfbar on';
+    b.innerHTML = `<div class="t"><div class="k">กำลังนับชั้น</div><div class="v">📍 ${esc(curShelf)}</div>
+      <div class="k">${ps.length ? `นับแล้ว ${done} / ${ps.length} สินค้าที่รู้ว่าอยู่ชั้นนี้` : 'ยังไม่รู้ว่ามียาอะไรบ้าง สแกนไปได้เลย ระบบจะจำไว้'}</div>
+      ${ps.length ? `<div class="bar"><i style="width:${ps.length ? done / ps.length * 100 : 0}%"></i></div>` : ''}</div>
+      ${left ? `<button class="sbtn" id="shelfLeft">เหลือ ${left}</button>` : ''}
+      <button class="sbtn" id="shelfPick" aria-label="เปลี่ยนชั้น">เปลี่ยน</button>`;
+  }
+  const pk = $('#shelfPick'); if (pk) pk.onclick = pickShelf;
+  const lf = $('#shelfLeft'); if (lf) lf.onclick = shelfLeft;
+}
+function setCurShelf(v) { curShelf = v || ''; store.set('curShelf', curShelf); if (curShelf) rememberShelf(curShelf); renderShelfBar(); }
+function pickShelf() {
+  const cnt = {}; Object.keys(ploc).forEach(k => { const v = ploc[k]; if (v) cnt[normKey(v)] = (cnt[normKey(v)] || 0) + 1; });
+  const list = dedupeShelves(shelves.concat(Object.values(ploc)));
+  openDialog(`<h3>กำลังนับชั้นไหน</h3>
+    <p class="small muted">ยาที่สแกนหลังจากนี้จะถูกบันทึกว่าอยู่ชั้นนี้ (เปลี่ยนในแผ่นนับได้ถ้าไม่ใช่)</p>
+    <div class="choice" style="max-height:46vh;overflow:auto">${list.map(x => `<button class="row" data-sh="${esc(x)}"><div class="t"><div class="n">${esc(x)}</div>
+      <div class="s">${cnt[normKey(x)] ? cnt[normKey(x)] + ' สินค้าที่รู้ว่าอยู่ชั้นนี้' : 'ยังไม่มีข้อมูลสินค้า'}</div></div>${sameShelf(x, curShelf) ? '<span class="pill p-ok">กำลังนับ</span>' : ''}</button>`).join('')}</div>
+    <input type="text" id="shNew" placeholder="ชั้นอื่น: พิมพ์ชื่อชั้น เช่น ตู้ 3 ชั้นบน" style="margin-top:10px" autocomplete="off">
+    <div class="acts">${curShelf ? '<button class="btn ghost" id="shOff">เลิกนับทีละชั้น</button>' : '<button class="btn ghost" data-close>ยกเลิก</button>'}<button class="btn" id="shOk">ใช้ชื่อที่พิมพ์</button></div>`, d => {
+    d.querySelectorAll('[data-sh]').forEach(bt => bt.onclick = () => { setCurShelf(bt.dataset.sh); closeDialog(); toast('นับชั้น ' + bt.dataset.sh, 'ok', 1500); });
+    const off = d.querySelector('#shOff'); if (off) off.onclick = () => { setCurShelf(''); closeDialog(); };
+    d.querySelector('#shOk').onclick = () => { const v = d.querySelector('#shNew').value.replace(/\s+/g, ' ').trim();
+      if (!v) { toast('พิมพ์ชื่อชั้น หรือแตะเลือกจากรายการ', 'warn'); return; }
+      setCurShelf(shelves.find(x => normKey(x) === normKey(v)) || v); closeDialog(); };
+  });
+}
+function shelfLeft() {
+  const ps = shelfProducts(curShelf).filter(p => !p.done).sort((a, b) => a.name.localeCompare(b.name));
+  openDialog(`<h3>ยังไม่ได้นับในชั้น ${esc(curShelf)}</h3>
+    <p class="small muted">ยาที่รอบก่อนเคยอยู่ชั้นนี้ แตะเพื่อนับ ถ้าหาไม่เจอให้ใส่ 0 ถ้าย้ายไปชั้นอื่นแล้ว นับตอนเจอที่ชั้นใหม่ ระบบจะย้ายให้เอง</p>
+    <div class="choice" style="max-height:56vh;overflow:auto">${ps.map(p => `<button class="row" data-name="${esc(p.name)}"><div class="t"><div class="n">${hiName(p.name)}</div>
+      <div class="s">ยังไม่นับ ${p.todo} LOT${productsWithCode().has(normName(p.name)) ? '' : ' · ไม่มีบาร์โค้ด'}</div></div></button>`).join('') || '<div class="empty">นับครบแล้ว</div>'}</div>
+    <div class="acts"><button class="btn ghost" data-close>ปิด</button></div>`, d => {
+    d.querySelectorAll('[data-name]').forEach(bt => bt.onclick = () => { closeDialog(); openSheet(byName.get(normName(bt.dataset.name)) || [], 'count'); });
+  });
+}
+
 /* ---------- แผ่นนับ ---------- */
 let sheetCtx = null;
 function sheetOpen() { return !!sheetCtx || !!$('#layer').firstChild; }
@@ -852,7 +925,7 @@ function openSheet(lots, mode, raw, pre, editing) {
           </div>
         </div>`).join('')}
       <div id="newLots"></div><button type="button" class="linkbtn" id="newLotBtn">+ พบ LOT ที่ไม่มีในระบบ (กรอกในแผ่นนี้ได้เลย)</button>
-      ${mode === 'count' ? `${shelfField('locInput', ploc[normName(p.n)] || p.loc || store.get('lastShelf', ''))}` : ''}
+      ${mode === 'count' ? `${shelfField('locInput', curShelf || ploc[normName(p.n)] || p.loc || store.get('lastShelf', ''))}${curShelf && (ploc[normName(p.n)] || p.loc) && !sameShelf(ploc[normName(p.n)] || p.loc, curShelf) ? `<div class="small muted" style="margin-top:-4px">รอบก่อนอยู่ชั้น ${esc(ploc[normName(p.n)] || p.loc)} บันทึกแล้วจะย้ายมาชั้น ${esc(curShelf)}</div>` : ''}` : ''}
     </div>
     <div class="sheet-f">
       <button class="btn ghost" id="sheetCancel">ยกเลิก</button>
