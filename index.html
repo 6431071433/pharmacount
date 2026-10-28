@@ -290,7 +290,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-10-27.3';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-10-28.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -1282,7 +1282,7 @@ function findDigitRow(g, w, h, th) {
   return box;
 }
 const T = (k, t0) => { if (window.__ocrT) window.__ocrT[k] = (window.__ocrT[k] || 0) + (performance.now() - t0); };
-async function readDigits(src, quick) {
+async function readDigits(src, quick, anyWhole) {   // anyWhole: หยุดทันทีเมื่ออ่านได้ครบแถวที่ผ่านเลขตรวจสอบ (ใช้ถามคนยืนยัน)
   let t0 = performance.now();
   const W0 = Math.min(quick ? 800 : 900, src.width), s0 = W0 / src.width;
   const a = document.createElement('canvas'); a.width = W0; a.height = Math.round(src.height * s0);
@@ -1364,11 +1364,36 @@ async function readDigits(src, quick) {
     const t = (r.data.text || '').trim(); texts.push(t);
     if (window.__ocrDebug) window.__ocrDebug.push({ ang, barEnd, bestRun, h, row: row && row.n, band: [top, hh, bx === undefined ? cx0 : Math.round(bx)], t, img: c.toDataURL('image/png') });
     const pk = pickCode(texts, false); if (pk.code) return Object.assign(pk, { texts });
+    if (anyWhole && wholeReads([t]).length) return Object.assign(pickCode(texts, true), { texts });
   }
   return Object.assign(pickCode(texts, true), { texts });
 }
-window.__pcOcr = { readDigits, pickCode, eanOk, skewAngle, otsu, grayOf, addCode };   // ใช้ทดสอบ
-let ocrBusy = false, autoBusy = false, lastAuto = 0, autoDone = 0, autoOcrOn = true;
+window.__pcOcr = { readDigits, pickCode, eanOk, skewAngle, otsu, grayOf, addCode, wholeReads };   // ใช้ทดสอบ
+let ocrBusy = false, autoBusy = false, lastAuto = 0, autoDone = 0, autoOcrOn = true, votes = [];
+// เลขที่อ่านได้ครบทั้งแถว (12/13 หลัก) และผ่านเลขตรวจสอบ ในแต่ละครั้งที่อ่าน
+function wholeReads(texts) {
+  const out = new Set();
+  (texts || []).forEach(t => { const d = String(t || '').replace(/\D/g, '');
+    if ((d.length === 12 || d.length === 13) && eanOk(d)) out.add(d);
+    if (d.length === 14) [d.slice(0, 13), d.slice(1)].filter(eanOk).forEach(c => out.add(c)); });   // มีเลขเกินมา 1 ตัว (เช่น ขอบกล่อง)
+  return [...out];
+}
+let unkTries = 0, lastFull = 0;
+const askedNew = new Set();   // เลขที่เคยถามแล้วตอบว่าไม่ใช่ จะไม่ถามซ้ำ
+// อ่านเลขครบแถวได้ แต่ยังไม่ชัวร์และไม่มีในระบบ → ให้คนเทียบกับกล่อง (แก้ตัวเลขได้)
+function askNewCode(guess) {
+  paused = true; beep('miss');
+  openDialog(`<h3>อ่านตัวเลขได้ ยังไม่มีในระบบ</h3>
+    <p class="small muted">เทียบกับตัวเลขใต้บาร์โค้ดบนกล่อง ถ้าตรงกด <b>ตรง</b> แล้วเลือกชื่อสินค้า ระบบจะจำไว้ ถ้าผิดบางตัวแก้ในช่องได้เลย</p>
+    <input type="text" id="ocrIn" inputmode="numeric" value="${esc(guess)}" autocomplete="off" style="font-size:22px;letter-spacing:2px;text-align:center">
+    <div class="acts"><button class="btn ghost" id="ocrNo">ไม่ใช่ สแกนต่อ</button><button class="btn" id="ocrOk">ตรง</button></div>`, d => {
+    const inp = d.querySelector('#ocrIn');
+    d.querySelector('#ocrNo').onclick = () => { askedNew.add(guess); closeDialog(); resumeScan(); };
+    d.querySelector('#ocrOk').onclick = () => { const c = inp.value.replace(/\D/g, ''); if (c.length < 8) { toast('กรอกตัวเลขให้ครบ', 'bad'); return; }
+      if (!eanOk(c) && !confirm('ตัวเลขนี้ไม่ผ่านการตรวจเลขท้ายบาร์โค้ด อาจพิมพ์ผิด ใช้ต่อไหม')) return;
+      closeDialog(); handleCode(c, 'ocr'); };
+  });
+}
 async function autoOcr() {
   const v = $('#video'); if (!v.videoWidth) return;
   autoBusy = true; lastAuto = Date.now();
@@ -1377,14 +1402,35 @@ async function autoOcr() {
     const y = Math.max(0, R.y - Math.round(R.h * 0.1)), hh = Math.min(H - y, R.h + Math.round(R.h * 0.45));
     const cv = document.createElement('canvas'), sc = Math.min(1, 1100 / R.w); cv.width = Math.round(R.w * sc); cv.height = Math.round(hh * sc);
     cv.getContext('2d').drawImage(v, R.x, y, R.w, hh, 0, 0, cv.width, cv.height);
-    const res = await readDigits(cv, true);
-    // อัตโนมัติรับเฉพาะบาร์โค้ดที่มีในระบบ (กันอ่านผิดแล้วเปิดสินค้าผิดตัว) ที่เหลือใช้ปุ่ม 123
-    if (res.code && byCode.has(normCode(res.code)) && scanning && !paused && !sheetOpen() && !ocrBusy &&
-        !(normCode(res.code) === normCode(cool.code) && Date.now() < cool.until)) {
-      paused = true; flash('hit'); beep('hit'); lastSeen = Date.now(); $('#ocrHint').classList.add('hidden');
-      if (res.how === 'fixed') toast('อ่านจากตัวเลขใต้บาร์โค้ด ตรวจชื่อสินค้าอีกครั้ง', 'warn', 2500);
-      handleCode(res.code, 'ocr-auto');
-      setTimeout(() => { if (!sheetOpen()) { cool = { code: res.code, until: Date.now() + 2500 }; resumeScan(); } }, 1200);
+    // อ่านแบบเร็วก่อน ถ้าเห็นแถวตัวเลขแต่ไม่ตรงบาร์โค้ดในระบบ (มักเป็นยาที่ยังไม่ลงทะเบียน) → อ่านแบบละเอียด 1 ครั้ง
+    const full = unkTries >= 1 && Date.now() - lastFull > 2000;
+    const res = await readDigits(cv, !full, full);
+    if (full) { lastFull = Date.now(); unkTries = 0; }
+    if (window.__autoLog) window.__autoLog.push({ at: Date.now() - lastAuto, t0: lastAuto, full, texts: res.texts, code: res.code, how: res.how, guess: res.guess });
+    // โหวต: เลขครบแถวที่ผ่านเลขตรวจสอบ ต้องอ่านได้ตรงกันจากทั้งแบบเร็วและแบบละเอียด (คนละวิธีปรับภาพ) ภายใน 6 วินาที
+    const now = Date.now(); votes = votes.filter(x => now - x.t < 6000);
+    const whole = wholeReads(res.texts); whole.forEach(c => votes.push({ c, t: now, full }));
+    const voted = whole.find(c => { const vs = votes.filter(x => x.c === c); return vs.some(x => x.full) && vs.some(x => !x.full); });
+    const known = c => c && byCode.has(normCode(c));
+    let code = '', how = '';
+    if (known(res.code) && (res.how !== 'fixed' || !whole.some(c => !known(c)))) { code = res.code; how = res.how; }
+    else if (full && res.code && res.how === 'ok') { code = res.code; how = known(res.code) ? 'ok' : 'new'; }   // แบบละเอียดอ่านครบแถวตรงกัน ≥2 รอบ
+    else if (voted) { code = voted; how = known(voted) ? 'ok' : 'new'; }
+    else if (!full && (res.guess || '').length >= 12) unkTries++;
+    // แบบละเอียดแล้วยังไม่ชัวร์ แต่ได้เลขครบแถวที่ผ่านเลขตรวจสอบ → ถามคนให้เทียบกับกล่อง
+    let ask = '';
+    if (!code && full) { const g = eanOk(res.guess || '') ? res.guess : whole[0]; if (g && !known(g) && !askedNew.has(g)) ask = g; }
+    if (ask && scanning && !paused && !sheetOpen() && !ocrBusy) { votes = []; askNewCode(ask); }
+    // อัตโนมัติรับเฉพาะเลขที่เชื่อได้ กันอ่านผิดแล้วเปิดสินค้าผิดตัว ที่เหลือใช้ปุ่ม 123
+    if (code && scanning && !paused && !sheetOpen() && !ocrBusy &&
+        !(normCode(code) === normCode(cool.code) && Date.now() < cool.until)) {
+      votes = []; unkTries = 0;
+      paused = true; lastSeen = Date.now(); $('#ocrHint').classList.add('hidden');
+      if (how !== 'new') { flash('hit'); beep('hit'); }
+      if (how === 'fixed') toast('อ่านจากตัวเลขใต้บาร์โค้ด ตรวจชื่อสินค้าอีกครั้ง', 'warn', 2500);
+      if (how === 'new') toast('อ่านจากตัวเลขใต้บาร์โค้ด เทียบเลขบนกล่องให้ตรงก่อนเลือกสินค้า', 'warn', 4000);
+      handleCode(code, 'ocr-auto');
+      setTimeout(() => { if (!sheetOpen()) { cool = { code, until: Date.now() + 2500 }; resumeScan(); } }, 1200);
     }
   } catch (e) { if (/โหลดตัวอ่าน/.test(e.message)) autoOcrOn = false; }   // ไม่มีเน็ตโหลดตัวอ่านไม่ได้ → ปิดอัตโนมัติ ใช้ปุ่ม 123 แทน
   autoBusy = false; autoDone = Date.now();
