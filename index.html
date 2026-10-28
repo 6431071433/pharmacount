@@ -300,7 +300,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-10-28.2';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-10-28.4';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -344,6 +344,7 @@ let ploc = {}, showSys = false;   // showSys = แสดงยอดในระ
 let recent = store.get('recent', []);   // นับล่าสุดในเครื่องนี้ (ไว้แตะแก้ไข) เก็บ 20 รายการ
 const normKey = v => String(v == null ? '' : v).replace(/\s+/g, '').toLowerCase();
 let byCode = new Map();   // บาร์โค้ด → Set(ชื่อสินค้า)
+let ignCodes = new Set();   // บาร์โค้ดที่ไม่ใช่ของสินค้าตัวไหน (บาร์โค้ดรองของบริษัท ใช้ร่วมหลายกล่อง) → ไม่ใช้ระบุยา
 let byName = new Map();   // ชื่อสินค้า → [LOT]
 let queue = store.get('queue', []);
 let online = true;
@@ -359,7 +360,7 @@ function buildIndex(barcodes) {
   (barcodes || []).forEach(([code, name]) => addCode(code, name));
 }
 function addCode(code, name) {
-  const c = normCode(code); if (c.length < 6) return;
+  const c = normCode(code); if (c.length < 6 || ignCodes.has(c)) return;
   if (!byCode.has(c)) byCode.set(c, new Set());
   byCode.get(c).add(normName(name));
 }
@@ -397,7 +398,7 @@ async function load(silent) {
     // LOT ที่ไม่มีใน Arincare แล้ว (ยอด 0) และยังไม่มีใครนับ ไม่ต้องนับ จึงไม่แสดงและไม่นับรวมในความคืบหน้า
     items = d.items.filter(i => !i.g); counters = d.counters || []; causes = d.causes || []; cpinNames = d.cpin || [];
     shelves = dedupeShelves(d.shelves || []); packs = d.packs || []; units = d.units || []; ploc = d.ploc || {}; showSys = !!d.show;
-    buildIndex(d.barcodes);
+    ignCodes = new Set((d.ign || []).map(normCode)); buildIndex(d.barcodes);
     setOnline(true);
     renderAll();
     if (!silent) toast(`โหลดข้อมูล ${items.length.toLocaleString()} LOT แล้ว`, 'ok', 1800);
@@ -603,6 +604,7 @@ function handleCode(raw, source) {
   if (code.length < 6) { toast('บาร์โค้ดสั้นเกินไป', 'bad'); return; }
   if (sheetOpen()) return;
   if (!items.length) { toast('ยังโหลดข้อมูลไม่เสร็จ', 'warn'); return; }
+  if (ignCodes.has(code)) { toast('บาร์โค้ดนี้เป็นบาร์โค้ดรองที่ใช้ร่วมกับหลายสินค้า ระบุยาไม่ได้ เล็งบาร์โค้ดหลักหรือตัวเลขใต้บาร์โค้ดหลักแทน', 'warn', 4000); return; }
   const names = byCode.get(code);
   if (!names || !names.size) { flash('miss'); beep('miss'); openUnknown(raw); return; }
   flash('hit'); beep('hit');
@@ -623,6 +625,45 @@ function chooseProduct(names, lots, raw) {
     <div class="choice">${list.map(i => `<button class="row" data-name="${esc(i.n)}"><div class="t"><div class="n">${hiName(i.n)}</div></div></button>`).join('')}</div>
     <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button></div>`, dlg => {
     dlg.querySelectorAll('[data-name]').forEach(b => b.onclick = () => { closeDialog(); openSheet(byName.get(normName(b.dataset.name)) || [], 'count', raw); });
+  });
+}
+
+/* ---------- แก้บาร์โค้ดที่จับคู่ผิด ---------- */
+function wrongLink(raw, name) {
+  const code = normCode(raw);
+  closeSheet(); paused = true;
+  openDialog(`<h3>บาร์โค้ดนี้ไม่ใช่ยาตัวนี้?</h3>
+    <p class="small muted">บาร์โค้ด <b>${esc(raw)}</b> ถูกจับคู่ไว้กับ</p>
+    <div class="row" style="cursor:default"><div class="t"><div class="n">${hiName(name)}</div></div></div>
+    <p class="small muted" style="margin-top:10px">กดลบแล้วเลือกยาที่ถูกต้องใหม่ ถ้าเป็นบาร์โค้ดของยาตัวนี้จริงแต่ใช้ร่วมกับยาอื่นด้วย (เช่น ขนาดต่างกัน) ไม่ต้องลบ</p>
+    <div class="acts"><button class="btn ghost" data-close>ไม่ลบ</button><button class="btn warn" id="wlOk">ลบคู่นี้ แล้วเลือกใหม่</button></div>`, d => {
+    d.querySelector('#wlOk').onclick = () => {
+      const set = byCode.get(code); if (set) { set.delete(normName(name)); if (!set.size) byCode.delete(code); }
+      items.forEach(i => { if (normName(i.n) === normName(name) && normCode(i.b) === code) i.b = ''; });
+      const body = { barcode: raw, name: name };
+      api('unlink', body).catch(err => {
+        if (err.server) { toast('ลบในชีตไม่ได้: ' + err.message, 'bad', 4000); return; }
+        queue.push({ action: 'unlink', payload: body, counter: cfg.counter, cpin: cfg.cpin, at: Date.now() }); store.set('queue', queue); setOnline(false); renderAll();
+      });
+      closeDialog(); renderAll(); toast('ลบคู่ที่ผิดแล้ว เลือกยาที่ถูกต้อง', 'ok', 2000);
+      const left = byCode.get(code);
+      if (left && left.size) handleCode(raw, 'relink'); else openUnknown(raw);
+    };
+  });
+}
+// ยืนยันก่อนจับคู่: ชื่อยาที่คล้ายกัน (ขึ้นต้นเหมือนกัน) แสดงเทียบให้เห็นความต่าง เช่น เม็ด/น้ำ ขนาด mg
+function confirmLink(raw, name, done) {
+  const first = normName(name).split(' ')[0], k = normName(name);
+  const sim = [...byName.keys()].filter(n => n !== k && n.split(' ')[0] === first).slice(0, 6);
+  openDialog(`<h3>ยืนยันว่าเป็นยาตัวนี้</h3>
+    <p class="small muted">บาร์โค้ด <b>${esc(raw)}</b> จะถูกจำว่าเป็น</p>
+    <div class="row" style="cursor:default;border-color:var(--brand-2);border-width:2px"><div class="t"><div class="n" style="font-size:17px">${hiName(name)}</div></div></div>
+    ${sim.length ? `<p class="small" style="margin:12px 0 4px;color:var(--warn);font-weight:600">ระวัง มีชื่อคล้ายกัน ${sim.length} ตัว ดูรูปแบบยาและขนาดให้ตรงกับกล่อง</p>
+      <div class="choice">${sim.map(n => `<button class="row" data-alt="${esc(byName.get(n)[0].n)}"><div class="t"><div class="n">${hiName(byName.get(n)[0].n)}</div></div><span class="pill p-mute">ตัวนี้แทน</span></button>`).join('')}</div>` : ''}
+    <div class="acts"><button class="btn ghost" id="clBack">เลือกใหม่</button><button class="btn" id="clOk">ใช่ ยาตัวนี้</button></div>`, d => {
+    d.querySelector('#clOk').onclick = () => done(name);
+    d.querySelector('#clBack').onclick = () => { closeDialog(); openUnknown(raw); };
+    d.querySelectorAll('[data-alt]').forEach(b => b.onclick = () => done(b.dataset.alt));
   });
 }
 
@@ -648,8 +689,8 @@ function openUnknown(raw) {
     q.addEventListener('input', render); render(); setTimeout(() => q.focus(), 60);
     list.addEventListener('click', async e => {
       const b = e.target.closest('[data-name]'); if (!b) return;
-      const name = b.dataset.name;
       if (!cfg.counter) { closeDialog(); askCounter(); return; }
+      confirmLink(raw, b.dataset.name, name => {
       // จำบาร์โค้ดในเครื่องแล้วเปิดแผ่นนับทันที ส่งเข้าชีตเบื้องหลัง (ไม่ต้องรอ)
       addCode(raw, name); closeDialog(); renderAll();
       openSheet(byName.get(normName(name)) || [], tab === 'recount' ? 'recount' : 'count', raw);
@@ -657,6 +698,7 @@ function openUnknown(raw) {
         if (err.server) { toast('จำบาร์โค้ดเข้าชีตไม่ได้: ' + err.message, 'bad', 4000); return; }
         queue.push({ action: 'link', payload: { barcode: raw, name }, counter: cfg.counter, cpin: cfg.cpin, at: Date.now() });
         store.set('queue', queue); setOnline(false); renderAll();
+      });
       });
     });
     dlg.querySelector('#reportBtn').onclick = () => { closeDialog(); openReport({ barcode: raw }); };
@@ -890,6 +932,7 @@ function openSheet(lots, mode, raw, pre, editing) {
       <div class="mode">${showSys ? `<span class="mode-chip">${mode === 'recount' ? 'นับซ้ำ · ' : ''}ตรวจเทียบกับระบบ</span>` : `<span class="mode-chip blind">${mode === 'recount' ? 'นับซ้ำ · ' : ''}นับแบบไม่เห็นยอดในระบบ</span>`}</div>
       <div class="pname">${esc(p.n)}</div>
       <div class="small muted">${raw ? 'บาร์โค้ด ' + esc(raw) + ' · ' : ''}${lots.length} LOT${p.cat ? ' · ' + esc(p.cat) : ''}</div>
+      ${raw && !editing ? '<button type="button" class="linkbtn small" id="wrongLink" style="padding:4px 0 0">ไม่ใช่ยาตัวนี้? แก้บาร์โค้ดที่จับคู่ผิด</button>' : ''}
     </div>
     <div class="sheet-b">
       ${sameCounter ? `<div class="lot" style="background:var(--warn-soft);border-color:#f3c48c"><b>คุณเป็นผู้นับครั้งแรก</b><div class="small">การนับซ้ำควรเป็นอีกคน เพื่อให้ตรวจสอบได้จริง</div></div>` : ''}
@@ -982,6 +1025,7 @@ function openSheet(lots, mode, raw, pre, editing) {
     updateSave(); saveSheet();
   };
   $('#sheetCancel').onclick = closeSheet;
+  const wl = $('#wrongLink'); if (wl) wl.onclick = () => wrongLink(raw, p.n);
   $('#sheetSave').onclick = saveSheet;
   bindShelf(ov, 'locInput');
   // LOT ที่มีบนชั้นแต่ไม่มีในระบบ: กรอกต่อท้ายในแผ่นเดียวกัน บันทึกพร้อมกันครั้งเดียว (เลขของ LOT อื่นไม่หาย)
@@ -1304,7 +1348,7 @@ function skewAngle(g, w, h, th) {
 }
 // หาแถวตัวเลขแบบเดียวกับระบบอ่านป้ายทะเบียน: แยกก้อนสีดำที่ติดกัน (connected components)
 // เลือกก้อนขนาดตัวอักษร (ไม่ใช่เส้นบาร์โค้ดที่ผอมยาว ไม่ใช่นิ้ว/แถบสีที่ใหญ่) ที่เรียงเป็นแถวเดียวกันมากที่สุด
-function findDigitRow(g, w, h, th) {
+function findDigitRow(g, w, h, th, hint) {   // hint.y = ขอบล่างของเส้นบาร์โค้ด (ถ้าเห็น) แถวตัวเลขจริงอยู่ติดใต้เส้น
   const lab = new Int32Array(w * h).fill(-1), comps = [], stack = new Int32Array(w * h);
   for (let i = 0; i < w * h; i++) {
     if (lab[i] >= 0 || g[i] >= th) continue;
@@ -1317,29 +1361,74 @@ function findDigitRow(g, w, h, th) {
       if (y < h - 1 && lab[k + w] < 0 && g[k + w] < th) { lab[k + w] = comps.length; stack[sp++] = k + w; } }
     comps.push({ id: comps.length, x0, x1, y0, y1, n, cw: x1 - x0 + 1, ch: y1 - y0 + 1 });
   }
-  const cand = comps.filter(c => c.ch >= h * 0.04 && c.ch <= h * 0.4 && c.cw / c.ch >= 0.18 && c.cw / c.ch <= 1.1 && c.n / (c.cw * c.ch) > 0.12 && c.n / (c.cw * c.ch) < 0.85);
+  const cand = comps.filter(c => c.ch >= Math.max(7, h * 0.015) && c.ch <= h * 0.4 && c.cw / c.ch >= 0.18 && c.cw / c.ch <= 3.2 && c.n / (c.cw * c.ch) > 0.12 && c.n / (c.cw * c.ch) < 0.85);
   let best = null;
   cand.forEach(a => {   // ก้อนที่สูงใกล้กันและอยู่บรรทัดเดียวกับก้อน a
     const cy = (a.y0 + a.y1) / 2;
     const row = cand.filter(b => Math.abs((b.y0 + b.y1) / 2 - cy) < a.ch * 0.35 && b.ch > a.ch * 0.7 && b.ch < a.ch * 1.3);
     if (row.length >= 6 && (!best || row.length > best.length)) best = row;
   });
+  // แถวตัวเลขเอียง (เส้นบาร์โค้ดถูกบังจึงวัดมุมจากเส้นไม่ได้): ต่อเป็นสายทีละตัวจากเพื่อนบ้านที่อยู่ติดกัน แทนการเทียบกับตัวแรกตัวเดียว
+  { const byx = cand.slice().sort((p, q) => p.x0 - q.x0), used = new Set();
+    byx.forEach(a => {
+      if (used.has(a.id)) return;
+      const ch = [a]; let cur = a, H = a.ch;   // H = ความสูงตัวเลขของสาย (สูงสุดที่เจอ) ไม่ใช้ความสูงของเศษเส้น ‖ ที่สั้นกว่า
+      for (;;) {
+        const cy = (cur.y0 + cur.y1) / 2;
+        const nx = byx.find(b => !used.has(b.id) && b.x0 > cur.x0 + cur.cw * 0.5 && b.x0 - cur.x1 < H * 2.2 &&
+          Math.abs((b.y1 - b.ch / 2) - cy) < H * 0.35 && b.ch > H * 0.75 && b.ch < H * 1.33 && !(b.cw < H * 0.3 && b.ch < H * 0.88));
+        if (!nx) break; ch.push(nx); used.add(nx.id); cur = nx; H = Math.max(H, nx.ch);
+      }
+      if (a.cw < H * 0.3 && a.ch < H * 0.88) ch.shift();
+      if (window.__rowDbg) (window.__chains = window.__chains || []).push(ch.map(c => c.x0));
+      // คะแนน: ยาว 8–13 ตัวแบบเลขบาร์โค้ด และอยู่ติดใต้เส้นบาร์โค้ด (ไม่เอาบรรทัดราคา/ชื่อยาที่อยู่เหนือเส้น)
+      const nd = ch.reduce((a, c) => a + Math.max(1, Math.round(c.cw / (H * 0.62))), 0);   // ตัวเลขที่พิมพ์ชิดกันจะติดเป็นก้อนเดียว 2–4 ตัว
+      ch.score = nd + (nd >= 8 && nd <= 14 ? 3 : 0) +
+        (hint && hint.y >= 0 && ch[0].y0 > hint.y - H * 1.5 && ch[0].y0 < hint.y + H * 2.5 ? 8 : 0);
+      ch.nd = nd; if (nd >= 6 && ch.length >= 3 && (!best || ch.score > (best.score || best.length))) best = ch;
+    }); }
   if (!best) return null;
+  { const b0 = best.map(c => c.y1).sort((p, q) => p - q)[best.length >> 1], h0 = best.map(c => c.ch).sort((p, q) => p - q)[best.length >> 1];
+    best = best.filter(c => !(c.cw < h0 * 0.28 && c.y1 < b0 - h0 * 0.18)); if (best.length < 3) return null; }
   best.sort((p, q) => p.x0 - q.x0);
   // ตัดก้อนที่อยู่ห่างกลุ่มเกินไป (เกิน 3 เท่าความสูงตัวอักษร)
   const dh = best.reduce((s, c) => s + c.ch, 0) / best.length;
   let run = [best[0]], keep = run;
   for (let i = 1; i < best.length; i++) { if (best[i].x0 - best[i - 1].x1 > dh * 3) run = []; run.push(best[i]); if (run.length > keep.length) keep = run; }
-  if (keep.length < 6) return null;
+  const ndig = arr => arr.reduce((a, c) => a + Math.max(1, Math.round(c.cw / (c.ch * 0.62))), 0);
+  if (ndig(keep) < 6) return null;
   const box = { x0: Math.min(...keep.map(c => c.x0)), x1: Math.max(...keep.map(c => c.x1)), y0: Math.min(...keep.map(c => c.y0)), y1: Math.max(...keep.map(c => c.y1)), n: keep.length, dh };
   // เลขตัวแรกของ EAN-13 อยู่ห่างกลุ่มออกไปทางซ้าย และเลข 1 ผอม: รวมก้อนที่สูงเท่าตัวอักษรในแถวเดียวกันด้วย
   // ส่วนเส้นกั้นบาร์โค้ดที่ยาวลงมาแทรกระหว่างตัวเลข (สูงกว่าตัวอักษร) ไม่เอา
   const ids = new Set(comps.filter(c => c.ch > dh * 0.75 && c.ch < dh * 1.25 && c.y0 > box.y0 - dh * 0.3 && c.y1 < box.y1 + dh * 0.3 &&
-    c.x1 > box.x0 - dh * 2.5 && c.x0 < box.x1 + dh * 1.5 && c.cw < dh * 1.2).map(c => c.id));
+    c.x1 > box.x0 - dh * 2.5 && c.x0 < box.x1 + dh * 1.5 && c.cw < dh * 3.2).map(c => c.id));
+  // เศษเส้นกั้นบาร์โค้ด (เมื่อเส้นด้านบนถูกกระดาษ/นิ้วบัง เหลือเส้นสั้นคู่ ‖ แทรกระหว่างตัวเลข): ผอม และไม่ลงถึงฐานตัวเลข → ไม่เอา (เลข 1 ลงถึงฐาน)
+  const base = keep.map(c => c.y1).sort((p, q) => p - q)[keep.length >> 1], stub = c => c.cw < dh * 0.28 && c.y1 < base - dh * 0.18;
+  [...ids].forEach(i => { if (stub(comps[i])) ids.delete(i); });
+  box.stubs = comps.filter(c => stub(c) && c.ch > dh * 0.3 && c.x1 > box.x0 - dh && c.x0 < box.x1 + dh && c.y1 > box.y0 && c.y0 < base).length;
   ids.forEach(i => { const c = comps[i]; box.x0 = Math.min(box.x0, c.x0); box.x1 = Math.max(box.x1, c.x1); });
   // ตัวเลขที่ติดกับเส้นกั้นบาร์โค้ด (ก้อนสูงกว่าตัวอักษร): เก็บเฉพาะส่วนในแถวตัวเลข ตัดคอลัมน์ที่เป็นเส้นยาวขึ้นไปด้านบนออก
   const merged = new Set(), barCol = new Uint8Array(w), topY = Math.round(box.y0 - dh * 0.2);
-  comps.filter(c => c.ch >= dh * 1.25 && c.cw >= dh * 0.3 && c.y1 > box.y0 + dh * 0.5 && c.y0 < box.y1 && c.x1 > box.x0 - dh && c.x0 < box.x1 + dh).forEach(c => {
+  // ขยายแถวไปทางซ้าย–ขวา: ตัวเลขที่ติดเศษเส้นบาร์โค้ด (ก้อนสูง) ทำให้แถวขาดกลางทาง เช่น ครึ่งขวาหายไปทั้งครึ่ง
+  // ก้อนสูง/กว้าง (ตัวเลขติดเศษเส้นหรือเงาขอบกระดาษ) ดูเฉพาะส่วนที่อยู่ในแถวตัวเลข ว่ากินพื้นที่แนวนอนช่วงไหน
+  const inRow = c => { const ya = Math.max(0, Math.round(box.y0 + dh * 0.35)), yb = Math.min(h - 1, Math.round(box.y1 - dh * 0.1)); let a = w, b = -1;
+    for (let y = ya; y <= yb; y++) for (let x = c.x0; x <= c.x1; x++) if (lab[y * w + x] === c.id) { if (x < a) a = x; if (x > b) b = x; }
+    return b < 0 ? null : [a, b]; };
+  const mrg = c => c.ch >= dh * 1.25 && c.y1 > box.y0 + dh * 0.5 && c.y1 < box.y1 + dh * 0.4 && c.y0 < box.y1;
+  for (let pass = 0; pass < 6; pass++) {
+    let grew = false;
+    comps.forEach(c => {
+      if (ids.has(c.id) || merged.has(c.id) || c.x1 < box.x0 - dh * 1.5 || c.x0 > box.x1 + dh * 1.5) return;
+      const dig = c.ch > dh * 0.75 && c.ch < dh * 1.25 && c.y0 > box.y0 - dh * 0.3 && c.y1 < box.y1 + dh * 0.3 && c.cw < dh * 3.2 && !stub(c);
+      let r = null;
+      if (dig) { ids.add(c.id); r = [c.x0, c.x1]; }
+      else if (mrg(c) && (r = inRow(c)) && r[1] - r[0] >= dh * 0.3 && r[0] < box.x1 + dh * 1.5 && r[1] > box.x0 - dh * 1.5) merged.add(c.id);
+      else return;
+      box.x0 = Math.min(box.x0, r[0]); box.x1 = Math.max(box.x1, r[1]); grew = true;
+    });
+    if (!grew) break;
+  }
+  comps.filter(c => merged.has(c.id) || (c.ch >= dh * 1.25 && c.cw >= dh * 0.3 && c.y1 > box.y0 + dh * 0.5 && c.y0 < box.y1 && c.x1 > box.x0 - dh && c.x0 < box.x1 + dh)).forEach(c => {
     merged.add(c.id);
     // คอลัมน์ที่เป็นเส้น = มีส่วนยื่นขึ้นไปเหนือแถวตัวเลข และดำเกือบตลอดความสูงแถวตัวเลข (ตัวเลขที่แค่แตะเส้นด้านบนไม่ถูกตัด)
     const ya = Math.max(0, Math.round(box.y0)), yb = Math.min(h - 1, Math.round(box.y1));
@@ -1352,15 +1441,22 @@ function findDigitRow(g, w, h, th) {
     }
   });
   box.ids = ids; box.lab = lab; box.merged = merged; box.barCol = barCol;
+  // ความเอียงของแถวตัวเลขเอง (ใช้เมื่อวัดจากเส้นบาร์โค้ดไม่ได้ เช่น เส้นถูกบัง)
+  { const pts = keep.filter(c => c.ch > dh * 0.85).map(c => [(c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2]);
+    if (pts.length >= 5) { const n = pts.length, mx = pts.reduce((a, p) => a + p[0], 0) / n, my = pts.reduce((a, p) => a + p[1], 0) / n;
+      let sxy = 0, sxx = 0; pts.forEach(p => { sxy += (p[0] - mx) * (p[1] - my); sxx += (p[0] - mx) ** 2; });
+      box.slopeDeg = sxx ? Math.atan(sxy / sxx) * 180 / Math.PI : 0; } }
+  if (window.__rowDbg) box.dbg = comps.filter(c => c.y1 > box.y0 - dh && c.y0 < box.y1 + dh && c.n > 10).map(c => [c.x0, c.y0, c.cw, c.ch, ids.has(c.id) ? 'D' : merged.has(c.id) ? 'M' : cand.includes(c) ? 'c' : '-']);
   return box;
 }
+let SLOPE_SIGN = 1;
 const T = (k, t0) => { if (window.__ocrT) window.__ocrT[k] = (window.__ocrT[k] || 0) + (performance.now() - t0); };
-async function readDigits(src, quick, anyWhole) {   // anyWhole: หยุดทันทีเมื่ออ่านได้ครบแถวที่ผ่านเลขตรวจสอบ (ใช้ถามคนยืนยัน)
+async function readDigits(src, quick, anyWhole, forceAng) {   // anyWhole: หยุดทันทีเมื่ออ่านได้ครบแถวที่ผ่านเลขตรวจสอบ (ใช้ถามคนยืนยัน)
   let t0 = performance.now();
   const W0 = Math.min(quick ? 800 : 900, src.width), s0 = W0 / src.width;
   const a = document.createElement('canvas'); a.width = W0; a.height = Math.round(src.height * s0);
   a.getContext('2d').drawImage(src, 0, 0, a.width, a.height);
-  let g = grayOf(a); const th = otsu(g); T('prep', t0); t0 = performance.now(); const ang = skewAngle(g, a.width, a.height, th); T('skew', t0); t0 = performance.now();
+  let g = grayOf(a); const th = otsu(g); T('prep', t0); t0 = performance.now(); const ang = forceAng !== undefined ? forceAng : skewAngle(g, a.width, a.height, th); T('skew', t0); t0 = performance.now();
   // หมุนให้ตรง (ขยาย 2 เท่า ให้ตัวเลขใหญ่พอสำหรับ OCR)
   const b = document.createElement('canvas'), K = quick ? 1 : 2; b.width = a.width * K; b.height = a.height * K;   // โหมดอัตโนมัติไม่ขยาย (เร็วกว่า 4 เท่า) แล้วค่อยขยายเฉพาะแถวตัวเลขตอนส่งอ่าน
   const bc = b.getContext('2d'); bc.fillStyle = '#fff'; bc.fillRect(0, 0, b.width, b.height);
@@ -1397,7 +1493,14 @@ async function readDigits(src, quick, anyWhole) {   // anyWhole: หยุดท
   const bw = Math.max(40, bx1 - bx0);
   const cx0 = Math.max(0, Math.round(bx0 - bw * 0.13)), cx1 = Math.min(w, Math.round(bx1 + bw * 0.06));
   T('rotate+bars', t0); t0 = performance.now();
-  const bands = [], row = findDigitRow(g, w, h, t2); T('findRow', t0);
+  // ขอบล่างเส้นบาร์โค้ด (ใช้ชี้ว่าแถวตัวเลขอยู่ตรงไหน): แถวที่สลับขาว–ดำถี่ ไม่ใช่แถวที่ดำมาก (พื้นดำ/เงาก็ดำมาก)
+  let hintY = -1; { const tr = new Float32Array(h); let tmax = 0;
+    for (let y = 0; y < h; y += 1) { let n = 0; const o = y * w; for (let x = 1; x < w; x++) if ((g[o + x] < t2) !== (g[o + x - 1] < t2)) n++; tr[y] = n; if (n > tmax) tmax = n; }
+    let run = 0, br = 0; for (let y = 0; y < h; y++) { if (tr[y] > Math.max(16, tmax * 0.5)) { run++; if (run >= br) { br = run; hintY = y; } } else run = 0; }
+    if (br < h * 0.05) hintY = -1; }
+  const bands = [], row = findDigitRow(g, w, h, t2, { y: hintY }); T('findRow', t0);
+  // แถวตัวเลขยังเอียง (เส้นบาร์โค้ดถูกบัง วัดมุมผิด) → หมุนตามความเอียงของตัวเลขแล้วอ่านใหม่ 1 ครั้ง
+  if (row && forceAng === undefined && Math.abs(row.slopeDeg || 0) > 0.7) return readDigits(src, quick, anyWhole, ang + row.slopeDeg * SLOPE_SIGN);
   // พบแถวตัวเลขจากรูปทรงตัวอักษร → อ่านเฉพาะกรอบนั้นก่อน (แม่นและเร็วที่สุด)
   if (row) { const m = row.dh * 0.5; bands.push([row.y0 - row.dh * 0.3, row.y1 + row.dh * 0.3, row.x0 - m, row.x1 + m, 'clean']); bands.push([row.y0 - row.dh * 0.25, row.y1 + row.dh * 0.25, row.x0 - m, row.x1 + m]); }
   // ตัวเลขอยู่ใต้ขอบล่างของเส้นบาร์โค้ด สูงประมาณ 8–10% ของความกว้างบาร์โค้ด
@@ -1441,7 +1544,7 @@ async function readDigits(src, quick, anyWhole) {   // anyWhole: หยุดท
   }
   return Object.assign(pickCode(texts, true), { texts });
 }
-window.__pcOcr = { readDigits, pickCode, eanOk, skewAngle, otsu, grayOf, addCode, wholeReads };   // ใช้ทดสอบ
+window.__pcOcr = { readDigits, pickCode, eanOk, skewAngle, otsu, grayOf, addCode, wholeReads, findDigitRow };   // ใช้ทดสอบ
 let ocrBusy = false, autoBusy = false, lastAuto = 0, autoDone = 0, autoOcrOn = true, votes = [];
 // เลขที่อ่านได้ครบทั้งแถว (12/13 หลัก) และผ่านเลขตรวจสอบ ในแต่ละครั้งที่อ่าน
 function wholeReads(texts) {
@@ -1666,6 +1769,7 @@ async function loop() {
           found = await detector.detect(sharpenH(ctx2d.getImageData(0, 0, canvas.width, canvas.height), k));
         }
       }
+      if (found && found.length) found = found.filter(f => !ignCodes.has(normCode(f.rawValue)));   // บาร์โค้ดรอง (ใช้ร่วมหลายกล่อง): ทำเหมือนไม่เห็น ให้หาบาร์โค้ดหลัก/อ่านตัวเลขต่อ
       if (!(found && found.length) && Date.now() - lastSeen > 6000) $('#ocrHint').classList.remove('hidden');
       // สแกนเส้นไม่ติดเกิน 0.6 วินาที → อ่านตัวเลขใต้บาร์โค้ดเบื้องหลังต่อเนื่อง (ไม่ต้องกด 123) เว้นช่วงสั้นๆ ให้มือถือไม่ร้อน
       if (!(found && found.length) && Date.now() - lastSeen > 600 && !ocrBusy && !autoBusy && Date.now() - autoDone > 250 && autoOcrOn) autoOcr();
