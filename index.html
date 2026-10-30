@@ -359,7 +359,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-10-30.3';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-10-30.4';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -403,7 +403,7 @@ let ploc = {}, showSys = false;   // showSys = แสดงยอดในระ
 let recent = store.get('recent', []);   // นับล่าสุดในเครื่องนี้ (ไว้แตะแก้ไข) เก็บ 20 รายการ
 const normKey = v => String(v == null ? '' : v).replace(/\s+/g, '').toLowerCase();
 let byCode = new Map();   // บาร์โค้ด → Set(ชื่อสินค้า)
-let ignCodes = new Set(), expDays = [180, 90, 30], reorder = [];   // บาร์โค้ดที่ไม่ใช่ของสินค้าตัวไหน (บาร์โค้ดรองของบริษัท ใช้ร่วมหลายกล่อง) → ไม่ใช้ระบุยา
+let ignCodes = new Set(), expDays = [180, 90, 30], reorder = [], trends = { has: false, up: [] };   // บาร์โค้ดที่ไม่ใช่ของสินค้าตัวไหน (บาร์โค้ดรองของบริษัท ใช้ร่วมหลายกล่อง) → ไม่ใช้ระบุยา
 let byName = new Map();   // ชื่อสินค้า → [LOT]
 let queue = store.get('queue', []);
 let online = true;
@@ -458,7 +458,7 @@ async function load(silent) {
     items = d.items.filter(i => !i.g); counters = d.counters || []; causes = d.causes || []; cpinNames = d.cpin || [];
     shelves = dedupeShelves(d.shelves || []); packs = d.packs || []; units = d.units || []; ploc = d.ploc || {}; showSys = !!d.show;
     ignCodes = new Set((d.ign || []).map(normCode)); buildIndex(d.barcodes);
-    expDays = d.expDays || expDays; reorder = d.reorder || [];
+    expDays = d.expDays || expDays; reorder = d.reorder || []; trends = d.trends || trends;
     setOnline(true);
     renderAll();
     if (!silent) toast(`โหลดข้อมูล ${items.length.toLocaleString()} LOT แล้ว`, 'ok', 1800);
@@ -1000,12 +1000,17 @@ function renderToday() {
   const ro = reorder.map(r => `<div class="row"><div class="t"><div class="n">${hiName(r.n)}</div>
       <div class="s">${r.st.startsWith('ของหมด') ? 'ของหมดแล้ว' : 'พอขายอีกราว ' + r.left + ' วัน'} · ออกเฉลี่ย ${r.m ?? '-'} ${esc(r.u)}/เดือน</div></div>
       <div class="qty">${r.q ?? 0} ${esc(r.u)}<small>คงเหลือ</small></div></div>`);
+  const baht = x => x == null ? '-' : '฿' + Math.round(x).toLocaleString('th-TH');
+  const tr = (trends.up || []).map(t => `<div class="row"><div class="t"><div class="n">${esc(t.g)}</div>
+      <div class="s">${t.top ? 'ขายมากสุด: ' + esc(t.top) + ' · ' : ''}เช็กของบนชั้นและสั่งเพิ่มก่อนขาด</div></div>
+      <div class="qty">${t.x != null ? t.x + '×' : 'ใหม่'}<small>${baht(t.now)} จากปกติ ${baht(t.base)}</small></div></div>`);
   const d = new Date();
   $('#todayBox').innerHTML = `<div class="today-h"><h2>งานวันนี้</h2><span class="small muted">${d.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'short' })}</span></div>
+    ${trends.has ? taskBlock('trend', 't-warn', ICON.cart, 'กลุ่มยาที่ขายขึ้นผิดปกติ', `${trends.days || 7} วันล่าสุดเทียบช่วงก่อนหน้า · ถามต่อ AI ได้จากแท็บ แนวโน้มยอดขาย`, tr, 'ไม่มีกลุ่มไหนขายขึ้นผิดปกติ') : ''}
     ${taskBlock('gone', 't-bad', ICON.bin, 'เก็บออกจากชั้นขาย', 'หมดอายุแล้ว แยกไว้รอคืนบริษัทหรือทำลาย', b.gone.map(expRow), 'ไม่มียาหมดอายุบนชั้น')}
     ${taskBlock('soon', 't-warn', ICON.clock, `หมดอายุภายใน ${expDays[2]} วัน`, 'ติดต่อคืนบริษัท หรือแนะนำขายก่อน', b.soon.map(expRow), 'ไม่มี')}
     ${taskBlock('mid', 't-warn', ICON.front, `หมดอายุภายใน ${expDays[1]} วัน`, 'ย้ายไว้หน้าสุดของชั้น ให้หยิบขายก่อน', b.mid.map(expRow), 'ไม่มี')}
-    ${taskBlock('order', 't-ok', ICON.cart, 'ควรสั่งเพิ่ม', reorder.length ? 'ประมาณจากยอดที่ขายออกระหว่างการนำเข้า Arincare' : 'นำเข้ายอด Arincare ทุกสัปดาห์ แล้วรายการจะขึ้นที่นี่', ro, 'ยังไม่มีข้อมูลการขาย นำเข้ายอดจาก Arincare อย่างน้อย 2 ครั้งห่างกันหลายวัน')}
+    ${taskBlock('order', 't-ok', ICON.cart, 'ควรสั่งเพิ่ม', reorder.length ? (trends.has ? 'คิดจากยอดขายจริงที่นำเข้าจาก Arincare' : 'ประมาณจากยอดที่ขายออกระหว่างการนำเข้า Arincare') : 'นำเข้ายอดขาย Arincare ทุกสัปดาห์ แล้วรายการจะขึ้นที่นี่', ro, 'ยังไม่มีข้อมูลการขาย นำเข้ายอดขายจาก Arincare (เมนู PharmaCount ในชีต)')}
     ${taskBlock('recount', 't-blind', ICON.redo, 'รอนับซ้ำ', 'ให้อีกคนนับยืนยัน', pend.slice(0, 40).map(i => `<button class="row" data-recount="${i.r}"><div class="t"><div class="n">${hiName(i.n)}</div><div class="s">LOT ${esc(i.l || '-')}${i.by ? ' · นับครั้งแรก ' + esc(i.by) : ''}</div></div></button>`), 'ไม่มีรายการรอนับซ้ำ')}
     ${taskBlock('shelf', 't-ok', ICON.shelf, 'ชั้นที่ยังนับไม่ครบ', 'แตะเพื่อไปนับชั้นนั้น', shelvesLeft.map(x => `<button class="row" data-goshelf="${esc(x.name)}"><div class="t"><div class="n">📍 ${esc(x.name)}</div>
       <div class="minibar"><i style="width:${x.done / x.all * 100}%"></i></div></div><div class="qty">${x.done}/${x.all}<small>LOT</small></div></button>`),
