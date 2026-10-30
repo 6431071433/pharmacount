@@ -359,7 +359,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-10-30.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-10-30.2';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -1775,15 +1775,44 @@ async function ocrScan() {
 const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'];
 let detector = null, stream = null, track = null, scanning = false, paused = false, cool = { code: '', until: 0 };
 
+// ตัวอ่านบาร์โค้ด (zxing) บน iPhone ต้องโหลดไฟล์ 1 MB: ลองจากเว็บแอปเองก่อน (อัปโหลด zxing_reader.wasm ไว้ข้าง index.html) แล้วค่อยลอง CDN สำรอง
+const ZX_URLS = ['zxing_reader.wasm', 'https://fastly.jsdelivr.net/npm/zxing-wasm@3.1.1/dist/reader/zxing_reader.wasm',
+  'https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.1/dist/reader/zxing_reader.wasm', 'https://unpkg.com/zxing-wasm@3.1.1/dist/reader/zxing_reader.wasm'];
+const diag = { engine: '-', wasm: '-', err: '', errN: 0, frames: 0, t0: 0, ms: 0, res: '-' };
+let zxP = null;
+function loadZXing() {
+  if (zxP) return zxP;
+  zxP = (async () => {
+    const tried = [];
+    for (const u of ZX_URLS) {
+      try {
+        const r = await fetch(u, { cache: 'force-cache' });
+        if (!r.ok) { tried.push(u.split('/')[2] || 'แอป' + ' ' + r.status); continue; }
+        const buf = await r.arrayBuffer();
+        if (buf.byteLength < 500000) { tried.push((u.split('/')[2] || 'แอป') + ' ไฟล์ไม่ครบ'); continue; }
+        await BarcodeDetectionAPI.prepareZXingModule({ overrides: { wasmBinary: buf }, fireImmediately: true });
+        diag.wasm = u.startsWith('http') ? u.split('/')[2] : 'ไฟล์ในเว็บแอป'; return true;
+      } catch (e) { tried.push((u.split('/')[2] || 'แอป') + ': ' + (e.message || e)); }
+    }
+    diag.err = 'โหลดตัวอ่านไม่ได้ · ' + tried.join(' · ');
+    zxP = null; throw new Error(diag.err);
+  })();
+  return zxP;
+}
 async function getDetector() {
   if (detector) return detector;
   if ('BarcodeDetector' in window) {
     try {
       const sup = await window.BarcodeDetector.getSupportedFormats();
-      if (sup.includes('ean_13')) { detector = new window.BarcodeDetector({ formats: FORMATS.filter(f => sup.includes(f)) }); return detector; }
+      if (sup.includes('ean_13')) { detector = new window.BarcodeDetector({ formats: FORMATS.filter(f => sup.includes(f)) }); diag.engine = 'ตัวอ่านในเครื่อง'; return detector; }
     } catch (e) {}
   }
-  detector = new BarcodeDetectionAPI.BarcodeDetector({ formats: FORMATS });
+  try { await loadZXing(); } catch (e) {
+    toast('โหลดตัวอ่านบาร์โค้ดไม่ได้ (เน็ตอาจบล็อก) ใช้การอ่านตัวเลขใต้บาร์โค้ดแทนไปก่อน', 'warn', 5000);
+    setTimeout(() => { zxP = null; detector = null; getDetector().catch(() => {}); }, 15000);   // ลองใหม่เบื้องหลัง
+    return null;
+  }
+  detector = new BarcodeDetectionAPI.BarcodeDetector({ formats: FORMATS }); diag.engine = 'zxing';
   return detector;
 }
 
@@ -1796,12 +1825,13 @@ async function startCamera() {
   try {
     await getDetector();
     stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: {
-      facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 30 } } });
+      facingMode: { ideal: 'environment' }, width: { ideal: 2560 }, height: { ideal: 1440 }, frameRate: { ideal: 30 } } });
     track = stream.getVideoTracks()[0];
     try { await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) {}
     const v = $('#video'); v.srcObject = stream; await v.play();
     msg.classList.add('hidden'); $('#camTools').classList.remove('hidden'); $('#guide').classList.remove('hidden');
     setupCaps();
+    diag.res = v.videoWidth + '×' + v.videoHeight; diag.frames = 0; diag.t0 = Date.now();
     scanning = true; paused = false; lastSeen = Date.now(); loop();
     if (navigator.onLine !== false) getOcr().catch(() => {});   // โหลดตัวอ่านตัวเลขรอไว้ทันที
   } catch (e) {
@@ -1875,20 +1905,25 @@ async function loop() {
     // ทุก 4 เฟรมอ่านทั้งภาพที่เห็น เผื่อบาร์โค้ดไม่อยู่กลางกรอบ ที่เหลืออ่านเฉพาะกรอบเล็ง
     const full = frameNo++ % 4 === 3;
     const R = full ? visibleRect(v, W, H) : guideRect(v, W, H);
-    const scale = Math.min(1, 1800 / R.w);
+    const scale = Math.min(1, (full ? 1280 : 1100) / R.w);   // ภาพเล็กลง = อ่านได้หลายเฟรมต่อวินาที (บาร์โค้ดในกรอบยังคมพอ)
     canvas.width = Math.round(R.w * scale); canvas.height = Math.round(R.h * scale);
     ctx2d.drawImage(v, R.x, R.y, R.w, R.h, 0, 0, canvas.width, canvas.height);
     try {
-      let found = await detector.detect(canvas);
+      let found = null; const t0 = performance.now();
+      if (!detector && !zxP) getDetector().catch(() => {});
+      const det = async src => { if (!detector) return null; try { const r = await detector.detect(src); diag.errN = 0; return r; }
+        catch (e) { diag.err = String(e.message || e); diag.errN++; if (diag.errN === 30) toast('ตัวอ่านบาร์โค้ดมีปัญหา: ' + diag.err + ' · ใช้การอ่านตัวเลขแทน', 'warn', 5000); return null; } };
+      found = await det(canvas);
       // มือสั่นทำให้ภาพเบลอแบบลาก: วัดความคมของเฟรมนี้ ถ้าคมพอ (เทียบกับเฟรมที่คมที่สุดช่วงนี้) ลองทำภาพให้คมแล้วอ่านซ้ำ
-      if (!(found && found.length)) {
+      if (!(found && found.length) && detector) {
         const sharp = frameSharpness(canvas);
         peak = Math.max(sharp, peak * 0.93);
-        if (sharp >= peak * 0.6) {
+        if (sharp >= peak * 0.6 && frameNo % 2 === 0) {
           const k = KERNELS[sharpNo++ % KERNELS.length];
-          found = await detector.detect(sharpenH(ctx2d.getImageData(0, 0, canvas.width, canvas.height), k));
+          found = await det(sharpenH(ctx2d.getImageData(0, 0, canvas.width, canvas.height), k));
         }
       }
+      diag.frames++; diag.ms = diag.ms * 0.9 + (performance.now() - t0) * 0.1;
       if (found && found.length) found = found.filter(f => !ignCodes.has(normCode(f.rawValue)));   // บาร์โค้ดรอง (ใช้ร่วมหลายกล่อง): ทำเหมือนไม่เห็น ให้หาบาร์โค้ดหลัก/อ่านตัวเลขต่อ
       if (!(found && found.length) && Date.now() - lastSeen > 6000) $('#ocrHint').classList.remove('hidden');
       // สแกนเส้นไม่ติดเกิน 0.6 วินาที → อ่านตัวเลขใต้บาร์โค้ดเบื้องหลังต่อเนื่อง (ไม่ต้องกด 123) เว้นช่วงสั้นๆ ให้มือถือไม่ร้อน
@@ -2068,6 +2103,7 @@ $('#menuBtn').onclick = () => openDialog(`<h3>เมนู</h3>
     <button class="btn ghost" id="mShared">${shared ? '✓ ' : ''}เครื่องกลาง (ใช้ร่วมกันหลายคน): ${shared ? 'เปิดอยู่' : 'ปิดอยู่'}</button>
     <button class="btn ghost" id="mBig">${document.documentElement.classList.contains('big') ? '✓ ' : ''}ตัวอักษรใหญ่: ${document.documentElement.classList.contains('big') ? 'เปิดอยู่' : 'ปิดอยู่'}</button>
     <button class="btn ghost" id="mSetup">ตั้งค่าการเชื่อมต่อ</button>
+    <button class="btn ghost" id="mDiag">ตรวจสอบกล้องและตัวอ่าน (ส่งภาพหน้าจอนี้ตอนสแกนไม่ติด)</button>
   </div>
   <p class="small muted" style="margin-top:10px">เวอร์ชันแอป ${APP_VER} · สินค้าที่สแกนติดแล้ว ${barcodeStat} · ${showSys ? 'โหมดตรวจเทียบ (เห็นยอดในระบบ)' : 'โหมดนับแบบไม่เห็นยอด'} (เปลี่ยนได้ในชีต ตั้งค่า B8)</p>
   <p class="small muted" style="margin-top:10px">เครื่องกลาง = แอปถามชื่อผู้นับใหม่ทุกครั้งที่เปิด และเมื่อไม่ได้ใช้เกิน 5 นาที เหมาะกับมือถือหรือแท็บเล็ตของร้าน</p>
@@ -2076,6 +2112,16 @@ $('#menuBtn').onclick = () => openDialog(`<h3>เมนู</h3>
   d.querySelector('#mReload').onclick = () => { closeDialog(); load(); };
   d.querySelector('#mFlush').onclick = () => { closeDialog(); flushQueue(); };
   d.querySelector('#mSetup').onclick = () => openSetup();
+  d.querySelector('#mDiag').onclick = () => {
+    const fps = diag.t0 && scanning ? (diag.frames / Math.max(1, (Date.now() - diag.t0) / 1000)).toFixed(1) : '-';
+    openDialog(`<h3>กล้องและตัวอ่าน</h3><div class="card small" style="line-height:1.9">
+      ตัวอ่านบาร์โค้ด: <b>${esc(diag.engine)}</b> · โหลดจาก: <b>${esc(diag.wasm)}</b><br>
+      ความละเอียดกล้อง: <b>${esc(diag.res)}</b> · อ่าน <b>${fps}</b> ภาพ/วินาที (${Math.round(diag.ms)} มิลลิวินาทีต่อภาพ)<br>
+      ตัวอ่านตัวเลข: <b>${ocrWorker ? 'พร้อม' : 'ยังไม่โหลด'}</b><br>
+      ข้อผิดพลาดล่าสุด: <b>${esc(diag.err || 'ไม่มี')}</b>${diag.errN ? ' (ติดกัน ' + diag.errN + ' ครั้ง)' : ''}<br>
+      เบราว์เซอร์: ${esc(navigator.userAgent.replace(/^Mozilla\/5.0 /, '').slice(0, 120))}</div>
+      <div class="acts"><button class="btn ghost" data-close>ปิด</button></div>`);
+  };
   d.querySelector('#mBig').onclick = () => { const on = !document.documentElement.classList.contains('big'); document.documentElement.classList.toggle('big', on); store.set('big', on); closeDialog(); fixNavTop(); };
   d.querySelector('#mWho').onclick = () => { closeDialog(); askCounter(); };
   d.querySelector('#mShared').onclick = () => {
@@ -2103,6 +2149,7 @@ async function checkVersion() {
 }
 setTimeout(checkVersion, 4000);
 // โหลดตัวอ่านตัวเลขรอไว้ตั้งแต่เปิดแอป (ครั้งแรก ~7 MB จากนั้นเบราว์เซอร์จำไว้) จะได้อ่านได้ทันทีที่เปิดกล้อง
+setTimeout(() => { getDetector().catch(() => {}); }, 300);   // เตรียมตัวอ่านบาร์โค้ดตั้งแต่เปิดแอป กดเปิดกล้องแล้วสแกนได้ทันที
 setTimeout(() => { if (navigator.onLine !== false && /^https?:/.test(location.protocol)) getOcr().catch(() => {}); }, 3000); setInterval(checkVersion, 10 * 60 * 1000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
 
