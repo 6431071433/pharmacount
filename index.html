@@ -359,7 +359,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-10-30.4';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-10-31.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -1006,7 +1006,7 @@ function renderToday() {
       <div class="qty">${t.x != null ? t.x + '×' : 'ใหม่'}<small>${baht(t.now)} จากปกติ ${baht(t.base)}</small></div></div>`);
   const d = new Date();
   $('#todayBox').innerHTML = `<div class="today-h"><h2>งานวันนี้</h2><span class="small muted">${d.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'short' })}</span></div>
-    ${trends.has ? taskBlock('trend', 't-warn', ICON.cart, 'กลุ่มยาที่ขายขึ้นผิดปกติ', `${trends.days || 7} วันล่าสุดเทียบช่วงก่อนหน้า · ถามต่อ AI ได้จากแท็บ แนวโน้มยอดขาย`, tr, 'ไม่มีกลุ่มไหนขายขึ้นผิดปกติ') : ''}
+    ${trends.has ? taskBlock('trend', 't-warn', ICON.cart, 'กลุ่มยาที่ขายขึ้นผิดปกติ', `${trends.days || 7} วันล่าสุดเทียบช่วงก่อนหน้า`, tr, 'ไม่มีกลุ่มไหนขายขึ้นผิดปกติ') : ''}
     ${taskBlock('gone', 't-bad', ICON.bin, 'เก็บออกจากชั้นขาย', 'หมดอายุแล้ว แยกไว้รอคืนบริษัทหรือทำลาย', b.gone.map(expRow), 'ไม่มียาหมดอายุบนชั้น')}
     ${taskBlock('soon', 't-warn', ICON.clock, `หมดอายุภายใน ${expDays[2]} วัน`, 'ติดต่อคืนบริษัท หรือแนะนำขายก่อน', b.soon.map(expRow), 'ไม่มี')}
     ${taskBlock('mid', 't-warn', ICON.front, `หมดอายุภายใน ${expDays[1]} วัน`, 'ย้ายไว้หน้าสุดของชั้น ให้หยิบขายก่อน', b.mid.map(expRow), 'ไม่มี')}
