@@ -359,7 +359,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-10-31.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-01.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -662,7 +662,19 @@ $('#searchList').addEventListener('click', e => {
 
 /* ---------- ผลการสแกน ---------- */
 function handleCode(raw, source) {
-  const code = normCode(raw);
+  const g = parseGS1(raw);
+  scanHint = null;
+  if (g) { raw = normCode(g.gtin); if (g.lot || g.exp) scanHint = { code: raw, lot: g.lot || '', exp: g.exp || '' }; }
+  else if (/[^0-9\s-]/.test(String(raw)) && /\d{8,}/.test(String(raw))) {
+    // บาร์โค้ดที่มีตัวอักษรปน (Code 39/128, QR ข้อความ): ถ้ามีเลข GTIN ที่ถูกต้องอยู่ข้างใน ใช้เลขนั้น
+    const m = String(raw).match(/\d{8,14}/g) || [], ok = m.find(x => gtinOk(x) && byCode.has(normCode(x)));
+    if (ok) raw = ok;
+  }
+  let code = normCode(raw);
+  if (code.length === 14 && /^[1-8]/.test(code) && !byCode.has(code) && byCode.has(gtinBase(code))) {
+    toast('บาร์โค้ดของลัง/แพ็กใหญ่ · นับเป็นหน่วยตามระบบตามปกติ', 'warn', 3500);
+    raw = gtinBase(code); code = raw;
+  }
   if (code.length < 6) { toast('บาร์โค้ดสั้นเกินไป', 'bad'); return; }
   if (sheetOpen()) return;
   if (!items.length) { toast('ยังโหลดข้อมูลไม่เสร็จ', 'warn'); return; }
@@ -1044,6 +1056,9 @@ function openSheet(lots, mode, raw, pre, editing) {
   if (!lots.length) return;
   if (!cfg.counter) { askCounter(() => openSheet(lots, mode, raw, pre, editing)); return; }
   lots = lots.slice().sort((a, b) => (a.e || '').localeCompare(b.e || ''));
+  const hint = scanHint && raw && normCode(raw) === scanHint.code && scanHint.lot ? normLot(scanHint.lot) : '';
+  const isHit = i => hint && normLot(i.l) === hint;
+  if (hint) lots.sort((a, b) => isHit(b) - isHit(a));
   pre = pre || {};
   sheetCtx = { lots, mode, raw, editing };
   const pk = packFor(lots[0].n);
@@ -1070,6 +1085,7 @@ function openSheet(lots, mode, raw, pre, editing) {
             <div><div class="lot-id">LOT ${esc(i.l || 'ไม่ระบุ')}</div>${expLine(i)}</div>
             ${chk(i) ? `<div class="sysq sys"><b>${i.f}</b><span>${esc(i.u)} ในระบบ</span></div>` : statusPill(i.st)}
           </div>
+          ${isHit(i) ? '<div class="lot-meta"><span class="pill p-ok">LOT ตรงกับบาร์โค้ดที่สแกน</span></div>' : ''}
           ${(i.c && i.st && i.st !== 'ยังไม่นับ' && chk(i)) || i.dup || (i.c && i.by) || i.ef ? `<div class="lot-meta">${chk(i) && i.c ? statusPill(i.st) : ''}${i.dup ? '<span class="pill p-warn">แถวซ้ำในระบบ</span>' : ''}${i.c && i.by ? `<span class="pill p-mute">นับโดย ${esc(i.by)}</span>` : ''}${i.ef ? `<span class="pill p-warn">EXP บนกล่อง ${esc(fmtExp(i.ef))}</span>` : ''}</div>` : ''}
           ${chk(i) ? `
           <div class="lotx"><button type="button" data-x="ok">✓ ตรง</button><button type="button" data-x="edit">✎ ไม่ตรง · แก้ไข</button></div>` : ''}
@@ -1395,6 +1411,34 @@ function getOcr() {   // สร้างตัวอ่านครั้งเ�
   })().catch(e => { ocrP = null; throw e; });
   return ocrP;
 }
+// เลขตรวจของ GTIN ทุกความยาว (EAN-8, UPC-A 12, EAN-13, GTIN-14)
+function gtinOk(c) {
+  c = String(c || ''); if (!/^\d+$/.test(c) || ![8, 12, 13, 14].includes(c.length)) return false;
+  return gtinCk(c.slice(0, -1)) === Number(c.slice(-1));
+}
+function gtinCk(body) { let t = 0; body.split('').reverse().forEach((v, i) => { t += Number(v) * (i % 2 ? 1 : 3); }); return (10 - t % 10) % 10; }
+// บาร์โค้ดมาตรฐาน GS1 (DataMatrix/QR บนยา, GS1-128, DataBar) มีหลายข้อมูลต่อกัน เช่น (01)GTIN (17)EXP (10)LOT (21)เลขประจำกล่อง
+// ดึง GTIN มาใช้หาสินค้า (GTIN-14 ที่ขึ้นต้น 0 = EAN-13 ตัวเดียวกัน) และเก็บ LOT/EXP ไว้ช่วยชี้ LOT
+function parseGS1(raw) {
+  let s = String(raw || '').trim().replace(/^\][A-Za-z]\d/, '');
+  if (/^\(\d{2,4}\)/.test(s)) s = s.replace(/\((\d{2,4})\)/g, '\x1d$1');
+  s = s.replace(/^\x1d+/, '');
+  if (!/^0[12]\d{14}/.test(s)) return null;
+  const FIX = { '00': 18, '01': 14, '02': 14, '11': 6, '12': 6, '13': 6, '15': 6, '16': 6, '17': 6, '20': 2 };
+  const out = {}; let i = 0;
+  while (i < s.length) {
+    if (s[i] === '\x1d') { i++; continue; }
+    const ai = s.substr(i, 2); i += 2;
+    if (FIX[ai]) { const v = s.substr(i, FIX[ai]); i += FIX[ai]; if ((ai === '01' || ai === '02') && !out.gtin) out.gtin = v; if (ai === '17') out.exp = v; continue; }
+    if (ai === '10' || ai === '21') { let j = s.indexOf('\x1d', i); if (j < 0) j = s.length; if (ai === '10') out.lot = s.slice(i, j); i = j; continue; }
+    break;   // ข้อมูลอื่นไม่ต้องใช้
+  }
+  return out.gtin && gtinOk(out.gtin) ? out : null;
+}
+// ITF-14 บนลัง/แพ็กใหญ่: เลขหน้า 1–8 = หีบห่อของสินค้าเดียวกัน → แปลงกลับเป็นบาร์โค้ดหน่วยย่อย
+function gtinBase(c14) { const b = '0' + c14.slice(1, 13); return normCode(b + gtinCk(b)); }
+const normLot = v => String(v || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+let scanHint = null;   // LOT/EXP ที่อ่านได้จากบาร์โค้ด GS1 ล่าสุด
 function eanOk(c) {   // EAN-13 / EAN-8 / UPC-A (12 หลัก)
   if (!/^\d+$/.test(c) || ![8, 12, 13].includes(c.length)) return false;
   const d = c.split('').map(Number), chk = d.pop();
@@ -1777,7 +1821,14 @@ async function ocrScan() {
 }
 
 /* ---------- กล้องและตัวอ่านบาร์โค้ด ---------- */
+// บาร์โค้ดสินค้าทั่วไป (กล่องยาเกือบทั้งหมด) อ่านทุกเฟรม
 const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'];
+// แบบอื่นที่เจอบนยา/เวชภัณฑ์: 2D (GS1 DataMatrix, QR), GS1 DataBar, ITF-14 (ลัง), Code 39/93, Codabar, PDF417
+// ตัวอ่าน zxing ช้าขึ้นราว 3 เท่าถ้าอ่านทุกแบบพร้อมกัน จึงแยกไปอ่านทุก 3 เฟรม (ตัวอ่านในเครื่องของ Android เร็วพอ อ่านรวมทีเดียว)
+const FORMATS2 = ['data_matrix', 'qr_code', 'databar', 'databar_expanded', 'databar_limited', 'itf', 'code_39', 'code_93', 'codabar', 'pdf417'];
+// แบบที่ไม่มีเลขตรวจบังคับ อ่านเพี้ยนได้ → ต้องอ่านได้ค่าเดียวกัน 2 ครั้งติดกันก่อนใช้ (ITF-14 ที่เลขตรวจถูกต้องเชื่อได้เลย)
+const WEAK = new Set(['code_39', 'code_93', 'codabar', 'itf']);
+let detector2 = null, x2No = 0, weakPrev = { code: '', t: 0 };
 let detector = null, stream = null, track = null, scanning = false, paused = false, cool = { code: '', until: 0 };
 
 // ตัวอ่านบาร์โค้ด (zxing) บน iPhone ต้องโหลดไฟล์ 1 MB: ลองจากเว็บแอปเองก่อน (อัปโหลด zxing_reader.wasm ไว้ข้าง index.html) แล้วค่อยลอง CDN สำรอง
@@ -1809,7 +1860,7 @@ async function getDetector() {
   if ('BarcodeDetector' in window) {
     try {
       const sup = await window.BarcodeDetector.getSupportedFormats();
-      if (sup.includes('ean_13')) { detector = new window.BarcodeDetector({ formats: FORMATS.filter(f => sup.includes(f)) }); diag.engine = 'ตัวอ่านในเครื่อง'; return detector; }
+      if (sup.includes('ean_13')) { detector = new window.BarcodeDetector({ formats: FORMATS.concat(FORMATS2).filter(f => sup.includes(f)) }); diag.engine = 'ตัวอ่านในเครื่อง'; return detector; }
     } catch (e) {}
   }
   try { await loadZXing(); } catch (e) {
@@ -1818,6 +1869,7 @@ async function getDetector() {
     return null;
   }
   detector = new BarcodeDetectionAPI.BarcodeDetector({ formats: FORMATS }); diag.engine = 'zxing';
+  try { detector2 = new BarcodeDetectionAPI.BarcodeDetector({ formats: FORMATS2 }); } catch (e) { detector2 = null; }
   return detector;
 }
 
@@ -1928,6 +1980,15 @@ async function loop() {
           found = await det(sharpenH(ctx2d.getImageData(0, 0, canvas.width, canvas.height), k));
         }
       }
+      // บาร์โค้ดแบบอื่น (2D, DataBar, ITF ฯลฯ) ทุก 3 เฟรม
+      if (!(found && found.length) && detector2 && x2No++ % 3 === 0) {
+        try { found = await detector2.detect(canvas); } catch (e) { found = null; }
+      }
+      // แบบไม่มีเลขตรวจ: รอให้อ่านได้ค่าเดิมซ้ำ
+      if (found && found.length && WEAK.has(found[0].format) && !(found[0].format === 'itf' && gtinOk(found[0].rawValue))) {
+        const v = found[0].rawValue;
+        if (!(weakPrev.code === v && Date.now() - weakPrev.t < 1500)) { weakPrev = { code: v, t: Date.now() }; found = null; x2No = 0; }
+      }
       diag.frames++; diag.ms = diag.ms * 0.9 + (performance.now() - t0) * 0.1;
       if (found && found.length) found = found.filter(f => !ignCodes.has(normCode(f.rawValue)));   // บาร์โค้ดรอง (ใช้ร่วมหลายกล่อง): ทำเหมือนไม่เห็น ให้หาบาร์โค้ดหลัก/อ่านตัวเลขต่อ
       if (!(found && found.length) && Date.now() - lastSeen > 6000) $('#ocrHint').classList.remove('hidden');
@@ -1936,7 +1997,7 @@ async function loop() {
       if (found && found.length) {
         lastSeen = Date.now(); $('#ocrHint').classList.add('hidden');
         const code = found[0].rawValue;
-        // บาร์โค้ดสินค้า (EAN/UPC/Code 128) มีเลขตรวจสอบในตัว อ่านได้ครั้งเดียวก็เชื่อได้ ไม่ต้องรออ่านซ้ำ
+        // บาร์โค้ดสินค้า (EAN/UPC/Code 128/2D) มีเลขตรวจสอบในตัว อ่านได้ครั้งเดียวก็เชื่อได้ ไม่ต้องรออ่านซ้ำ
         // และหน้าถัดไปแสดงชื่อสินค้าให้ตรวจด้วยตาอีกชั้น
         if (!(normCode(code) === normCode(cool.code) && Date.now() < cool.until)) {
           paused = true; handleCode(code, 'camera');
