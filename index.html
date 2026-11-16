@@ -7,16 +7,19 @@
 <meta name="theme-color" content="#17211E" media="(prefers-color-scheme: dark)">
 <title>PharmaCount นับสต็อกยา</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Prompt:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/barcode-detector@3.2.1/dist/iife/ponyfill.js"></script>
 <style>
-/* PharmaCount · ธีม "ฉลากยา": เขียวกากบาทร้านยา + เหลือง/แดงแบบฉลากเตือน · ตัวอักษร IBM Plex Sans Thai */
+/* PharmaCount · แนวทาง "Soft clinical calm · ฉลากยา": เขียวกากบาทร้านยา + เหลือง/แดงแบบฉลากเตือน
+   ตัวอักษร: Prompt (หัวเรื่อง/ตัวเลขเด่น) + IBM Plex Sans Thai (เนื้อหา) + IBM Plex Mono (LOT/บาร์โค้ด) */
 :root{
   --brand:#0B6E4F; --brand-2:#13916A; --brand-soft:#E2F2EB; --brand-ink:#064A35;
   --ink:#17211E; --muted:#5B6A65; --line:#DCE5E1; --bg:#F3F6F4; --card:#fff; --raise:0 1px 2px rgba(16,40,32,.06),0 4px 14px rgba(16,40,32,.06);
   --ok:#11804F; --ok-soft:#E1F3E9; --warn:#9A6500; --warn-soft:#FFF3D1; --amber:#F2B415;
   --bad:#B7322A; --bad-soft:#FCE8E6; --blind:#3B4BB0; --blind-soft:#ECEEFC;
   --radius:16px; --nav:68px;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace; --display:Prompt,'IBM Plex Sans Thai',sans-serif;
+  --ease-out:cubic-bezier(.22,1,.36,1); --ease-in:cubic-bezier(.55,0,1,.45); --spring:cubic-bezier(.34,1.56,.64,1);
 }
 @media (prefers-color-scheme: dark){:root:not(.light){
   --brand:#3CC497; --brand-2:#5BD6AD; --brand-soft:#16342A; --brand-ink:#B9F0DB;
@@ -24,7 +27,7 @@
   --ok:#4FD18F; --ok-soft:#173A2A; --warn:#F2C14E; --warn-soft:#3A2F10; --bad:#FF8A7E; --bad-soft:#3E1C19; --blind:#A9B4FF; --blind-soft:#22264A;
 }}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans Thai',Sarabun,system-ui,sans-serif;font-size:16px;line-height:1.5;font-variant-numeric:tabular-nums}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans Thai',Sarabun,system-ui,sans-serif;font-size:16px;line-height:1.6;font-variant-numeric:tabular-nums}
 html.big body{zoom:1.15}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -32,15 +35,28 @@ button{cursor:pointer}
 .hidden{display:none!important}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 
+/* หัวเรื่องและตัวเลขเด่นใช้ฟอนต์ Prompt (ไม่เว้นระยะตัวอักษรภาษาไทย) */
+.logo,h2,.today-h h2,.sheet-h .pname,.stat b,.sysq b,.task .cnt,.dialog h3,.cam-msg .ttl,.trow .mult{font-family:var(--display);letter-spacing:0}
+.sheet-h .pname{font-weight:600}
+/* เข้าหน้าแบบไล่ทีละชิ้น (เฉพาะตอนเปิดแท็บ/แผ่นนับ ไม่เล่นซ้ำทุกครั้งที่ข้อมูลอัปเดต) */
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.enter .task,.enter > .stats > *,.enter > .shelfbar,.enter > .cam,.sheet-b > .lot,.sheet-b > .allok{animation:rise .32s var(--ease-out) both}
+.enter .task:nth-child(2),.enter > .stats > :nth-child(2),.sheet-b > .lot:nth-of-type(2){animation-delay:50ms}
+.enter .task:nth-child(3),.sheet-b > .lot:nth-of-type(3){animation-delay:100ms}
+.enter .task:nth-child(4),.sheet-b > .lot:nth-of-type(4){animation-delay:150ms}
+.enter .task:nth-child(5){animation-delay:200ms}.enter .task:nth-child(6){animation-delay:240ms}.enter .task:nth-child(n+7){animation-delay:280ms}
+/* ระหว่างโหลดครั้งแรก: โครงร่างเทาแทนพื้นที่ว่าง */
+.skel{border-radius:var(--radius);background:linear-gradient(90deg,var(--line) 0,var(--bg) 50%,var(--line) 100%) 0 0/200% 100%;animation:shimmer 1.5s linear infinite;height:72px;margin-top:12px;opacity:.7}
+@keyframes shimmer{to{background-position:-200% 0}}
 /* header: แผ่นขาวบาง ให้พื้นที่กับงาน */
 header{position:sticky;top:0;z-index:20;background:var(--card);color:var(--ink);padding:10px 16px 10px;padding-top:max(10px,env(safe-area-inset-top));border-bottom:1px solid var(--line)}
 .hrow{display:flex;align-items:center;gap:10px}
 .logo{font-weight:700;font-size:18px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:8px;color:var(--brand-ink)}
 .logo .mark{width:26px;height:26px;border-radius:8px;background:var(--brand);display:grid;place-items:center;flex:none}
 .logo .mark svg{width:16px;height:16px}
-.chip-btn{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:6px;max-width:46vw;min-height:36px}
+.chip-btn{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:6px;max-width:46vw;min-height:44px}
 .chip-btn span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.icon-btn{border:0;background:transparent;color:var(--ink);width:40px;height:40px;border-radius:12px;display:grid;place-items:center}
+.icon-btn{border:0;background:transparent;color:var(--ink);width:44px;height:44px;border-radius:12px;display:grid;place-items:center}
 .icon-btn svg{width:22px;height:22px}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none;box-shadow:0 0 0 3px var(--ok-soft)}
 .dot.off{background:var(--bad);box-shadow:0 0 0 3px var(--bad-soft)}
@@ -65,7 +81,7 @@ h2{font-size:17px;margin:0 0 8px}
 
 /* กล้อง: ช่องมองแบบเครื่องสแกน มุม 4 ด้าน */
 .cam{position:relative;border-radius:22px;overflow:hidden;background:#08110E;aspect-ratio:4/3;max-height:52vh;width:100%}
-.cam.off{aspect-ratio:auto;height:176px;background:radial-gradient(120% 140% at 0% 0%,#13916A 0%,#0B6E4F 45%,#06402F 100%)}
+.cam.off{aspect-ratio:auto;height:176px;background:radial-gradient(rgba(255,255,255,.09) 1px,transparent 1.5px) 0 0/14px 14px,radial-gradient(120% 140% at 0% 0%,#13916A 0%,#0B6E4F 45%,#06402F 100%)}
 .cam.off video{display:none}
 .cam-msg .ico{width:48px;height:48px;margin:0 auto 6px;display:block;opacity:.95}
 .cam-msg .ttl{font-size:17px;font-weight:700}
@@ -104,8 +120,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .btn.ghost{background:var(--card);color:var(--brand);border:1px solid var(--line)}
 .btn.warn{background:var(--warn);color:#fff}
 .btn.block{width:100%}
-.btn:disabled{opacity:.5}
-.btn:active,.row:active,.sbtn:active{transform:scale(.985)}
+.btn:disabled{background:var(--line);color:var(--muted);border-color:transparent}
+.btn,.row,.sbtn,.lotx button{transition:transform .12s var(--ease-out),background-color .15s,border-color .15s,color .15s}
+.btn:active,.row:active,.sbtn:active,.lotx button:active{transform:scale(.97)}
 .shelfbar{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
 .shelfbar.on{border-color:var(--brand);background:var(--brand-soft)}
 .shelfbar .t{flex:1;min-width:0}
@@ -114,8 +131,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .shelfbar .bar{height:6px;background:var(--line);border-radius:9px;margin-top:6px;overflow:hidden}
 .shelfbar .bar i{display:block;height:100%;background:var(--ok)}
 .shelfbar button{flex:none}
-.sbtn{border:1px solid var(--line);background:var(--card);color:var(--brand);border-radius:12px;padding:8px 12px;font-weight:600;font-size:14px;min-height:40px}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.sbtn{border:1px solid var(--line);background:var(--card);color:var(--brand);border-radius:12px;padding:8px 12px;font-weight:600;font-size:14px;min-height:44px}
+.stats{display:grid;grid-template-columns:1.7fr 1fr;gap:10px;margin-top:14px}
+.stat .minibar{margin-top:8px;height:6px}
 .tips{margin-top:8px;font-size:13.5px;color:var(--muted)}
 .tips summary{cursor:pointer;color:var(--brand);font-weight:600;padding:4px 0;list-style:none}
 .tips summary::-webkit-details-marker{display:none}
@@ -124,7 +142,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .tips ul{margin:4px 0 0;padding-left:20px}
 .tips li{margin:3px 0}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
-.stat b{display:block;font-size:24px;color:var(--brand-ink);line-height:1.2}
+.stat b{display:block;font-size:26px;color:var(--brand-ink);line-height:1.2;letter-spacing:-.01em}
 .stat.warn b{color:var(--warn)}
 
 /* list */
@@ -143,7 +161,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 
 /* sheet */
 .overlay{position:fixed;inset:0;background:rgba(6,18,14,.5);z-index:40;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
-.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92vh;border-radius:24px 24px 0 0;display:flex;flex-direction:column;animation:up .22s cubic-bezier(.2,.8,.2,1)}
+.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92vh;border-radius:24px 24px 0 0;display:flex;flex-direction:column;animation:up .26s var(--ease-out)}
 @keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
 .sheet-h{padding:10px 16px 12px;border-bottom:1px solid var(--line);background:var(--card);border-radius:24px 24px 0 0;position:relative}
 .sheet-h::before{content:'';display:block;width:40px;height:5px;border-radius:5px;background:var(--line);margin:0 auto 10px}
@@ -154,9 +172,12 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .sheet-f .btn{flex:1;white-space:nowrap}
 .sheet-f .btn.ghost{flex:0 0 32%}
 .lot{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:10px}
-.lot.done{border-color:var(--ok)}
+.lot{transition:border-color .2s}
+.lot.done{border-color:var(--ok);box-shadow:inset 4px 0 0 var(--ok)}
 .lot-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
-.lot-id{font-weight:700;font-size:17px}
+.lot-id{font-family:var(--mono);font-weight:600;font-size:18px;letter-spacing:.01em}
+.lot-id .lk{font-family:'IBM Plex Sans Thai',sans-serif;font-size:12.5px;font-weight:700;color:var(--muted);margin-right:6px;letter-spacing:.04em}
+.code{font-family:var(--mono);font-weight:500;letter-spacing:.02em}
 .lot-exp{font-size:14px;color:var(--muted);margin-top:1px}
 .lot-exp.warn{color:var(--warn);font-weight:600}.lot-exp.bad{color:var(--bad);font-weight:700}
 .sysq{text-align:right;flex:none;line-height:1.1}
@@ -174,7 +195,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .note{font-size:13px;color:var(--muted);margin-top:8px}
 .field{margin-top:10px}
 .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
-.linkbtn{background:none;border:0;color:var(--brand);font-weight:700;padding:8px 0}
+.linkbtn{background:none;border:0;color:var(--brand);font-weight:700;padding:8px 0;min-height:44px}
 .rlot{border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px 12px;margin-top:10px;background:var(--card)}
 .rlot-h{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px;color:var(--brand)}
 .rlot-h button{background:none;border:0;color:var(--muted);font-size:14px;padding:4px 0 4px 10px}
@@ -196,7 +217,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .expp{display:grid;grid-template-columns:.8fr 1fr 1.3fr;gap:6px}
 .expp select{padding:8px 4px;font-size:15px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.chips button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:13.5px}
+.chips button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 14px;font-size:14px;min-height:40px}
 .sugg{border:1px solid var(--line);border-radius:14px;margin-top:6px;overflow:hidden}
 .sugg button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:var(--card);padding:9px 12px;font-size:14px}
 .sugg button:last-child{border-bottom:0}
@@ -217,7 +238,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 /* งานวันนี้ */
 .today-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:4px 2px 2px}
 .today-h h2{font-size:22px;margin:0}
-.task{border-radius:var(--radius);background:var(--card);border:1px solid var(--line);margin-top:12px;overflow:hidden}
+.task{border-radius:var(--radius);background:var(--card);border:1px solid var(--line);margin-top:12px;overflow:hidden;box-shadow:inset 4px 0 0 var(--line)}
+.task.t-bad{box-shadow:inset 4px 0 0 var(--bad)}.task.t-warn{box-shadow:inset 4px 0 0 var(--amber)}.task.t-ok{box-shadow:inset 4px 0 0 var(--brand)}.task.t-blind{box-shadow:inset 4px 0 0 var(--blind)}
 .task > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px}
 .task > summary::-webkit-details-marker{display:none}
 .task .tag{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:none}
@@ -229,7 +251,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .task .chev{width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;flex:none;margin-right:4px}
 .task[open] .chev{transform:rotate(45deg)}
 .task .body{padding:0 10px 10px;display:flex;flex-direction:column;gap:6px}
-.task .body .row{border-radius:12px;padding:10px 12px}
+.task .body .row{border-radius:12px;padding:10px 12px;border-color:transparent;background:var(--bg)}
 .t-bad .tag{background:var(--bad-soft);color:var(--bad)} .t-bad .cnt{color:var(--bad)}
 .t-warn .tag{background:var(--warn-soft);color:var(--warn)} .t-warn .cnt{color:var(--warn)}
 .t-ok .tag{background:var(--brand-soft);color:var(--brand)} .t-ok .cnt{color:var(--brand-ink)}
@@ -237,7 +259,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .qty{font-weight:700;white-space:nowrap;text-align:right;font-size:15px}
 .qty small{display:block;font-weight:500;font-size:12px;color:var(--muted)}
 .minibar{height:5px;background:var(--line);border-radius:5px;overflow:hidden;margin-top:6px}
-.minibar i{display:block;height:100%;background:var(--ok)}
+.minibar i{display:block;height:100%;background:var(--ok);transition:width .4s var(--ease-out)}
 .more{border:0;background:none;color:var(--brand);font-weight:700;padding:8px;width:100%}
 .allclear{text-align:center;padding:30px 16px;color:var(--muted)}
 .allclear b{display:block;color:var(--ok);font-size:17px;margin-bottom:4px}
@@ -245,6 +267,11 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 /* dialog */
 .dialog{background:var(--card);width:calc(100% - 32px);max-width:440px;border-radius:22px;padding:20px;margin:auto;align-self:center;max-height:88vh;overflow:auto;animation:pop .18s ease-out}
 @keyframes pop{from{transform:scale(.96);opacity:.4}to{transform:none;opacity:1}}
+/* มือถือ: หน้าต่างถาม/เมนูขึ้นจากด้านล่าง (อยู่ในระยะนิ้วโป้ง) แทนกล่องกลางจอ */
+@media (max-width:639px){
+  .dialog{width:100%;max-width:none;margin:0;align-self:flex-end;border-radius:24px 24px 0 0;padding:12px 18px calc(18px + env(safe-area-inset-bottom));max-height:90vh;animation:up .26s var(--ease-out)}
+  .dialog::before{content:'';display:block;width:40px;height:5px;border-radius:5px;background:var(--line);margin:0 auto 12px}
+}
 .dialog h3{margin:0 0 6px;font-size:18px}
 .dialog .acts{display:flex;gap:10px;margin-top:16px}
 .dialog .acts .btn{flex:1}
@@ -253,7 +280,15 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 
 .toast{position:fixed;left:50%;top:calc(var(--hh,84px) + 12px);transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--bg);border-radius:16px;padding:12px 16px;max-width:calc(100% - 32px);width:max-content;box-shadow:0 8px 28px rgba(0,0,0,.22);font-size:15px;line-height:1.45;animation:pop .18s ease-out}
 .toast.ok{background:var(--ok);color:#fff}.toast.warn{background:var(--warn);color:#fff}.toast.bad{background:var(--bad);color:#fff}
-.empty{text-align:center;color:var(--muted);padding:28px 10px}
+.empty{text-align:center;color:var(--muted);padding:28px 16px;font-size:14.5px;line-height:1.6}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+.trow .trow-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.trow .mult{font-weight:700;font-size:18px;color:var(--warn);white-space:nowrap}
+.trow .money{color:var(--ink);font-weight:700}
+.trow .top{font-size:12.5px}
+/* ตัวอักษรใหญ่: หัวแอปเหลือแค่โลโก้ ให้ที่กับชื่อผู้นับ */
+html.big .logo{font-size:0;gap:0;flex:0 0 auto}
+html.big .hrow .chip-btn{margin-left:auto}
 .kbd-hint{font-size:13px;color:var(--muted);margin-top:6px}
 </style>
 </head>
@@ -318,7 +353,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
       <li>ต่อเครื่องสแกนบลูทูธได้ ยิงได้เลยไม่ต้องแตะช่องพิมพ์</li></ul></details>
 
     <div class="stats">
-      <div class="stat"><b id="stCounted">–</b><span class="small muted">LOT ที่นับแล้ว</span></div>
+      <div class="stat"><b id="stCounted">–</b><span class="small muted">LOT ที่นับแล้ว</span><div class="minibar"><i id="stBar" style="width:0"></i></div></div>
       <div class="stat warn" id="stPendBox"><b id="stPend">–</b><span class="small muted">รอนับซ้ำ</span></div>
     </div>
     <div id="recentWrap" class="hidden recent">
@@ -328,7 +363,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
   </section>
 
   <!-- งานวันนี้ -->
-  <section id="tab-today" class="hidden"><div id="todayBox"></div></section>
+  <section id="tab-today" class="hidden"><div id="todayBox"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div></section>
 
   <!-- นับซ้ำ -->
   <section id="tab-recount" class="hidden">
@@ -359,7 +394,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-01.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-16.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -490,6 +525,7 @@ function renderAll() {
   $('#progTxt').textContent = `นับแล้ว ${done.toLocaleString()}/${total.toLocaleString()} LOT`;
   $('#progBar').style.width = total ? (done / total * 100) + '%' : '0';
   $('#stCounted').textContent = total ? `${done.toLocaleString()} / ${total.toLocaleString()}` : '–';
+  $('#stBar').style.width = total ? (done / total * 100) + '%' : '0';
   const names = new Set(items.map(i => normName(i.n))), withCode = productsWithCode();
   let n = 0; names.forEach(x => { if (withCode.has(x)) n++; });
   barcodeStat = names.size ? `${n.toLocaleString()} / ${names.size.toLocaleString()}` : '–';
@@ -600,6 +636,7 @@ function setTab(t) {
   tab = t;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   ['count', 'today', 'recount', 'search'].forEach(x => $('#tab-' + x).classList.toggle('hidden', x !== t));
+  const sec = $('#tab-' + t); sec.classList.add('enter'); clearTimeout(sec._en); sec._en = setTimeout(() => sec.classList.remove('enter'), 700);
   if (t === 'today') renderToday();
   if (t === 'search') { renderSearch(); setTimeout(() => $('#searchInput').focus(), 50); }
   if (t !== 'count') stopCamera();
@@ -617,7 +654,7 @@ function renderRecount() {
       <div class="t"><div class="n">${esc(i.n)}</div>
       <div class="s">LOT ${esc(i.l || '-')} · ${esc(i.u)}${i.loc ? ' · ' + esc(i.loc) : ''}${i.by ? ' · นับครั้งแรก: ' + esc(i.by) : ''}</div></div>
       ${expPill(i)}
-    </button>`).join('') : '<div class="empty">ไม่มีรายการที่รอนับซ้ำ</div>';
+    </button>`).join('') : '<div class="empty"><b>ยังไม่มีรายการรอนับซ้ำ</b>LOT ที่นับแล้วไม่ตรงกับระบบจะมารอที่นี่ ให้อีกคนนับยืนยัน</div>';
   $('#causeWrap').classList.toggle('hidden', true);   // ไม่ใช้ขั้นระบุสาเหตุแล้ว
   $('#causeList').innerHTML = needCause.map(i => `
     <button class="row" data-r="${i.r}" data-act="cause">
@@ -652,7 +689,7 @@ function renderSearch() {
       <div class="t"><div class="n">${hiName(g[0].n)}</div>
       <div class="s">${g.length} LOT · นับแล้ว ${done}${has ? '' : ' · ยังไม่มีบาร์โค้ด'}</div></div>
       ${done === g.length ? '<span class="pill p-ok">ครบ</span>' : ''}
-    </button>`; }).join('') : '<div class="empty">ไม่พบสินค้า</div>';
+    </button>`; }).join('') : `<div class="empty"><b>ไม่พบ “${esc(q.trim())}”</b>ลองพิมพ์แค่ 2–3 ตัวแรกของชื่อยา เช่น amlo หรือสแกนบาร์โค้ดแทน</div>`;
 }
 function productCodes(name) { const n = normName(name), out = []; byCode.forEach((s, c) => { if (s.has(n)) out.push(c); }); return out; }
 $('#searchList').addEventListener('click', e => {
@@ -1013,12 +1050,13 @@ function renderToday() {
       <div class="s">${r.st.startsWith('ของหมด') ? 'ของหมดแล้ว' : 'พอขายอีกราว ' + r.left + ' วัน'} · ออกเฉลี่ย ${r.m ?? '-'} ${esc(r.u)}/เดือน</div></div>
       <div class="qty">${r.q ?? 0} ${esc(r.u)}<small>คงเหลือ</small></div></div>`);
   const baht = x => x == null ? '-' : '฿' + Math.round(x).toLocaleString('th-TH');
-  const tr = (trends.up || []).map(t => `<div class="row"><div class="t"><div class="n">${esc(t.g)}</div>
-      <div class="s">${t.top ? 'ขายมากสุด: ' + esc(t.top) + ' · ' : ''}เช็กของบนชั้นและสั่งเพิ่มก่อนขาด</div></div>
-      <div class="qty">${t.x != null ? t.x + '×' : 'ใหม่'}<small>${baht(t.now)} จากปกติ ${baht(t.base)}</small></div></div>`);
+  const tr = (trends.up || []).map(t => `<div class="row trow"><div class="t">
+      <div class="trow-h"><span class="n">${esc(t.g)}</span><span class="mult">${t.x != null ? t.x + '×' : 'ใหม่'}</span></div>
+      <div class="s"><b class="money">${baht(t.now)}</b> จากปกติ ${baht(t.base)}</div>
+      ${t.top ? `<div class="s top">ขายมากสุด ${esc(t.top)}</div>` : ''}</div></div>`);
   const d = new Date();
   $('#todayBox').innerHTML = `<div class="today-h"><h2>งานวันนี้</h2><span class="small muted">${d.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'short' })}</span></div>
-    ${trends.has ? taskBlock('trend', 't-warn', ICON.cart, 'กลุ่มยาที่ขายขึ้นผิดปกติ', `${trends.days || 7} วันล่าสุดเทียบช่วงก่อนหน้า`, tr, 'ไม่มีกลุ่มไหนขายขึ้นผิดปกติ') : ''}
+    ${trends.has ? taskBlock('trend', 't-warn', ICON.cart, 'กลุ่มยาที่ขายขึ้นผิดปกติ', `${trends.days || 7} วันล่าสุดเทียบช่วงก่อนหน้า · เช็กของบนชั้นและสั่งเพิ่มก่อนขาด`, tr, 'ไม่มีกลุ่มไหนขายขึ้นผิดปกติ') : ''}
     ${taskBlock('gone', 't-bad', ICON.bin, 'เก็บออกจากชั้นขาย', 'หมดอายุแล้ว แยกไว้รอคืนบริษัทหรือทำลาย', b.gone.map(expRow), 'ไม่มียาหมดอายุบนชั้น')}
     ${taskBlock('soon', 't-warn', ICON.clock, `หมดอายุภายใน ${expDays[2]} วัน`, 'ติดต่อคืนบริษัท หรือแนะนำขายก่อน', b.soon.map(expRow), 'ไม่มี')}
     ${taskBlock('mid', 't-warn', ICON.front, `หมดอายุภายใน ${expDays[1]} วัน`, 'ย้ายไว้หน้าสุดของชั้น ให้หยิบขายก่อน', b.mid.map(expRow), 'ไม่มี')}
@@ -1071,7 +1109,7 @@ function openSheet(lots, mode, raw, pre, editing) {
     <div class="sheet-h">
       <div class="mode">${showSys ? `<span class="mode-chip">${mode === 'recount' ? 'นับซ้ำ · ' : ''}ตรวจเทียบกับระบบ</span>` : `<span class="mode-chip blind">${mode === 'recount' ? 'นับซ้ำ · ' : ''}นับแบบไม่เห็นยอดในระบบ</span>`}</div>
       <div class="pname">${esc(p.n)}</div>
-      <div class="small muted">${raw ? 'บาร์โค้ด ' + esc(raw) + ' · ' : ''}${lots.length} LOT${p.cat ? ' · ' + esc(p.cat) : ''}</div>
+      <div class="small muted">${raw ? 'บาร์โค้ด <span class="code">' + esc(raw) + '</span> · ' : ''}${lots.length} LOT${p.cat ? ' · ' + esc(p.cat) : ''}</div>
       ${raw && !editing ? '<button type="button" class="linkbtn small" id="wrongLink" style="padding:4px 0 0">ไม่ใช่ยาตัวนี้? แก้บาร์โค้ดที่จับคู่ผิด</button>' : ''}
     </div>
     <div class="sheet-b">
@@ -1082,7 +1120,7 @@ function openSheet(lots, mode, raw, pre, editing) {
       ${lots.map((i, k) => `
         <div class="lot ${i.c && mode === 'count' ? 'done' : ''}" data-k="${k}">
           <div class="lot-top">
-            <div><div class="lot-id">LOT ${esc(i.l || 'ไม่ระบุ')}</div>${expLine(i)}</div>
+            <div><div class="lot-id"><span class="lk">LOT</span>${esc(i.l || 'ไม่ระบุ')}</div>${expLine(i)}</div>
             ${chk(i) ? `<div class="sysq sys"><b>${i.f}</b><span>${esc(i.u)} ในระบบ</span></div>` : statusPill(i.st)}
           </div>
           ${isHit(i) ? '<div class="lot-meta"><span class="pill p-ok">LOT ตรงกับบาร์โค้ดที่สแกน</span></div>' : ''}
@@ -1174,7 +1212,7 @@ function openSheet(lots, mode, raw, pre, editing) {
   if (nl) nl.onclick = () => {
     const box = $('#newLots');
     box.insertAdjacentHTML('beforeend', `<div class="lot newlot" data-new>
-      <div class="lot-top"><div class="lot-id">LOT ใหม่ (ไม่มีในระบบ)</div><button type="button" class="linkbtn small" data-delnew>ลบ</button></div>
+      <div class="lot-top"><div class="lot-id" style="font-family:inherit;font-size:16px">LOT ใหม่ (ไม่มีในระบบ)</div><button type="button" class="linkbtn small" data-delnew>ลบ</button></div>
       <div class="field"><label>เลข LOT บนกล่อง</label><input type="text" data-nl autocapitalize="characters" autocomplete="off"></div>
       <div class="field"><label>EXP บนกล่อง (วันไม่บังคับ)</label>${expPicker()}</div>
       <div class="stepper"><button type="button" data-step="-1" aria-label="ลด">−</button>
@@ -1265,7 +1303,8 @@ async function saveSheet() {
   if (loc) ploc[normName(p0.n)] = loc;
   pushRecent(entries, mode);
   closeSheet(); rememberShelf(loc); renderAll();
-  toast('กำลังบันทึก… สแกนชิ้นต่อไปได้เลย', 'ok', 1500);
+  { const dn = items.filter(i => i.c).length;   // ให้เห็นความคืบหน้าทุกครั้งที่บันทึก (ใกล้เป้าแล้วจะอยากทำต่อ)
+    toast(mode === 'count' ? `บันทึกแล้ว · นับไป ${dn.toLocaleString()}/${items.length.toLocaleString()} LOT · สแกนชิ้นต่อไปได้เลย` : 'บันทึกแล้ว · สแกนชิ้นต่อไปได้เลย', 'ok', 1600); }
   if (newLots.length) {
     const body = { type: 'newlot', name: p0.n, barcode: raw0, lots: newLots, loc, unit: p0.u, note: '' };
     api('report', body).then(d => { if (d.duplicate) { toast('LOT นี้แจ้งไว้แล้ว ไม่บันทึกซ้ำ · ถ้าจะแก้ แตะรายการใน "นับล่าสุด"', 'warn', 4500); return; }
