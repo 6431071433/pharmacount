@@ -14,7 +14,7 @@
    ตัวอักษร: Prompt (หัวเรื่อง/ตัวเลขเด่น) + IBM Plex Sans Thai (เนื้อหา) + IBM Plex Mono (LOT/บาร์โค้ด) */
 :root{
   --brand:#0B6E4F; --brand-2:#13916A; --brand-soft:#E2F2EB; --brand-ink:#064A35;
-  --ink:#17211E; --muted:#5B6A65; --line:#DCE5E1; --bg:#F3F6F4; --card:#fff; --raise:0 1px 2px rgba(16,40,32,.06),0 4px 14px rgba(16,40,32,.06);
+  --ink:#17211E; --muted:#4B5955; --line:#D3DDD8; --bg:#F3F6F4; --card:#fff; --raise:0 1px 2px rgba(16,40,32,.06),0 4px 14px rgba(16,40,32,.06);
   --ok:#11804F; --ok-soft:#E1F3E9; --warn:#9A6500; --warn-soft:#FFF3D1; --amber:#F2B415;
   --bad:#B7322A; --bad-soft:#FCE8E6; --blind:#3B4BB0; --blind-soft:#ECEEFC;
   --radius:16px; --nav:68px;
@@ -60,13 +60,13 @@ header{position:sticky;top:0;z-index:20;background:var(--card);color:var(--ink);
 .icon-btn svg{width:22px;height:22px}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none;box-shadow:0 0 0 3px var(--ok-soft)}
 .dot.off{background:var(--bad);box-shadow:0 0 0 3px var(--bad-soft)}
-.progress{margin-top:8px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);font-weight:500}
-.branch-chip{flex:none;border:1px solid var(--brand);background:var(--brand-soft);color:var(--brand-ink);border-radius:999px;padding:2px 10px 2px 12px;min-height:32px;font-family:var(--display);font-weight:600;font-size:13.5px;display:inline-flex;align-items:center;gap:6px;margin:-6px 0}
+.progress{margin-top:8px;display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted);font-weight:500}
+.branch-chip{flex:none;border:1px solid var(--brand);background:var(--brand-soft);color:var(--brand-ink);border-radius:999px;padding:2px 10px 2px 12px;min-height:32px;font-family:var(--display);font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px;margin:-6px 0}
 .branch-chip::after{content:'';width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px)}
 .branch-chip.unknown{border-color:var(--amber);background:var(--warn-soft);color:var(--warn)}
 .brow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1.5px solid var(--line);background:var(--card);border-radius:16px;padding:12px 14px;min-height:64px}
 .brow .bc{font-family:var(--display);font-weight:600;font-size:18px;min-width:58px;color:var(--brand-ink)}
-.brow .bt{flex:1;min-width:0}.brow .bt b{display:block}.brow .bt span{font-size:13px;color:var(--muted)}
+.brow .bt{flex:1;min-width:0}.brow .bt b{display:block}.brow .bt span{font-size:14px;color:var(--muted)}
 .brow.on{border-color:var(--brand);background:var(--brand-soft)}
 .brow:disabled{opacity:.55}
 .brow .bok{font-size:22px;font-weight:700;color:var(--brand)}
@@ -75,7 +75,7 @@ header{position:sticky;top:0;z-index:20;background:var(--card);color:var(--ink);
 
 /* แถบล่าง: เอื้อมถึงด้วยนิ้วโป้ง */
 nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;background:var(--card);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
-nav button{flex:1;border:0;background:none;padding:4px 2px;font-weight:600;font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;gap:2px;align-items:center;position:relative;min-height:52px}
+nav button{flex:1;border:0;background:none;padding:4px 2px;font-weight:600;font-size:13.5px;color:var(--muted);display:flex;flex-direction:column;gap:2px;align-items:center;position:relative;min-height:52px}
 nav button svg{width:24px;height:24px;flex:none;padding:3px 14px;box-sizing:content-box;border-radius:999px;transition:background .15s}
 nav button.on{color:var(--brand-ink)}
 nav button.on svg{background:var(--brand-soft);color:var(--brand)}
@@ -85,7 +85,7 @@ nav button.on svg{background:var(--brand-soft);color:var(--brand)}
 main{padding:14px 16px calc(var(--nav) + 40px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
 .muted{color:var(--muted)}
-.small{font-size:13px}
+.small{font-size:14px}
 h2{font-size:17px;margin:0 0 8px}
 
 /* กล้อง: ช่องมองแบบเครื่องสแกน มุม 4 ด้าน */
@@ -107,15 +107,16 @@ h2{font-size:17px;margin:0 0 8px}
 .guide.hit{box-shadow:0 0 0 999px rgba(0,0,0,.38),inset 0 0 0 3px #4FD18F}
 .guide.miss{box-shadow:0 0 0 999px rgba(0,0,0,.38),inset 0 0 0 3px #FF8A7E}
 .laser{position:absolute;left:8%;right:8%;top:50%;height:2px;background:rgba(242,180,21,.95);box-shadow:0 0 10px rgba(242,180,21,.9);animation:sweep 1.8s ease-in-out infinite alternate}
+#cam.slow .laser{animation:none;opacity:.5}
 @keyframes sweep{from{transform:translateY(-14px)}to{transform:translateY(14px)}}
 .cam-msg{position:absolute;inset:0;display:grid;place-items:center;color:#fff;text-align:center;padding:24px;font-size:15px}
 .cam-msg button{margin-top:12px}
 .cam-tools{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;align-items:center;padding:12px;background:linear-gradient(transparent,rgba(0,0,0,.6))}
-.round{width:46px;height:46px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#17211E;display:grid;place-items:center;flex:none;backdrop-filter:blur(6px)}
+.round{width:46px;height:46px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#17211E;display:grid;place-items:center;flex:none}
 .round.on{background:var(--amber)}
 .round.ocr{width:auto;border-radius:23px;padding:0 15px;font-weight:700;font-size:15px}
 .round.ocr.busy{background:var(--amber)}
-.ocr-hint{position:absolute;left:50%;transform:translateX(-50%);top:10px;background:rgba(8,17,14,.72);color:#fff;border-radius:999px;padding:6px 14px;font-size:13.5px;white-space:nowrap;pointer-events:none}
+.ocr-hint{position:absolute;left:50%;transform:translateX(-50%);top:10px;background:rgba(8,17,14,.72);color:#fff;border-radius:999px;padding:6px 14px;font-size:14px;white-space:nowrap;pointer-events:none}
 .round svg{width:22px;height:22px}
 .zoom{flex:1;accent-color:var(--amber)}
 .scan-status{margin:10px 2px 0;font-size:14px;min-height:20px}
@@ -135,7 +136,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .shelfbar{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
 .shelfbar.on{border-color:var(--brand);background:var(--brand-soft)}
 .shelfbar .t{flex:1;min-width:0}
-.shelfbar .k{font-size:12.5px;color:var(--muted)}
+.shelfbar .k{font-size:14px;color:var(--muted)}
 .shelfbar .v{font-weight:700;color:var(--brand-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shelfbar .bar{height:6px;background:var(--line);border-radius:9px;margin-top:6px;overflow:hidden}
 .shelfbar .bar i{display:block;height:100%;background:var(--ok)}
@@ -143,7 +144,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .sbtn{border:1px solid var(--line);background:var(--card);color:var(--brand);border-radius:12px;padding:8px 12px;font-weight:600;font-size:14px;min-height:44px}
 .stats{display:grid;grid-template-columns:1.7fr 1fr;gap:10px;margin-top:14px}
 .stat .minibar{margin-top:8px;height:6px}
-.tips{margin-top:8px;font-size:13.5px;color:var(--muted)}
+.tips{margin-top:8px;font-size:14px;color:var(--muted)}
 .tips summary{cursor:pointer;color:var(--brand);font-weight:600;padding:4px 0;list-style:none}
 .tips summary::-webkit-details-marker{display:none}
 .tips summary::before{content:'';display:inline-block;width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);margin:0 8px 2px 2px;transition:transform .15s}
@@ -159,9 +160,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .row{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;display:flex;gap:10px;align-items:center;text-align:left;width:100%}
 .row .t{flex:1;min-width:0}
 .row .n{font-weight:600;line-height:1.35}
-.row .s{font-size:13px;color:var(--muted);margin-top:2px}
+.row .s{font-size:14px;color:var(--muted);margin-top:2px}
 /* ป้ายสถานะ: แบบฉลากเตือนติดขวดยา */
-.pill{display:inline-block;border-radius:6px 999px 999px 6px;padding:2px 10px 2px 8px;font-size:12.5px;font-weight:600;white-space:nowrap;border-left:3px solid currentColor}
+.pill{display:inline-block;border-radius:6px 999px 999px 6px;padding:2px 10px 2px 8px;font-size:14px;font-weight:600;white-space:nowrap;border-left:3px solid currentColor}
 .p-ok{background:var(--ok-soft);color:var(--ok)}
 .p-warn{background:var(--warn-soft);color:var(--warn)}
 .p-bad{background:var(--bad-soft);color:var(--bad)}
@@ -169,12 +170,12 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .section-title{margin:20px 2px 6px;font-weight:700;color:var(--ink);font-size:15px;display:flex;align-items:center;gap:8px}
 
 /* sheet */
-.overlay{position:fixed;inset:0;background:rgba(6,18,14,.5);z-index:40;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
+.overlay{position:fixed;inset:0;background:rgba(6,18,14,.58);z-index:40;display:flex;align-items:flex-end;justify-content:center}
 .sheet{background:var(--bg);width:100%;max-width:640px;max-height:92vh;border-radius:24px 24px 0 0;display:flex;flex-direction:column;animation:up .26s var(--ease-out)}
 @keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
 .sheet-h{padding:10px 16px 12px;border-bottom:1px solid var(--line);background:var(--card);border-radius:24px 24px 0 0;position:relative}
 .sheet-h::before{content:'';display:block;width:40px;height:5px;border-radius:5px;background:var(--line);margin:0 auto 10px}
-.sheet-h .mode{font-size:13px;font-weight:700;color:var(--brand)}
+.sheet-h .mode{font-size:14px;font-weight:700;color:var(--brand)}
 .sheet-h .pname{font-size:19px;font-weight:700;line-height:1.3;margin-top:4px}
 .sheet-b{padding:12px 16px;overflow:auto;flex:1}
 .sheet-f{padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:var(--card);border-top:1px solid var(--line);display:flex;gap:10px}
@@ -185,15 +186,15 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .lot.done{border-color:var(--ok);box-shadow:inset 4px 0 0 var(--ok)}
 .lot-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
 .lot-id{font-family:var(--mono);font-weight:600;font-size:18px;letter-spacing:.01em}
-.lot-id .lk{font-family:'IBM Plex Sans Thai',sans-serif;font-size:12.5px;font-weight:700;color:var(--muted);margin-right:6px;letter-spacing:.04em}
+.lot-id .lk{font-family:'IBM Plex Sans Thai',sans-serif;font-size:14px;font-weight:700;color:var(--muted);margin-right:6px;letter-spacing:.04em}
 .code{font-family:var(--mono);font-weight:500;letter-spacing:.02em}
 .lot-exp{font-size:14px;color:var(--muted);margin-top:1px}
 .lot-exp.warn{color:var(--warn);font-weight:600}.lot-exp.bad{color:var(--bad);font-weight:700}
 .sysq{text-align:right;flex:none;line-height:1.1}
 .sysq.sys{margin-top:0;padding:8px 12px;border-radius:12px}
 .sysq b{display:block;font-size:30px;color:var(--brand-ink)}
-.sysq span{font-size:12.5px;color:var(--muted)}
-.mode-chip{display:inline-block;background:var(--brand-soft);color:var(--brand-ink);border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:700}
+.sysq span{font-size:14px;color:var(--muted)}
+.mode-chip{display:inline-block;background:var(--brand-soft);color:var(--brand-ink);border-radius:999px;padding:3px 10px;font-size:14px;font-weight:700}
 .mode-chip.blind{background:var(--blind-soft);color:var(--blind)}
 .lot-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .stepper{display:flex;align-items:center;gap:8px;margin-top:12px}
@@ -201,16 +202,22 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .stepper input{text-align:center;font-size:26px;font-weight:700;height:54px;padding:6px}
 .stepper .zero{width:auto;padding:0 12px;font-size:14px;color:var(--muted)}
 .unit{font-size:14px;color:var(--muted);min-width:36px}
-.note{font-size:13px;color:var(--muted);margin-top:8px}
+.note{font-size:14px;color:var(--muted);margin-top:8px}
 .field{margin-top:10px}
-.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+.field label{display:block;font-size:14px;color:var(--muted);margin-bottom:4px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chipbtn{border:1px solid var(--line);background:var(--bg);color:var(--brand-ink);border-radius:999px;padding:6px 14px;min-height:40px;font-size:14px;font-weight:600}
+.chipbtn:active{transform:scale(.97)}
+.diff{margin-top:8px;font-size:16px;font-weight:700;min-height:0}
+.diff:empty{display:none}
+.diff.ok{color:var(--ok)}.diff.lo{color:var(--bad)}.diff.hi{color:var(--warn)}
 .linkbtn{background:none;border:0;color:var(--brand);font-weight:700;padding:8px 0;min-height:44px}
 .rlot{border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px 12px;margin-top:10px;background:var(--card)}
 .rlot-h{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px;color:var(--brand)}
 .rlot-h button{background:none;border:0;color:var(--muted);font-size:14px;padding:4px 0 4px 10px}
 .rlot .two{display:grid;grid-template-columns:1fr 112px;gap:8px}
 .rlot .field{margin-top:8px}
-.unit-big{display:inline-block;background:var(--brand);color:#fff;border-radius:8px;padding:2px 8px;font-size:13px;font-weight:700}
+.unit-big{display:inline-block;background:var(--brand);color:#fff;border-radius:8px;padding:2px 8px;font-size:14px;font-weight:700}
 .calc{display:none;margin-top:10px;padding:10px;border:1px dashed var(--brand-2);border-radius:14px;background:var(--brand-soft);font-size:14px}
 .calc.on{display:block}
 .calc .crow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -230,7 +237,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .sugg{border:1px solid var(--line);border-radius:14px;margin-top:6px;overflow:hidden}
 .sugg button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:var(--card);padding:9px 12px;font-size:14px}
 .sugg button:last-child{border-bottom:0}
-.sugg .h{font-size:12.5px;color:var(--warn);padding:8px 12px;background:var(--warn-soft)}
+.sugg .h{font-size:14px;color:var(--warn);padding:8px 12px;background:var(--warn-soft)}
+.recent .row .fixh{font-size:14px;font-weight:700;color:var(--brand);border:1px solid var(--line);border-radius:999px;padding:2px 12px;margin-left:8px}
 .recent .row .q{font-weight:700;font-size:16px;color:var(--brand);white-space:nowrap}
 .sys{margin-top:8px;background:var(--brand-soft);border-radius:12px;padding:8px 10px;font-size:15px}
 .sys b{font-size:18px;color:var(--brand-ink)}
@@ -255,7 +263,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .task .tag svg{width:20px;height:20px}
 .task .tt{flex:1;min-width:0}
 .task .tt b{display:block;font-size:15.5px}
-.task .tt span{font-size:13px;color:var(--muted)}
+.task .tt span{font-size:14px;color:var(--muted)}
 .task .cnt{font-weight:700;font-size:20px;min-width:28px;text-align:right}
 .task .chev{width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;flex:none;margin-right:4px}
 .task[open] .chev{transform:rotate(45deg)}
@@ -266,7 +274,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .t-ok .tag{background:var(--brand-soft);color:var(--brand)} .t-ok .cnt{color:var(--brand-ink)}
 .t-blind .tag{background:var(--blind-soft);color:var(--blind)} .t-blind .cnt{color:var(--blind)}
 .qty{font-weight:700;white-space:nowrap;text-align:right;font-size:15px}
-.qty small{display:block;font-weight:500;font-size:12px;color:var(--muted)}
+.qty small{display:block;font-weight:500;font-size:14px;color:var(--muted)}
 .minibar{height:5px;background:var(--line);border-radius:5px;overflow:hidden;margin-top:6px}
 .minibar i{display:block;height:100%;background:var(--ok);transition:width .4s var(--ease-out)}
 .more{border:0;background:none;color:var(--brand);font-weight:700;padding:8px;width:100%}
@@ -288,17 +296,20 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .choice button{text-align:left}
 
 .toast{position:fixed;left:50%;top:calc(var(--hh,84px) + 12px);transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--bg);border-radius:16px;padding:12px 16px;max-width:calc(100% - 32px);width:max-content;box-shadow:0 8px 28px rgba(0,0,0,.22);font-size:15px;line-height:1.45;animation:pop .18s ease-out}
-.toast.ok{background:var(--ok);color:#fff}.toast.warn{background:var(--warn);color:#fff}.toast.bad{background:var(--bad);color:#fff}
+.toast.ok{background:var(--ok);color:#fff}
+.toast .tfix{margin-left:12px;border:1.5px solid rgba(255,255,255,.85);background:transparent;color:#fff;border-radius:999px;padding:4px 16px;min-height:36px;font-weight:700;font-size:15px;vertical-align:middle}
+.choose-t{margin:4px 0 14px;line-height:1.7}.choose-t .code{font-family:var(--mono);font-size:17px}
+.choose-b{display:flex;flex-direction:column;gap:8px}.choose-b .btn{width:100%;min-height:50px}.toast.warn{background:var(--warn);color:#fff}.toast.bad{background:var(--bad);color:#fff}
 .empty{text-align:center;color:var(--muted);padding:28px 16px;font-size:14.5px;line-height:1.6}
 .empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
 .trow .trow-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 .trow .mult{font-weight:700;font-size:18px;color:var(--warn);white-space:nowrap}
 .trow .money{color:var(--ink);font-weight:700}
-.trow .top{font-size:12.5px}
+.trow .top{font-size:14px}
 /* ตัวอักษรใหญ่: หัวแอปเหลือแค่โลโก้ ให้ที่กับชื่อผู้นับ */
 html.big .logo{font-size:0;gap:0;flex:0 0 auto}
 html.big .hrow .chip-btn{margin-left:auto}
-.kbd-hint{font-size:13px;color:var(--muted);margin-top:6px}
+.kbd-hint{font-size:14px;color:var(--muted);margin-top:6px}
 </style>
 </head>
 <body>
@@ -366,7 +377,7 @@ html.big .hrow .chip-btn{margin-left:auto}
       <div class="stat warn" id="stPendBox"><b id="stPend">–</b><span class="small muted">รอนับซ้ำ</span></div>
     </div>
     <div id="recentWrap" class="hidden recent">
-      <div class="section-title">นับล่าสุดในเครื่องนี้ · แตะเพื่อแก้ไข</div>
+      <div class="section-title">นับล่าสุดในเครื่องนี้ · กรอกผิด แตะเพื่อแก้</div>
       <div id="recentList" class="list"></div>
     </div>
   </section>
@@ -378,7 +389,7 @@ html.big .hrow .chip-btn{margin-left:auto}
   <section id="tab-recount" class="hidden">
     <div class="card small">
       <b>รายการที่นับแล้วไม่ตรงกับระบบ</b><br>
-      <span id="recountHelp">ตรวจอีกครั้ง (ควรเป็นอีกคน) แตะรายการหรือสแกนในแท็บนี้ ถ้าหน้างานถูกแล้วใส่ยอดเดิมซ้ำ = ยืนยัน รอปรับ Arincare</span>
+      <span id="recountHelp">ให้อีกคนนับ LOT เหล่านี้อีกรอบ · ถ้านับได้เท่าเดิม = ยืนยันว่าไม่ตรงจริง</span>
     </div>
     <div id="recountList" class="list"></div>
     <div id="causeWrap" class="hidden">
@@ -403,7 +414,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-17.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-17.2';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -605,11 +616,16 @@ function renderRecent() {
     <button class="row" data-rk="${k}">
       <div class="t"><div class="n">${esc(x.n)}</div>
       <div class="s">LOT ${esc(x.l || '-')}${x.kind === 'new' ? ' · LOT ใหม่ (รอเพิ่ม) · EXP ' + esc(x.e || '-') : x.mode === 'recount' ? ' · นับซ้ำ' : ''} · ${new Date(x.at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}${x.by && x.by !== cfg.counter ? ' · ' + esc(x.by) : ''}</div></div>
-      <span class="q">${x.q} ${esc(x.u)}</span>
+      <span class="q">${x.q} ${esc(x.u)}</span><span class="fixh">แก้</span>
     </button>`).join('');
   $('#recentList').onclick = e => {
     const b = e.target.closest('[data-rk]'); if (!b) return;
-    const x = list[Number(b.dataset.rk)];
+    openRecent(list[Number(b.dataset.rk)]);
+  };
+}
+function openRecent(x) {
+  if (!x) return;
+  {
     if (x.kind === 'new') { openFixNew(x); return; }
     const it = items.find(i => i.r === x.r && i.l === x.l); if (!it) return;
     const lots = byName.get(normName(it.n)) || [it];
@@ -664,7 +680,7 @@ function renderRecount() {
   const pend = items.filter(i => i.st === 'รอนับซ้ำ');
   const needCause = items.filter(i => /^ไม่ตรง/.test(i.st) && !i.cz);
   $('#recountBadge').textContent = pend.length || '';
-  $('#recountHelp').textContent = showSys ? 'ตรวจอีกครั้ง (ควรเป็นอีกคน) แตะรายการหรือสแกนในแท็บนี้ ถ้าหน้างานถูกแล้วใส่ยอดเดิมซ้ำ = ยืนยัน รอปรับ Arincare'
+  $('#recountHelp').textContent = showSys ? 'ให้อีกคนนับ LOT เหล่านี้อีกรอบ · ถ้านับได้เท่าเดิม = ยืนยันว่าไม่ตรงจริง'
     : 'ให้คนที่ไม่ใช่ผู้นับครั้งแรกนับอีกครั้ง โดยไม่เห็นตัวเลขเดิม แตะรายการหรือสแกนบาร์โค้ดในแท็บนี้ได้เลย';
   $('#recountList').innerHTML = pend.length ? pend.map(i => `
     <button class="row" data-r="${i.r}" data-act="recount">
@@ -986,7 +1002,7 @@ function renderShelfBar() {
   const b = $('#shelfBar'); if (!b) return;
   if (!curShelf) {
     b.className = 'shelfbar';
-    b.innerHTML = `<div class="t"><div class="v" style="color:var(--ink)">นับทีละชั้น</div><div class="k">เลือกชั้นที่กำลังนับ ระบบจะจำว่ายาอยู่ชั้นไหน และบอกว่าเหลือตัวไหน</div></div>
+    b.innerHTML = `<div class="t"><div class="v" style="color:var(--ink)">นับทีละชั้น</div><div class="k">เลือกชั้นก่อน แล้วจะบอกว่าชั้นนี้เหลือตัวไหน</div></div>
       <button class="sbtn" id="shelfPick">เลือกชั้น</button>`;
   } else {
     const ps = shelfProducts(curShelf), done = ps.filter(p => p.done).length, left = ps.length - done;
@@ -1143,27 +1159,28 @@ function openSheet(lots, mode, raw, pre, editing) {
           ${isHit(i) ? '<div class="lot-meta"><span class="pill p-ok">LOT ตรงกับบาร์โค้ดที่สแกน</span></div>' : ''}
           ${(i.c && i.st && i.st !== 'ยังไม่นับ' && chk(i)) || i.dup || (i.c && i.by) || i.ef ? `<div class="lot-meta">${chk(i) && i.c ? statusPill(i.st) : ''}${i.dup ? '<span class="pill p-warn">แถวซ้ำในระบบ</span>' : ''}${i.c && i.by ? `<span class="pill p-mute">นับโดย ${esc(i.by)}</span>` : ''}${i.ef ? `<span class="pill p-warn">EXP บนกล่อง ${esc(fmtExp(i.ef))}</span>` : ''}</div>` : ''}
           ${chk(i) ? `
-          <div class="lotx"><button type="button" data-x="ok">✓ ตรง</button><button type="button" data-x="edit">✎ ไม่ตรง · แก้ไข</button></div>` : ''}
+          <div class="lotx"><button type="button" data-x="ok">✓ ตรง</button><button type="button" data-x="edit">ไม่ตรง · กรอกจำนวน</button></div>` : ''}
           <div class="editbox${!chk(i) || pre[i.r] !== undefined ? ' on' : ''}" data-edit>
-          <div class="small" style="margin-top:8px">กรอกเป็นหน่วย <span class="unit-big">${esc(i.u || '-')}</span> ตามระบบ Arincare</div>
+          <div class="small" style="margin-top:8px">นับเป็น <span class="unit-big">${esc(i.u || '-')}</span> (หน่วยเดียวกับ Arincare)</div>
           <div class="stepper">
             <button type="button" data-step="-1" aria-label="ลด">−</button>
             <input type="number" inputmode="numeric" min="0" step="1" placeholder="จำนวน" data-q aria-label="จำนวนที่นับได้" value="${pre[i.r] !== undefined ? pre[i.r] : ''}">
             <button type="button" data-step="1" aria-label="เพิ่ม">+</button>
             <span class="unit">${esc(i.u)}</span>
           </div>
+          ${chk(i) ? '<div class="diff" data-diff aria-live="polite"></div>' : ''}
           ${calcBox(i, pk)}
-          <div style="display:flex;gap:14px;flex-wrap:wrap">
-            <button type="button" class="linkbtn small" data-zero>ไม่พบ LOT นี้บนชั้น (= 0)</button>
-            ${pk ? '' : `<button type="button" class="linkbtn small" data-calcbtn>📦 นับเป็นกล่อง/แผง</button>`}
-            ${chk(i) ? `<button type="button" class="linkbtn small" data-expt>EXP บนกล่องไม่ตรง</button>` : ''}
+          <div class="chips">
+            <button type="button" class="chipbtn" data-zero>ไม่มีบนชั้น = 0</button>
+            ${pk ? '' : `<button type="button" class="chipbtn" data-calcbtn>คิดจากจำนวนกล่อง</button>`}
+            ${chk(i) ? `<button type="button" class="chipbtn" data-expt>EXP บนกล่องไม่ตรง</button>` : ''}
           </div>
-          ${chk(i) && mode === 'count' ? `<label class="confirm"><input type="checkbox" data-confirm> หน้างานถูกแน่นอน ไม่ต้องนับซ้ำ (รอเจ้าของร้านปรับใน Arincare)</label>` : ''}
+          ${chk(i) && mode === 'count' ? `<label class="confirm"><input type="checkbox" data-confirm> มั่นใจยอดนี้ ไม่ต้องให้อีกคนนับซ้ำ</label>` : ''}
           ${chk(i) ? '' : `<div class="lotx"><button type="button" data-x="ok">✓ LOT/EXP ตรง</button><button type="button" data-x="bad">EXP ไม่ตรง</button></div>`}
-          <div class="expbox" data-expbox><label class="small muted">EXP ที่เห็นบนกล่อง (LOT ไม่ตรง ให้กด “+ พบ LOT ที่ไม่มีในระบบ” แทน)</label>${expPicker()}</div>
+          <div class="expbox" data-expbox><label class="small muted">เลือก EXP ที่เห็นบนกล่อง (ถ้าเลข LOT ไม่ตรงด้วย ใช้ปุ่ม “+ เจอ LOT อื่น” ด้านล่าง)</label>${expPicker()}</div>
           </div>
         </div>`).join('')}
-      <div id="newLots"></div><button type="button" class="linkbtn" id="newLotBtn">+ พบ LOT ที่ไม่มีในระบบ (กรอกในแผ่นนี้ได้เลย)</button>
+      <div id="newLots"></div><button type="button" class="linkbtn" id="newLotBtn">+ เจอ LOT อื่นที่ไม่มีในรายการนี้</button>
       ${mode === 'count' ? `${shelfField('locInput', curShelf || ploc[normName(p.n)] || p.loc || store.get('lastShelf', ''))}${curShelf && (ploc[normName(p.n)] || p.loc) && !sameShelf(ploc[normName(p.n)] || p.loc, curShelf) ? `<div class="small muted" style="margin-top:-4px">รอบก่อนอยู่ชั้น ${esc(ploc[normName(p.n)] || p.loc)} บันทึกแล้วจะย้ายมาชั้น ${esc(curShelf)}</div>` : ''}` : ''}
     </div>
     <div class="sheet-f">
@@ -1272,15 +1289,94 @@ function updateSave() {
   const n = sheetEntries().length + newLotEntries().length, b = $('#sheetSave');
   if (!b) return;
   b.disabled = !n; b.textContent = n ? `บันทึก ${n} LOT` : 'เลือก ✓ หรือกรอกจำนวน';
+  // บอกส่วนต่างทันทีที่กรอก (ขาด/เกินกี่หน่วย) ให้เห็นก่อนกดบันทึกว่าพิมพ์ผิดหรือเปล่า
+  document.querySelectorAll('#ov .lot[data-k]').forEach(L => {
+    const d = L.querySelector('[data-diff]'), it = sheetCtx && sheetCtx.lots[Number(L.dataset.k)];
+    if (!d || !it || it.f == null) return;
+    const v = L.querySelector('[data-q]').value.trim(), on = L.querySelector('[data-edit]').classList.contains('on');
+    if (!on || v === '' || !isFinite(Number(v))) { d.textContent = ''; d.className = 'diff'; return; }
+    const df = Number(v) - Number(it.f), u = it.u || '';
+    d.className = 'diff ' + (df === 0 ? 'ok' : df < 0 ? 'lo' : 'hi');
+    d.textContent = df === 0 ? '✓ เท่ากับในระบบ' : df < 0 ? `ขาด ${-df} ${u} (ระบบ ${it.f})` : `เกิน ${df} ${u} (ระบบ ${it.f})`;
+  });
 }
 function closeSheet() { if (sheetCtx && sheetCtx.raw) cool = { code: sheetCtx.raw, until: Date.now() + 2500 }; sheetCtx = null; $('#layer').innerHTML = ''; resumeScan(); }
 
+/* ---------- กันกรอกผิด: LOT ที่คล้ายกันมาก (พิมพ์ผิด 1 ตัว, O/0, I/1, สลับตำแหน่ง) ---------- */
+const lotConf = v => normLot(v).replace(/O/g, '0').replace(/[IL]/g, '1').replace(/S/g, '5').replace(/B/g, '8').replace(/Z/g, '2');
+function lotNear(a, b) {
+  const x = lotConf(a), y = lotConf(b);
+  if (!x || !y || normLot(a) === normLot(b)) return false;
+  if (x === y) return true;
+  if (Math.min(x.length, y.length) < 4 || Math.abs(x.length - y.length) > 1) return false;
+  // ระยะแก้ไข (รวมสลับตัวติดกัน) ไม่เกิน 1
+  const d = Array.from({ length: x.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= y.length; j++) d[0][j] = j;
+  for (let i = 1; i <= x.length; i++) for (let j = 1; j <= y.length; j++) {
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
+    if (i > 1 && j > 1 && x[i - 1] === y[j - 2] && x[i - 2] === y[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+  }
+  return d[x.length][y.length] <= 1;
+}
+// กล่องถามแบบหลายปุ่ม ซ้อนบนแผ่นนับ (ไม่ปิดแผ่นนับ) คืนค่าปุ่มที่กด
+function choose(title, text, buttons) {
+  return new Promise(res => {
+    const w = document.createElement('div'); w.className = 'overlay'; w.style.cssText = 'align-items:center;z-index:70';
+    w.innerHTML = `<div class="dialog" role="alertdialog" aria-modal="true"><h3>${esc(title)}</h3><p class="choose-t">${text}</p>
+      <div class="choose-b">${buttons.map((b, k) => `<button class="btn ${b.ghost ? 'ghost' : ''}" data-ck="${k}">${esc(b.label)}</button>`).join('')}</div></div>`;
+    document.body.appendChild(w);
+    w.addEventListener('click', e => { const b = e.target.closest('[data-ck]'); if (!b) return; w.remove(); res(buttons[Number(b.dataset.ck)].v); });
+  });
+}
+// คืน true = บันทึกต่อได้, false = กลับไปแก้ในแผ่นนับ
+async function checkNewLots(newLots) {
+  const p0 = sheetCtx.lots[0], u = p0.u || '';
+  for (const o of newLots) {
+    const sys = sheetCtx.lots.find(i => lotNear(i.l, o.lot));
+    if (sys) {
+      const v = await choose('ตรวจเลข LOT อีกครั้ง',
+        `LOT ที่กรอก <b class="code">${esc(o.lot)}</b> คล้ายกับ LOT <b class="code">${esc(sys.l)}</b> ที่มีในระบบมาก<br>ดูเลขบนกล่องอีกที`,
+        [{ v: 'same', label: `เป็น LOT ${sys.l} (พิมพ์ผิด)` }, { v: 'new', label: `เป็น LOT ${o.lot} จริง`, ghost: true }]);
+      if (v === 'same') {
+        // ย้ายจำนวนไปการ์ดของ LOT ในระบบ (บวกเพิ่มจากที่กรอกไว้) แล้วลบช่อง LOT ใหม่ออก
+        const L = document.querySelector(`#ov .lot[data-k="${sheetCtx.lots.indexOf(sys)}"]`);
+        if (L) { const q = L.querySelector('[data-q]'), ed = L.querySelector('[data-edit]');
+          const base = q.value === '' ? 0 : Number(q.value); q.value = base + o.q; ed.classList.add('on');
+          L.querySelectorAll('[data-x]').forEach(b => b.classList.toggle('on', b.dataset.x === 'edit')); }
+        document.querySelectorAll('#ov [data-new]').forEach(el => { if (el.querySelector('[data-nl]').value.trim().toUpperCase() === o.lot) el.remove(); });
+        updateSave(); if (L) L.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        toast(`ย้าย ${o.q} ${u} ไปที่ LOT ${sys.l} แล้ว ตรวจตัวเลขแล้วกดบันทึก`, 'ok', 3500);
+        return false;
+      }
+    }
+    const day = Date.now() - 16 * 3600 * 1000;
+    const old = recent.find(x => x.kind === 'new' && x.at > day && normName(x.n) === normName(p0.n) && lotNear(x.l, o.lot));
+    if (old) {
+      const v = await choose('เมื่อกี้แจ้ง LOT ที่คล้ายกันไว้',
+        `ยานี้แจ้ง LOT ใหม่ <b class="code">${esc(old.l)}</b> (${old.q} ${esc(u)}) ไว้แล้ว<br>คล้ายกับ <b class="code">${esc(o.lot)}</b> ที่กำลังบันทึก`,
+        [{ v: 'replace', label: `อันเก่าพิมพ์ผิด · ยกเลิก ${old.l}` }, { v: 'both', label: 'คนละ LOT จริง · เก็บทั้งคู่', ghost: true }, { v: 'back', label: 'กลับไปแก้', ghost: true }]);
+      if (v === 'back') return false;
+      if (v === 'replace') {
+        try { await api('fixreport', { row: old.row, name: old.n, l: old.l, cancel: true }); recent = recent.filter(y => y !== old); store.set('recent', recent); renderRecent(); }
+        catch (err) { toast('ยกเลิกอันเก่าไม่ได้: ' + err.message + ' · แก้ที่ "นับล่าสุด" แทน', 'bad', 5000); return false; }
+      }
+    }
+  }
+  return true;
+}
+// แจ้งบันทึกแล้ว พร้อมปุ่มแก้ (กดได้ 5 วินาที)
+function toastFix(msg, onFix, ms) {
+  toast(`<span>${esc(msg)}</span><button type="button" class="tfix">แก้</button>`, 'ok', ms || 5000, true);
+  const b = $('#toast .tfix'); if (b) b.onclick = () => { $('#toast').classList.add('hidden'); onFix(); };
+}
 async function saveSheet() {
   const entries = sheetEntries(), newLots = newLotEntries();
   if (newLots.some(o => !o.lot)) { toast('LOT ใหม่: กรอกเลข LOT บนกล่อง', 'bad'); return; }
   if (newLots.some(o => o.q === undefined || !Number.isInteger(o.q) || o.q < 0)) { toast('LOT ใหม่: กรอกจำนวน', 'bad'); return; }
   if (newLots.some(o => !o.exp)) { toast('LOT ใหม่: เลือกเดือนและปีหมดอายุบนกล่อง', 'bad'); return; }
   if (newLots.some(o => sheetCtx.lots.some(i => normKey(i.l) === normKey(o.lot)))) { toast('LOT นี้มีในระบบอยู่แล้ว กรอกที่การ์ดของ LOT นั้นแทน', 'bad'); return; }
+  if (new Set(newLots.map(o => normLot(o.lot))).size < newLots.length) { toast('กรอก LOT ใหม่ซ้ำกัน รวมเป็นช่องเดียว', 'bad'); return; }
+  if (newLots.length && !(await checkNewLots(newLots))) return;
   // ตัวเลขผิดสังเกต (โหมดตรวจเทียบ): น่าจะนับคนละหน่วย หรือส่วนต่างมากผิดปกติ → ถามก่อนบันทึก
   const odd = sheetEntries().filter(e => e.it.f != null && e.q !== e.it.f && !e.pack).map(e => {
     const f = e.it.f, q = e.q, ratio = q && f ? Math.max(f / q, q / f) : 0;
@@ -1321,11 +1417,12 @@ async function saveSheet() {
   pushRecent(entries, mode);
   closeSheet(); rememberShelf(loc); renderAll();
   { const dn = items.filter(i => i.c).length;   // ให้เห็นความคืบหน้าทุกครั้งที่บันทึก (ใกล้เป้าแล้วจะอยากทำต่อ)
-    toast(mode === 'count' ? `บันทึกแล้ว · นับไป ${dn.toLocaleString()}/${items.length.toLocaleString()} LOT · สแกนชิ้นต่อไปได้เลย` : 'บันทึกแล้ว · สแกนชิ้นต่อไปได้เลย', 'ok', 1600); }
+    const msg = mode === 'count' ? `บันทึกแล้ว · นับไป ${dn.toLocaleString()}/${items.length.toLocaleString()} LOT` : 'บันทึกนับซ้ำแล้ว';
+    if (entries.length) { const first = recent[0]; toastFix(msg, () => openRecent(first), 4000); } }
   if (newLots.length) {
     const body = { type: 'newlot', name: p0.n, barcode: raw0, lots: newLots, loc, unit: p0.u, note: '' };
     api('report', body).then(d => { if (d.duplicate) { toast('LOT นี้แจ้งไว้แล้ว ไม่บันทึกซ้ำ · ถ้าจะแก้ แตะรายการใน "นับล่าสุด"', 'warn', 4500); return; }
-      pushRecentNew(d, body); if (!entries.length) { beep('ok'); toast(`บันทึก LOT ใหม่ ${newLots.length} LOT แล้ว รอเพิ่มเข้ารายการ`, 'ok', 2500); } })
+      pushRecentNew(d, body); if (!entries.length) { beep('ok'); const nx = recent.find(x => x.kind === 'new'); toastFix(`บันทึก LOT ใหม่ ${newLots.length} LOT แล้ว`, () => nx && openFixNew(nx), 5000); } })
       .catch(e => {
         if (e.server) { toast('บันทึก LOT ใหม่ไม่ได้: ' + e.message, 'bad', 5000); return; }
         queue.push({ action: 'report', payload: body, counter: cfg.counter, cpin: cfg.cpin, at: Date.now() }); store.set('queue', queue); setOnline(false); renderAll();
@@ -1938,7 +2035,8 @@ async function startCamera() {
   try {
     await getDetector();
     stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: {
-      facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 30 } } });
+      facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 24, max: 30 } } });
+    camFps = 0;
     track = stream.getVideoTracks()[0];
     try { await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) {}
     const v = $('#video'); v.srcObject = stream; await v.play();
@@ -2010,10 +2108,37 @@ function sharpenH(img, k) {
 }
 const canvas = document.createElement('canvas');
 const ctx2d = canvas.getContext('2d', { willReadFrequently: true });
+// ลดความร้อนเครื่อง: ระหว่างกรอกจำนวน ลดเฟรมกล้องเหลือ 5 ต่อวินาที · ไม่ได้สแกนนาน อ่านช้าลง และพักกล้องเองหลัง 75 วินาที
+let camFps = 0, lastRun = 0;
+const IDLE_SLOW = 20000, IDLE_STOP = 75000;
+async function setCamFps(n) {
+  if (!track || camFps === n) return; camFps = n;
+  // ส่งค่าซูม/โฟกัสเดิมไปด้วย ไม่งั้นบางเครื่องรีเซ็ตซูมกลับเป็น 1×
+  const adv = [{ focusMode: 'continuous' }], z = Number(($('#zoom') || {}).value);
+  if (!$('#zoom').classList.contains('hidden') && z) adv.push({ zoom: z });
+  try { await track.applyConstraints({ frameRate: { ideal: n, max: n === 5 ? 5 : 30 }, advanced: adv }); } catch (e) {}
+}
+function idleMs() { return Date.now() - Math.max(lastSeen, lastTouch); }
+let lastTouch = Date.now();
+['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { lastTouch = Date.now(); }, { passive: true, capture: true }));
+function camRest() {
+  stopCamera();
+  const msg = $('#camMsg');
+  msg.innerHTML = '<div><div class="ttl">พักกล้องไว้ก่อน</div><div class="small">ไม่ได้สแกนเกิน 1 นาที ปิดกล้องให้เครื่องไม่ร้อน</div><button class="btn" id="camStart2">สแกนต่อ</button></div>';
+  $('#camStart2').onclick = startCamera;
+}
 async function loop() {
   if (!scanning) return;
   const v = $('#video');
-  if (!paused && !sheetOpen() && v.readyState >= 2 && v.videoWidth) {
+  const busy = paused || sheetOpen();
+  setCamFps(busy ? 5 : 24);
+  const idle = idleMs();
+  if (!busy && idle > IDLE_STOP) { camRest(); return; }
+  const gap = busy ? 400 : idle > IDLE_SLOW ? 350 : 90;
+  if (Date.now() - lastRun < gap) { nextFrame(gap); return; }
+  lastRun = Date.now();
+  $('#cam').classList.toggle('slow', !busy && idle > IDLE_SLOW);
+  if (!busy && v.readyState >= 2 && v.videoWidth) {
     const W = v.videoWidth, H = v.videoHeight;
     // ทุก 4 เฟรมอ่านทั้งภาพที่เห็น เผื่อบาร์โค้ดไม่อยู่กลางกรอบ ที่เหลืออ่านเฉพาะกรอบเล็ง
     const full = frameNo++ % 4 === 3;
@@ -2031,7 +2156,7 @@ async function loop() {
       if (!(found && found.length) && detector) {
         const sharp = frameSharpness(canvas);
         peak = Math.max(sharp, peak * 0.93);
-        if (sharp >= peak * 0.6) {
+        if (sharp >= peak * 0.6 && frameNo % 2 === 0) {
           const k = KERNELS[sharpNo++ % KERNELS.length];
           found = await det(sharpenH(ctx2d.getImageData(0, 0, canvas.width, canvas.height), k));
         }
@@ -2049,7 +2174,7 @@ async function loop() {
       if (found && found.length) found = found.filter(f => !ignCodes.has(normCode(f.rawValue)));   // บาร์โค้ดรอง (ใช้ร่วมหลายกล่อง): ทำเหมือนไม่เห็น ให้หาบาร์โค้ดหลัก/อ่านตัวเลขต่อ
       if (!(found && found.length) && Date.now() - lastSeen > 6000) $('#ocrHint').classList.remove('hidden');
       // สแกนเส้นไม่ติดเกิน 0.6 วินาที → อ่านตัวเลขใต้บาร์โค้ดเบื้องหลังต่อเนื่อง (ไม่ต้องกด 123) เว้นช่วงสั้นๆ ให้มือถือไม่ร้อน
-      if (!(found && found.length) && Date.now() - lastSeen > 600 && !ocrBusy && !autoBusy && Date.now() - autoDone > 250 && autoOcrOn) autoOcr();
+      if (!(found && found.length) && Date.now() - lastSeen > 600 && idleMs() < IDLE_SLOW && !ocrBusy && !autoBusy && Date.now() - autoDone > 700 && autoOcrOn) autoOcr();
       if (found && found.length) {
         lastSeen = Date.now(); $('#ocrHint').classList.add('hidden');
         const code = found[0].rawValue;
@@ -2076,8 +2201,9 @@ function frameSharpness(src) {
   return sum / (w * h / 2);
 }
 // อ่านทันทีที่กล้องส่งเฟรมใหม่ (เร็วกว่ารอเวลาคงที่) ถ้าเบราว์เซอร์ไม่รองรับใช้ 60 มิลลิวินาที
-function nextFrame() {
+function nextFrame(gap) {
   const v = $('#video');
+  if (gap && gap > 120) { setTimeout(loop, Math.min(gap, 400)); return; }
   if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(() => loop());
   else setTimeout(loop, 60);
 }
