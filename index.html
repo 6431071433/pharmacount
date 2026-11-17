@@ -121,7 +121,11 @@ h2{font-size:17px;margin:0 0 8px}
 .zoom{flex:1;accent-color:var(--amber)}
 .scan-status{margin:10px 2px 0;font-size:14px;min-height:20px}
 
-.manual{display:flex;gap:8px;margin-top:12px}
+.manual{display:flex;gap:8px;margin-top:12px;position:relative}
+.manual .mq{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;display:grid}.manual .mq svg{width:20px;height:20px}
+#manualForm #manualInput{padding-left:44px}
+.quick{margin-top:8px}
+.quick .more{text-align:center;color:var(--brand);font-weight:700;justify-content:center}
 .manual input{flex:1;min-width:0}
 input[type=text],input[type=search],input[type=number],input[type=url],input[type=password],select,textarea{width:100%;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card);font-size:16px}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline-offset:0;border-color:transparent}
@@ -129,13 +133,16 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 @media (prefers-color-scheme: dark){:root:not(.light) .btn:not(.ghost){color:#06291E}}
 .btn.ghost{background:var(--card);color:var(--brand);border:1px solid var(--line)}
 .btn.warn{background:var(--warn);color:#fff}
+.btn.tonal{background:var(--brand-soft);color:var(--brand-ink)}
 .btn.block{width:100%}
 .btn:disabled{background:var(--line);color:var(--muted);border-color:transparent}
 .btn,.row,.sbtn,.lotx button{transition:transform .12s var(--ease-out),background-color .15s,border-color .15s,color .15s}
 .btn:active,.row:active,.sbtn:active,.lotx button:active{transform:scale(.97)}
 .shelfbar{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
 .shelfbar.on{border-color:var(--brand);background:var(--brand-soft)}
-.shelfbar .t{flex:1;min-width:0}
+.shelfbar .t{flex:1;min-width:0;line-height:1.4}
+.shelfbar .shi{width:36px;height:36px;border-radius:10px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;flex:none}.shelfbar .shi svg{width:20px;height:20px}
+.shelfbar.on .shi{background:var(--brand);color:#fff}
 .shelfbar .k{font-size:14px;color:var(--muted)}
 .shelfbar .v{font-weight:700;color:var(--brand-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shelfbar .bar{height:6px;background:var(--line);border-radius:9px;margin-top:6px;overflow:hidden}
@@ -154,6 +161,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
 .stat b{display:block;font-size:26px;color:var(--brand-ink);line-height:1.2;letter-spacing:-.01em}
 .stat.warn b{color:var(--warn)}
+.statbtn{text-align:left;font:inherit;color:inherit;width:100%}
+.statbtn.zero b{color:var(--muted)}
 
 /* list */
 .list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
@@ -211,6 +220,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .diff{margin-top:8px;font-size:16px;font-weight:700;min-height:0}
 .diff:empty{display:none}
 .diff.ok{color:var(--ok)}.diff.lo{color:var(--bad)}.diff.hi{color:var(--warn)}
+.quietlink{background:none;border:0;padding:6px 0;min-height:36px;color:var(--muted);font-size:14px;text-decoration:underline;text-underline-offset:3px}
+.addlot{width:100%;margin-top:4px;border:1.5px dashed var(--brand);background:transparent;color:var(--brand);border-radius:14px;min-height:50px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px}
+.addlot svg{width:18px;height:18px}
 .linkbtn{background:none;border:0;color:var(--brand);font-weight:700;padding:8px 0;min-height:44px}
 .rlot{border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px 12px;margin-top:10px;background:var(--card)}
 .rlot-h{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px;color:var(--brand)}
@@ -225,6 +237,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .calc .eq{font-weight:700;color:var(--brand);margin-top:6px}
 .lotx{display:flex;gap:6px;margin-top:10px}
 .lotx button{flex:1;border:1.5px solid var(--line);background:var(--card);border-radius:14px;padding:11px 6px;font-size:15px;font-weight:700;color:var(--ink);min-height:50px}
+.lotx .bi{width:16px;height:16px;vertical-align:-2px;margin-right:6px}
 .lotx button[data-x="ok"]{color:var(--ok);border-color:var(--ok)}
 .lotx button.on[data-x="ok"]{background:var(--ok);border-color:var(--ok);color:#fff}
 .lotx button.on[data-x="edit"],.lotx button.on[data-x="bad"]{background:var(--warn-soft);border-color:var(--amber);color:var(--warn)}
@@ -289,9 +302,28 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
   .dialog{width:100%;max-width:none;margin:0;align-self:flex-end;border-radius:24px 24px 0 0;padding:12px 18px calc(18px + env(safe-area-inset-bottom));max-height:90vh;animation:up .26s var(--ease-out)}
   .dialog::before{content:'';display:block;width:40px;height:5px;border-radius:5px;background:var(--line);margin:0 auto 12px}
 }
-.dialog h3{margin:0 0 6px;font-size:18px}
+.dialog h3{margin:0 0 6px;font-size:18px;padding-right:44px}
+.xclose{float:right;position:sticky;top:0;z-index:3;width:40px;height:40px;margin:-4px -6px 0 8px;border-radius:50%;border:0;background:var(--bg);color:var(--muted);display:grid;place-items:center}
+.xclose svg{width:20px;height:20px}
+.sheet-h .xclose{position:absolute;top:12px;right:12px;float:none;margin:0}
+.sheet-h .pname{padding-right:40px}
 .dialog .acts{display:flex;gap:10px;margin-top:16px}
 .dialog .acts .btn{flex:1}
+.mgroup{font-size:14px;font-weight:700;color:var(--muted);margin:14px 4px 6px}
+.mlist{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.mrow{display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;text-align:left;padding:10px 14px;min-height:56px;color:var(--ink);font-weight:600}
+.mrow + .mrow{border-top:1px solid var(--line)}
+.mrow:active{background:var(--bg)}
+.mrow .mi{width:36px;height:36px;border-radius:10px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;flex:none}
+.mrow .mi svg{width:20px;height:20px}
+.mrow .mt{flex:1;min-width:0;line-height:1.35}
+.mrow .mt small{display:block;font-size:14px;font-weight:400;color:var(--muted)}
+.mrow .chev{width:18px;height:18px;color:var(--muted);flex:none}
+.mrow.alert .mi{background:var(--warn-soft);color:var(--warn)}.mrow.alert small{color:var(--warn);font-weight:700}
+.sw{width:46px;height:28px;border-radius:99px;background:var(--line);position:relative;flex:none;transition:background-color .15s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .18s var(--ease-out)}
+.sw.on{background:var(--brand)}.sw.on::after{transform:translateX(18px)}
+.mfoot{margin:14px 4px 0}
 .choice{display:flex;flex-direction:column;gap:8px;margin-top:10px}
 .choice button{text-align:left}
 
@@ -362,10 +394,11 @@ html.big .hrow .chip-btn{margin-left:auto}
     </div>
     <div class="scan-status muted hidden" id="scanStatus">เล็งบาร์โค้ดให้อยู่ในกรอบ ห่างประมาณ 10–15 ซม.</div>
 
-    <form class="manual" id="manualForm" autocomplete="off">
-      <input type="search" id="manualInput" inputmode="numeric" placeholder="พิมพ์บาร์โค้ด หรือใช้เครื่องสแกน">
-      <button class="btn" type="submit">ตกลง</button>
+    <form class="manual" id="manualForm" autocomplete="off" role="search">
+      <span class="mq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></span>
+      <input type="search" id="manualInput" enterkeyhint="search" placeholder="สแกนไม่ติด? พิมพ์ชื่อยา เช่น amlo" aria-label="ค้นหายาจากชื่อ">
     </form>
+    <div id="quickList" class="list quick hidden"></div>
     <details class="tips"><summary>เคล็ดลับการสแกน</summary><ul>
       <li>ถือห่างประมาณ 10–15 ซม. ให้บาร์โค้ดอยู่ในกรอบ</li>
       <li>ป้ายราคาบนชั้น: กดปุ่ม 1× ให้เป็น 2× หรือ 3× และเอียงมือถือหลบแสงสะท้อน</li>
@@ -374,7 +407,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 
     <div class="stats">
       <div class="stat"><b id="stCounted">–</b><span class="small muted">LOT ที่นับแล้ว</span><div class="minibar"><i id="stBar" style="width:0"></i></div></div>
-      <div class="stat warn" id="stPendBox"><b id="stPend">–</b><span class="small muted">รอนับซ้ำ</span></div>
+      <button type="button" class="stat warn statbtn" id="stPendBox"><b id="stPend">–</b><span class="small muted">รอนับซ้ำ ›</span></button>
     </div>
     <div id="recentWrap" class="hidden recent">
       <div class="section-title">นับล่าสุดในเครื่องนี้ · กรอกผิด แตะเพื่อแก้</div>
@@ -414,7 +447,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-17.2';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-17.3';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -707,22 +740,31 @@ const fmtDiff = d => (d > 0 ? '+' : '') + d;
 $('#searchInput').addEventListener('input', () => renderSearch());
 function renderSearch() {
   const q = $('#searchInput').value.trim();
-  const box = $('#searchList');
-  if (q.length < 2) { box.innerHTML = '<div class="empty">พิมพ์อย่างน้อย 2 ตัวอักษร</div>'; return; }
+  $('#searchList').innerHTML = q.length < 2 ? '<div class="empty">พิมพ์อย่างน้อย 2 ตัวอักษร</div>' : searchHTML(q, 60);
+}
+// ช่องค้นหาหน้าสแกน: พิมพ์ชื่อแล้วขึ้นผลทันที (ยาที่ไม่มีบาร์โค้ด/กล่องที่ตัดบาร์โค้ดออก) · ตัวเลขยาว+Enter = บาร์โค้ดจากเครื่องสแกน
+function renderQuick() {
+  const q = $('#manualInput').value.trim(), box = $('#quickList');
+  const digits = /^[\d\s-]+$/.test(q);
+  if (q.length < 2 || (digits && q.replace(/\D/g, '').length >= 6)) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+  box.classList.remove('hidden'); box.innerHTML = searchHTML(q, 8);
+}
+function searchHTML(q, limit) {
   const nq = normName(q), cq = normCode(q);
   const groups = new Map();
   items.forEach(it => {
     const hit = normName(it.n).includes(nq) || (it.l && normName(it.l) === nq) || (cq.length >= 6 && productCodes(it.n).some(c => c.includes(cq)));
     if (hit) { const k = normName(it.n); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(it); }
   });
-  const arr = [...groups.values()].slice(0, 60);
-  box.innerHTML = arr.length ? arr.map(g => {
+  const all = [...groups.values()], arr = all.slice(0, limit);
+  return (arr.length ? arr.map(g => {
     const done = g.filter(i => i.c).length, has = productsWithCode().has(normName(g[0].n));
     return `<button class="row" data-name="${esc(g[0].n)}">
       <div class="t"><div class="n">${hiName(g[0].n)}</div>
       <div class="s">${g.length} LOT · นับแล้ว ${done}${has ? '' : ' · ยังไม่มีบาร์โค้ด'}</div></div>
       ${done === g.length ? '<span class="pill p-ok">ครบ</span>' : ''}
-    </button>`; }).join('') : `<div class="empty"><b>ไม่พบ “${esc(q.trim())}”</b>ลองพิมพ์แค่ 2–3 ตัวแรกของชื่อยา เช่น amlo หรือสแกนบาร์โค้ดแทน</div>`;
+    </button>`; }).join('') : `<div class="empty"><b>ไม่พบ “${esc(q.trim())}”</b>ลองพิมพ์แค่ 2–3 ตัวแรกของชื่อยา เช่น amlo หรือสแกนบาร์โค้ดแทน</div>`)
+    + (all.length > limit ? `<button class="row more" data-more>ดูทั้งหมด ${all.length} รายการ</button>` : '');
 }
 function productCodes(name) { const n = normName(name), out = []; byCode.forEach((s, c) => { if (s.has(n)) out.push(c); }); return out; }
 $('#searchList').addEventListener('click', e => {
@@ -817,7 +859,7 @@ function openUnknown(raw) {
     <p class="muted small">บาร์โค้ด <b>${esc(raw)}</b> ยังไม่อยู่ในฐานบาร์โค้ด ค้นหาชื่อสินค้าที่ถืออยู่แล้วแตะเลือก ระบบจะจำไว้ ครั้งต่อไปสแกนติดทันที</p>
     <input type="search" id="linkQ" placeholder="พิมพ์ชื่อยา เช่น amlo, พาราเซตามอล" autocomplete="off">
     <div class="list" id="linkList"></div>
-    <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button><button class="btn warn" id="reportBtn">ไม่มีในรายการ</button></div>`, dlg => {
+    <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button><button class="btn ghost" id="reportBtn">ไม่มีในรายการ แจ้งเป็นยาใหม่</button></div>`, dlg => {
     const q = dlg.querySelector('#linkQ'), list = dlg.querySelector('#linkList');
     const withCode = productsWithCode();
     const render = () => {
@@ -1002,12 +1044,12 @@ function renderShelfBar() {
   const b = $('#shelfBar'); if (!b) return;
   if (!curShelf) {
     b.className = 'shelfbar';
-    b.innerHTML = `<div class="t"><div class="v" style="color:var(--ink)">นับทีละชั้น</div><div class="k">เลือกชั้นก่อน แล้วจะบอกว่าชั้นนี้เหลือตัวไหน</div></div>
+    b.innerHTML = `<span class="shi">${ICON.shelf}</span><div class="t"><div class="v" style="color:var(--ink)">ยังไม่เลือกชั้น</div><div class="k">บอกได้ว่าชั้นนี้เหลือตัวไหน</div></div>
       <button class="sbtn" id="shelfPick">เลือกชั้น</button>`;
   } else {
     const ps = shelfProducts(curShelf), done = ps.filter(p => p.done).length, left = ps.length - done;
     b.className = 'shelfbar on';
-    b.innerHTML = `<div class="t"><div class="k">กำลังนับชั้น</div><div class="v">📍 ${esc(curShelf)}</div>
+    b.innerHTML = `<span class="shi">${ICON.shelf}</span><div class="t"><div class="k">กำลังนับชั้น</div><div class="v">${esc(curShelf)}</div>
       <div class="k">${ps.length ? `นับแล้ว ${done} / ${ps.length} สินค้าที่รู้ว่าอยู่ชั้นนี้` : 'ยังไม่รู้ว่ามียาอะไรบ้าง สแกนไปได้เลย ระบบจะจำไว้'}</div>
       ${ps.length ? `<div class="bar"><i style="width:${ps.length ? done / ps.length * 100 : 0}%"></i></div>` : ''}</div>
       ${left ? `<button class="sbtn" id="shelfLeft">เหลือ ${left}</button>` : ''}
@@ -1140,10 +1182,11 @@ function openSheet(lots, mode, raw, pre, editing) {
   const sameCounter = mode === 'recount' && firstBy.includes(cfg.counter);
   $('#layer').innerHTML = `<div class="overlay" id="ov"><div class="sheet" role="dialog" aria-modal="true">
     <div class="sheet-h">
+      <button type="button" class="xclose" id="sheetX" aria-label="ปิด"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       <div class="mode">${showSys ? `<span class="mode-chip">${mode === 'recount' ? 'นับซ้ำ · ' : ''}ตรวจเทียบกับระบบ</span>` : `<span class="mode-chip blind">${mode === 'recount' ? 'นับซ้ำ · ' : ''}นับแบบไม่เห็นยอดในระบบ</span>`}</div>
       <div class="pname">${esc(p.n)}</div>
       <div class="small muted">${raw ? 'บาร์โค้ด <span class="code">' + esc(raw) + '</span> · ' : ''}${lots.length} LOT${p.cat ? ' · ' + esc(p.cat) : ''}</div>
-      ${raw && !editing ? '<button type="button" class="linkbtn small" id="wrongLink" style="padding:4px 0 0">ไม่ใช่ยาตัวนี้? แก้บาร์โค้ดที่จับคู่ผิด</button>' : ''}
+      ${raw && !editing ? '<button type="button" class="quietlink" id="wrongLink">ไม่ใช่ยาตัวนี้?</button>' : ''}
     </div>
     <div class="sheet-b">
       ${sameCounter ? `<div class="lot" style="background:var(--warn-soft);border-color:#f3c48c"><b>คุณเป็นผู้นับครั้งแรก</b><div class="small">การนับซ้ำควรเป็นอีกคน เพื่อให้ตรวจสอบได้จริง</div></div>` : ''}
@@ -1159,7 +1202,7 @@ function openSheet(lots, mode, raw, pre, editing) {
           ${isHit(i) ? '<div class="lot-meta"><span class="pill p-ok">LOT ตรงกับบาร์โค้ดที่สแกน</span></div>' : ''}
           ${(i.c && i.st && i.st !== 'ยังไม่นับ' && chk(i)) || i.dup || (i.c && i.by) || i.ef ? `<div class="lot-meta">${chk(i) && i.c ? statusPill(i.st) : ''}${i.dup ? '<span class="pill p-warn">แถวซ้ำในระบบ</span>' : ''}${i.c && i.by ? `<span class="pill p-mute">นับโดย ${esc(i.by)}</span>` : ''}${i.ef ? `<span class="pill p-warn">EXP บนกล่อง ${esc(fmtExp(i.ef))}</span>` : ''}</div>` : ''}
           ${chk(i) ? `
-          <div class="lotx"><button type="button" data-x="ok">✓ ตรง</button><button type="button" data-x="edit">ไม่ตรง · กรอกจำนวน</button></div>` : ''}
+          <div class="lotx"><button type="button" data-x="ok">✓ ตรง</button><button type="button" data-x="edit"><svg class="bi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>ไม่ตรง แก้จำนวน</button></div>` : ''}
           <div class="editbox${!chk(i) || pre[i.r] !== undefined ? ' on' : ''}" data-edit>
           <div class="small" style="margin-top:8px">นับเป็น <span class="unit-big">${esc(i.u || '-')}</span> (หน่วยเดียวกับ Arincare)</div>
           <div class="stepper">
@@ -1180,7 +1223,7 @@ function openSheet(lots, mode, raw, pre, editing) {
           <div class="expbox" data-expbox><label class="small muted">เลือก EXP ที่เห็นบนกล่อง (ถ้าเลข LOT ไม่ตรงด้วย ใช้ปุ่ม “+ เจอ LOT อื่น” ด้านล่าง)</label>${expPicker()}</div>
           </div>
         </div>`).join('')}
-      <div id="newLots"></div><button type="button" class="linkbtn" id="newLotBtn">+ เจอ LOT อื่นที่ไม่มีในรายการนี้</button>
+      <div id="newLots"></div><button type="button" class="addlot" id="newLotBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>เจอ LOT อื่นที่ไม่มีในรายการนี้</button>
       ${mode === 'count' ? `${shelfField('locInput', curShelf || ploc[normName(p.n)] || p.loc || store.get('lastShelf', ''))}${curShelf && (ploc[normName(p.n)] || p.loc) && !sameShelf(ploc[normName(p.n)] || p.loc, curShelf) ? `<div class="small muted" style="margin-top:-4px">รอบก่อนอยู่ชั้น ${esc(ploc[normName(p.n)] || p.loc)} บันทึกแล้วจะย้ายมาชั้น ${esc(curShelf)}</div>` : ''}` : ''}
     </div>
     <div class="sheet-f">
@@ -1189,8 +1232,10 @@ function openSheet(lots, mode, raw, pre, editing) {
     </div>
   </div></div>`;
   const ov = $('#ov');
-  ov.addEventListener('click', e => {
-    if (e.target === ov) closeSheet();
+  $('#sheetX').onclick = async () => { if (await sheetCanClose()) closeSheet(); };
+  swipeClose(ov.querySelector('.sheet'), ov.querySelector('.sheet-b'), sheetCanClose, closeSheet, ov.querySelector('.sheet-h'));
+  ov.addEventListener('click', async e => {
+    if (e.target === ov) { if (await sheetCanClose()) closeSheet(); return; }
     const st = e.target.closest('[data-step]');
     if (st) { const inp = st.parentElement.querySelector('[data-q]'); const cur = inp.value === '' ? (Number(st.dataset.step) > 0 ? 0 : 1) : Number(inp.value);
       inp.value = Math.max(0, cur + Number(st.dataset.step)); updateSave(); vibrate(8); }
@@ -1299,6 +1344,11 @@ function updateSave() {
     d.className = 'diff ' + (df === 0 ? 'ok' : df < 0 ? 'lo' : 'hi');
     d.textContent = df === 0 ? '✓ เท่ากับในระบบ' : df < 0 ? `ขาด ${-df} ${u} (ระบบ ${it.f})` : `เกิน ${df} ${u} (ระบบ ${it.f})`;
   });
+}
+// มีตัวเลขที่กรอกไว้แต่ยังไม่บันทึก → ถามก่อนปิด กันกรอกแล้วหาย
+async function sheetCanClose() {
+  if (!sheetCtx || !(sheetEntries().length + newLotEntries().length)) return true;
+  return (await choose('ปิดโดยไม่บันทึก?', 'ตัวเลขที่กรอกไว้ในแผ่นนี้จะหายไป', [{ v: false, label: 'กลับไปกรอกต่อ' }, { v: true, label: 'ปิด ไม่บันทึก', ghost: true }]));
 }
 function closeSheet() { if (sheetCtx && sheetCtx.raw) cool = { code: sheetCtx.raw, until: Date.now() + 2500 }; sheetCtx = null; $('#layer').innerHTML = ''; resumeScan(); }
 
@@ -2234,9 +2284,15 @@ function flash(kind) { const g = $('#guide'); g.classList.add(kind); setTimeout(
 /* ---------- ช่องพิมพ์และเครื่องสแกนบลูทูธ ---------- */
 $('#manualForm').addEventListener('submit', e => {
   e.preventDefault(); const v = $('#manualInput').value.trim(); if (!v) return;
-  $('#manualInput').value = ''; $('#manualInput').blur();
-  if (/\d{6,}/.test(v.replace(/\D/g, '')) && /^[\d\s-]+$/.test(v)) handleCode(v, 'manual');
-  else { setTab('search'); $('#searchInput').value = v; renderSearch(); }
+  if (/\d{6,}/.test(v.replace(/\D/g, '')) && /^[\d\s-]+$/.test(v)) { $('#manualInput').value = ''; $('#manualInput').blur(); renderQuick(); handleCode(v, 'manual'); return; }
+  $('#manualInput').blur(); renderQuick();   // ชื่อยา: ผลขึ้นใต้ช่องอยู่แล้ว ปิดคีย์บอร์ดให้เห็นรายการ
+});
+$('#manualInput').addEventListener('input', renderQuick);
+$('#quickList').addEventListener('click', e => {
+  if (e.target.closest('[data-more]')) { setTab('search'); $('#searchInput').value = $('#manualInput').value; renderSearch(); return; }
+  const b = e.target.closest('button[data-name]'); if (!b) return;
+  $('#manualInput').value = ''; renderQuick();
+  openSheet(byName.get(normName(b.dataset.name)) || [], 'count');
 });
 // เครื่องสแกนบลูทูธพิมพ์ตัวเลขเร็วมากแล้วกด Enter: จับได้แม้ไม่ได้แตะช่องพิมพ์
 let kb = '', kbT = 0;
@@ -2266,10 +2322,37 @@ function vibrate(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (
 
 /* ---------- หน้าต่าง ---------- */
 function openDialog(html, bind) {
-  $('#layer').innerHTML = `<div class="overlay" id="dov" style="align-items:center"><div class="dialog" role="dialog" aria-modal="true">${html}</div></div>`;
+  // ปิดได้ 3 ทาง (ปุ่ม × มุมบน · แตะพื้นหลัง · ปัดลง) เฉพาะหน้าต่างที่มีปุ่มปิดอยู่แล้ว หน้าที่ต้องตอบก่อน (เช่น ตั้งค่าครั้งแรก) ปิดไม่ได้
+  const can = /data-close/.test(html);
+  $('#layer').innerHTML = `<div class="overlay" id="dov" style="align-items:center"><div class="dialog" role="dialog" aria-modal="true">${can ? `<button type="button" class="xclose" data-close aria-label="ปิด"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>` : ''}${html}</div></div>`;
   const d = $('#dov .dialog');
   d.querySelectorAll('[data-close]').forEach(b => b.onclick = () => { closeDialog(); });
+  if (can) { $('#dov').addEventListener('click', e => { if (e.target.id === 'dov') closeDialog(); });
+    swipeClose(d, d, () => true, closeDialog); }
   bind && bind(d);
+}
+// ปัดลงเพื่อปิด: ลากได้เมื่อเลื่อนเนื้อหาขึ้นบนสุดแล้ว หรือลากจากหัวแผ่น
+function swipeClose(panel, scroller, ok, close, head) {
+  let y0 = null, t0 = 0, dy = 0, drag = false;
+  panel.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1 || e.target.closest('input,select,textarea,.zoom')) { y0 = null; return; }
+    y0 = e.touches[0].clientY; t0 = Date.now(); dy = 0;
+    drag = (head && head.contains(e.target)) || scroller.scrollTop <= 0;
+  }, { passive: true });
+  panel.addEventListener('touchmove', e => {
+    if (y0 === null || !drag) return;
+    dy = e.touches[0].clientY - y0;
+    if (dy <= 0) { panel.style.transform = ''; return; }
+    if (!(head && head.contains(e.target)) && scroller.scrollTop > 0) { drag = false; panel.style.transform = ''; return; }
+    e.preventDefault(); panel.style.transition = 'none'; panel.style.transform = `translateY(${dy}px)`;
+  }, { passive: false });
+  panel.addEventListener('touchend', async () => {
+    if (y0 === null || !drag) return; y0 = null;
+    const fast = dy > 50 && dy / Math.max(1, Date.now() - t0) > 0.5;
+    panel.style.transition = 'transform .22s var(--ease-out)';
+    if ((dy > 110 || fast) && await ok()) { panel.style.transform = 'translateY(100%)'; setTimeout(close, 180); }
+    else panel.style.transform = '';
+  });
 }
 function closeDialog() { $('#layer').innerHTML = ''; resumeScan(); }
 let tTimer = null;
@@ -2369,23 +2452,32 @@ function openBranch() {
   });
 }
 $('#branchBtn').onclick = openBranch;
+$('#stPendBox').onclick = () => setTab('recount');
 paintBranch();
 
 $('#menuBtn').onclick = () => openDialog(`<h3>เมนู</h3>
-  <div class="choice">
-    <button class="btn ghost" id="mBranch">สาขา: ${curBranch ? esc(curBranch.code + ' ' + curBranch.name) : 'ไม่ทราบ'} · เปลี่ยนสาขา</button>
-    <button class="btn ghost" id="mReload">โหลดข้อมูลล่าสุดจากชีต</button>
-    <button class="btn ghost" id="mFlush">ส่งข้อมูลที่ค้างในเครื่อง (${queue.length})</button>
-    <button class="btn ghost" id="mWho">เปลี่ยนผู้นับ</button>
-    <button class="btn ghost" id="mShared">${shared ? '✓ ' : ''}เครื่องกลาง (ใช้ร่วมกันหลายคน): ${shared ? 'เปิดอยู่' : 'ปิดอยู่'}</button>
-    <button class="btn ghost" id="mBig">${document.documentElement.classList.contains('big') ? '✓ ' : ''}ตัวอักษรใหญ่: ${document.documentElement.classList.contains('big') ? 'เปิดอยู่' : 'ปิดอยู่'}</button>
-    <button class="btn ghost" id="mSetup">ตั้งค่าการเชื่อมต่อ</button>
-    <button class="btn ghost" id="mDiag">ตรวจสอบกล้องและตัวอ่าน (ส่งภาพหน้าจอนี้ตอนสแกนไม่ติด)</button>
+  <div class="mgroup">การนับ</div>
+  <div class="mlist">
+    <button class="mrow" id="mWho"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span><span class="mt">ผู้นับ<small>${esc(cfg.counter || 'ยังไม่เลือก')}</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button class="mrow" id="mBranch"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v10h16V10M3 10l2-6h14l2 6M3 10h18M10 20v-6h4v6"/></svg></span><span class="mt">สาขา<small>${curBranch ? esc(curBranch.code + ' ' + curBranch.name) : 'ไม่ทราบ'}</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
   </div>
-  <p class="small muted" style="margin-top:10px">เวอร์ชันแอป ${APP_VER} · สินค้าที่สแกนติดแล้ว ${barcodeStat} · ${showSys ? 'โหมดตรวจเทียบ (เห็นยอดในระบบ)' : 'โหมดนับแบบไม่เห็นยอด'} (เปลี่ยนได้ในชีต ตั้งค่า B8)</p>
-  <p class="small muted" style="margin-top:10px">เครื่องกลาง = แอปถามชื่อผู้นับใหม่ทุกครั้งที่เปิด และเมื่อไม่ได้ใช้เกิน 5 นาที เหมาะกับมือถือหรือแท็บเล็ตของร้าน</p>
-  <p class="small muted" style="margin-top:14px">ข้อมูลทุกครั้งที่บันทึกถูกเก็บในแท็บ “บันทึกการนับ” ของชีต</p>
-  <div class="acts"><button class="btn ghost" data-close>ปิด</button></div>`, d => {
+  <div class="mgroup">ข้อมูล</div>
+  <div class="mlist">
+    <button class="mrow" id="mReload"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></span><span class="mt">โหลดข้อมูลล่าสุดจากชีต</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button class="mrow${queue.length ? ' alert' : ''}" id="mFlush"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 16v4h16v-4"/></svg></span><span class="mt">ส่งข้อมูลที่ค้างในเครื่อง<small>${queue.length ? 'ค้าง ' + queue.length + ' รายการ' : 'ไม่มีค้าง'}</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+  </div>
+  <div class="mgroup">การแสดงผล</div>
+  <div class="mlist">
+    <button class="mrow" id="mBig" role="switch" aria-checked="${document.documentElement.classList.contains('big')}"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l5-14 5 14M6 15h6M15 20l3-8 3 8M16 18h4"/></svg></span><span class="mt">ตัวอักษรใหญ่</span><span class="sw${document.documentElement.classList.contains('big') ? ' on' : ''}"></span></button>
+    <button class="mrow" id="mShared" role="switch" aria-checked="${shared}"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-2.5-1.5-4.3-4-5"/></svg></span><span class="mt">เครื่องกลางของร้าน<small>ถามชื่อผู้นับทุกครั้งที่เปิด</small></span><span class="sw${shared ? ' on' : ''}"></span></button>
+  </div>
+  <div class="mgroup">ช่วยเหลือ</div>
+  <div class="mlist">
+    <button class="mrow" id="mDiag"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="mt">ตรวจกล้องและตัวอ่าน<small>แคปหน้าจอนี้ส่งให้ผู้ดูแล ตอนสแกนไม่ติด</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button class="mrow" id="mSetup"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></span><span class="mt">ตั้งค่าการเชื่อมต่อ</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+  </div>
+  <p class="small muted mfoot">เวอร์ชัน ${APP_VER} · ${showSys ? 'โหมดตรวจเทียบ (เห็นยอดในระบบ)' : 'โหมดนับแบบไม่เห็นยอด'} · สแกนติดแล้ว ${barcodeStat} สินค้า</p>
+  <div class="acts"><button class="btn ghost" data-close style="flex:1">ปิด</button></div>`, d => {
   d.querySelector('#mBranch').onclick = () => openBranch();
   d.querySelector('#mReload').onclick = () => { closeDialog(); load(); };
   d.querySelector('#mFlush').onclick = () => { closeDialog(); flushQueue(); };
