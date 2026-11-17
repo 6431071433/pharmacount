@@ -22,19 +22,22 @@
   --ink:#15191C; --muted:#535C63; --line:#DDE2E6; --bg:#F4F5F7; --card:#fff; --raise:0 1px 2px rgba(16,40,32,.06),0 4px 14px rgba(16,40,32,.06);
   --ok:#11804F; --ok-soft:#E1F3E9; --warn:#9A6500; --warn-soft:#FFF3D1; --amber:#F2B415;
   --bad:#B7322A; --bad-soft:#FCE8E6; --blind:#3B4BB0; --blind-soft:#ECEEFC;
+  --orange:#B45309; --orange-soft:#FFF4E8; --blue:#2563EB; --blue-soft:#E8F0FE; --violet:#7C3AED; --violet-soft:#F1EBFE; --slate:#475569; --slate-soft:#EEF1F5; --pink:#BE185D; --pink-soft:#FCE9F2;
   --radius:16px; --nav:68px;
   --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace; --display:Prompt,'IBM Plex Sans Thai',sans-serif;
   --ease-out:cubic-bezier(.22,1,.36,1); --ease-in:cubic-bezier(.55,0,1,.45); --spring:cubic-bezier(.34,1.56,.64,1);
 }
 @media (prefers-color-scheme: dark){:root:not(.light){
   --brand:#34BE8E; --brand-2:#52D3A6; --brand-soft:#173029; --brand-ink:#A9EDD3;
-  --ink:#ECEFF1; --muted:#A1A9B0; --line:#2C3136; --bg:#0F1113; --card:#191C1F; --raise:0 1px 2px rgba(0,0,0,.45);
+  --ink:#EDF0F2; --muted:#A3ACB4; --line:#30363C; --bg:#131619; --card:#1C2024; --raise:0 1px 2px rgba(0,0,0,.45);
   --ok:#4CCB8C; --ok-soft:#163326; --warn:#F2C14E; --warn-soft:#352B10; --bad:#FF8A7E; --bad-soft:#3A1D1A; --blind:#A9B4FF; --blind-soft:#22264A;
+  --orange:#FDBA74; --orange-soft:#33240F; --blue:#93B4FF; --blue-soft:#1A2540; --violet:#C4B5FD; --violet-soft:#2A2142; --slate:#B6C0CC; --slate-soft:#262B31; --pink:#F9A8D4; --pink-soft:#3A1C2C;
 }}
 :root.dark{
   --brand:#34BE8E; --brand-2:#52D3A6; --brand-soft:#173029; --brand-ink:#A9EDD3;
-  --ink:#ECEFF1; --muted:#A1A9B0; --line:#2C3136; --bg:#0F1113; --card:#191C1F; --raise:0 1px 2px rgba(0,0,0,.45);
+  --ink:#EDF0F2; --muted:#A3ACB4; --line:#30363C; --bg:#131619; --card:#1C2024; --raise:0 1px 2px rgba(0,0,0,.45);
   --ok:#4CCB8C; --ok-soft:#163326; --warn:#F2C14E; --warn-soft:#352B10; --bad:#FF8A7E; --bad-soft:#3A1D1A; --blind:#A9B4FF; --blind-soft:#22264A;
+  --orange:#FDBA74; --orange-soft:#33240F; --blue:#93B4FF; --blue-soft:#1A2540; --violet:#C4B5FD; --violet-soft:#2A2142; --slate:#B6C0CC; --slate-soft:#262B31; --pink:#F9A8D4; --pink-soft:#3A1C2C;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans Thai',Sarabun,system-ui,sans-serif;font-size:16px;line-height:1.6;font-variant-numeric:tabular-nums}
@@ -61,7 +64,8 @@ button{cursor:pointer}
 /* header: แผ่นขาวบาง ให้พื้นที่กับงาน */
 header{position:sticky;top:0;z-index:20;background:var(--card);color:var(--ink);padding:10px 16px 10px;padding-top:max(10px,env(safe-area-inset-top));border-bottom:1px solid var(--line)}
 .hrow{display:flex;align-items:center;gap:10px}
-.logo{font-weight:700;font-size:18px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:8px;color:var(--brand-ink)}
+.logo{font-weight:700;font-size:18px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:8px;color:var(--ink)}
+.logo .wm b{color:var(--brand);font-weight:700}
 .logo .mark{width:30px;height:30px;flex:none;display:block}
 .logo .mark svg{width:30px;height:30px;display:block}
 .chip-btn{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:6px;max-width:46vw;min-height:44px}
@@ -71,7 +75,7 @@ header{position:sticky;top:0;z-index:20;background:var(--card);color:var(--ink);
 .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none;box-shadow:0 0 0 3px var(--ok-soft)}
 .dot.off{background:var(--bad);box-shadow:0 0 0 3px var(--bad-soft)}
 .progress{margin-top:8px;display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted);font-weight:500}
-.branch-chip{flex:none;border:1px solid var(--brand);background:var(--brand-soft);color:var(--brand-ink);border-radius:999px;padding:2px 10px 2px 12px;min-height:32px;font-family:var(--display);font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px;margin:-6px 0}
+.branch-chip{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:2px 10px 2px 12px;min-height:32px;font-family:var(--display);font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px;margin:-6px 0}
 .branch-chip::after{content:'';width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px)}
 .branch-chip.unknown{border-color:var(--amber);background:var(--warn-soft);color:var(--warn)}
 .brow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1.5px solid var(--line);background:var(--card);border-radius:16px;padding:12px 14px;min-height:64px}
@@ -100,7 +104,7 @@ h2{font-size:17px;margin:0 0 8px}
 
 /* กล้อง: ช่องมองแบบเครื่องสแกน มุม 4 ด้าน */
 .cam{position:relative;border-radius:22px;overflow:hidden;background:#08110E;aspect-ratio:4/3;max-height:52vh;width:100%}
-.cam.off{aspect-ratio:auto;height:176px;background:radial-gradient(rgba(255,255,255,.09) 1px,transparent 1.5px) 0 0/14px 14px,radial-gradient(120% 140% at 0% 0%,#13916A 0%,#0B6E4F 45%,#06402F 100%)}
+.cam.off{aspect-ratio:auto;height:176px;background:radial-gradient(rgba(255,255,255,.09) 1px,transparent 1.5px) 0 0/14px 14px,radial-gradient(70% 120% at 100% 0%,rgba(255,196,87,.28) 0%,transparent 60%),radial-gradient(120% 140% at 0% 0%,#18A57A 0%,#0C7454 48%,#07513B 100%)}
 .cam.off video{display:none}
 .cam-msg .ico{width:48px;height:48px;margin:0 auto 6px;display:block;opacity:.95}
 .cam-msg .ttl{font-size:17px;font-weight:700}
@@ -162,14 +166,14 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .stats{display:grid;grid-template-columns:1.7fr 1fr;gap:10px;margin-top:14px}
 .stat .minibar{margin-top:8px;height:6px}
 .tips{margin-top:8px;font-size:14px;color:var(--muted)}
-.tips summary{cursor:pointer;color:var(--brand);font-weight:600;padding:4px 0;list-style:none}
+.tips summary{cursor:pointer;color:var(--muted);font-weight:600;padding:4px 0;list-style:none}
 .tips summary::-webkit-details-marker{display:none}
 .tips summary::before{content:'';display:inline-block;width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);margin:0 8px 2px 2px;transition:transform .15s}
 .tips[open] summary::before{transform:rotate(45deg)}
 .tips ul{margin:4px 0 0;padding-left:20px}
 .tips li{margin:3px 0}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
-.stat b{display:block;font-size:26px;color:var(--brand-ink);line-height:1.2;letter-spacing:-.01em}
+.stat b{display:block;font-size:26px;color:var(--ink);line-height:1.2;letter-spacing:-.01em}
 .stat.warn b{color:var(--warn)}
 .statbtn{text-align:left;font:inherit;color:inherit;width:100%}
 .statbtn.zero b{color:var(--muted)}
@@ -223,6 +227,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .lot{transition:border-color .2s}
 .lot.done{box-shadow:inset 3px 0 0 var(--ok)}
 .lot-done{margin-top:6px;font-size:14px;color:var(--ok);font-weight:600}
+.lot-done.bad{color:var(--bad)}
 .lot-done span{color:var(--muted);font-weight:400}
 .lot-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
 .lot-id{font-family:var(--mono);font-weight:600;font-size:18px;letter-spacing:.01em}
@@ -245,6 +250,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .note{font-size:14px;color:var(--muted);margin-top:8px}
 .field{margin-top:10px}
 .field label{display:block;font-size:14px;color:var(--muted);margin-bottom:4px}
+.addnote{margin-top:8px;font-size:14px;font-weight:600;color:var(--blue);background:var(--blue-soft);border-radius:10px;padding:6px 10px}
+.lot-done{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}.lot-done .addmore{margin-left:auto;min-height:36px;padding:4px 12px;color:var(--blue);border-color:color-mix(in srgb,var(--blue) 35%,var(--line));background:transparent}
+.chipbtn.on{background:var(--blue-soft);border-color:var(--blue);color:var(--blue)}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .chipbtn{border:1px solid var(--line);background:var(--bg);color:var(--brand-ink);border-radius:999px;padding:6px 14px;min-height:40px;font-size:14px;font-weight:600}
 .chipbtn:active{transform:scale(.97)}
@@ -252,7 +260,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .diff:empty{display:none}
 .diff.ok{color:var(--ok)}.diff.lo{color:var(--bad)}.diff.hi{color:var(--warn)}
 .quietlink{background:none;border:0;padding:6px 0;min-height:36px;color:var(--muted);font-size:14px;text-decoration:underline;text-underline-offset:3px}
-.addlot{width:100%;margin-top:4px;border:1.5px dashed var(--brand);background:transparent;color:var(--brand);border-radius:14px;min-height:50px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px}
+.addlot{width:100%;margin-top:4px;border:1.5px dashed var(--orange);background:var(--orange-soft);color:var(--orange);border-radius:14px;min-height:50px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px}
 .addlot svg{width:18px;height:18px}
 .linkbtn{background:none;border:0;color:var(--brand);font-weight:700;padding:8px 0;min-height:44px}
 .rlot{border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px 12px;margin-top:10px;background:var(--card)}
@@ -271,7 +279,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .lotx .bi{width:16px;height:16px;vertical-align:-2px;margin-right:6px}
 .lotx button[data-x="ok"]{color:var(--ok);border-color:var(--ok)}
 .lotx button.on[data-x="ok"]{background:var(--ok);border-color:var(--ok);color:#fff}
-.lotx button.on[data-x="edit"],.lotx button.on[data-x="bad"]{background:var(--warn-soft);border-color:var(--amber);color:var(--warn)}
+.lotx button[data-x="edit"],.lotx button[data-x="bad"]{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}
+.lotx button.on[data-x="edit"],.lotx button.on[data-x="bad"]{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
 .expbox{display:none;margin-top:8px}
 .expbox.on{display:block}
 .expp{display:grid;grid-template-columns:.8fr 1fr 1.3fr;gap:6px}
@@ -294,7 +303,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .newver{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav) + 14px + env(safe-area-inset-bottom));z-index:55;border:0;border-radius:999px;background:var(--brand);color:#fff;font-weight:700;padding:12px 20px;box-shadow:0 6px 20px rgba(0,0,0,.25);white-space:nowrap}
 .sugrow{border:2px solid var(--brand-2)}
 .sugrow .pick{flex:none;background:var(--brand);color:#fff;border-radius:10px;padding:8px 12px;font-weight:700;font-size:14px}
-.addlot{width:100%;margin-top:10px;border:1px dashed var(--brand-2);border-radius:14px;background:none;color:var(--brand);font-weight:700;padding:12px}
+.addlot{margin-top:10px;padding:12px}
 
 /* งานวันนี้ */
 .today-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:4px 2px 2px}
@@ -350,6 +359,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .mrow .mt{flex:1;min-width:0;line-height:1.35}
 .mrow .mt small{display:block;font-size:14px;font-weight:400;color:var(--muted)}
 .mrow .chev{width:18px;height:18px;color:var(--muted);flex:none}
+.mrow .mi.t-blue{background:var(--blue-soft);color:var(--blue)}.mrow .mi.t-violet{background:var(--violet-soft);color:var(--violet)}
+.mrow .mi.t-orange{background:var(--orange-soft);color:var(--orange)}.mrow .mi.t-slate{background:var(--slate-soft);color:var(--slate)}.mrow .mi.t-pink{background:var(--pink-soft);color:var(--pink)}
 .mrow.alert .mi{background:var(--warn-soft);color:var(--warn)}.mrow.alert small{color:var(--warn);font-weight:700}
 .seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px;flex:none}
 .seg button{border:0;background:none;border-radius:9px;padding:6px 10px;min-height:36px;font-size:14px;font-weight:600;color:var(--muted)}
@@ -382,7 +393,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 
 <header id="hdr">
   <div class="hrow">
-    <div class="logo"><span class="mark"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#0B6E4F"/><path fill="#fff" d="M26 10h12a3 3 0 0 1 3 3v10h10a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H41v10a3 3 0 0 1-3 3H26a3 3 0 0 1-3-3V41H13a3 3 0 0 1-3-3V26a3 3 0 0 1 3-3h10V13a3 3 0 0 1 3-3z"/><path d="M24.5 32.5l5 5 10-10.5" fill="none" stroke="#0B6E4F" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>PharmaCount</div>
+    <div class="logo"><span class="mark"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#0B6E4F"/><path fill="#fff" d="M26 10h12a3 3 0 0 1 3 3v10h10a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H41v10a3 3 0 0 1-3 3H26a3 3 0 0 1-3-3V41H13a3 3 0 0 1-3-3V26a3 3 0 0 1 3-3h10V13a3 3 0 0 1 3-3z"/><path d="M24.5 32.5l5 5 10-10.5" fill="none" stroke="#0B6E4F" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="wm">Pharma<b>Count</b></span></div>
     <span class="dot" id="netDot" title="สถานะการเชื่อมต่อ"></span>
     <button class="chip-btn" id="counterBtn" aria-label="เปลี่ยนผู้นับ">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
@@ -479,7 +490,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-17.5';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-17.6';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -1248,7 +1259,7 @@ function openSheet(lots, mode, raw, pre, editing) {
             ${chk(i) ? `<div class="sysq sys"><b>${i.f}</b><span>${esc(i.u)} ในระบบ</span></div>` : statusPill(i.st)}
           </div>
           ${isHit(i) ? '<div class="lot-meta"><span class="pill p-ok">LOT ตรงกับบาร์โค้ดที่สแกน</span></div>' : ''}
-          ${i.c && mode === 'count' ? `<div class="lot-done">✓ นับแล้ว${chk(i) && i.st && i.st !== 'ยังไม่นับ' ? ' · ' + esc(i.st) : ''}<span>${i.by ? ' · ' + esc(i.by) : ''}</span></div>` : ''}
+          ${i.c && mode === 'count' ? `<div class="lot-done${/ไม่ตรง|นับซ้ำ/.test(i.st || '') ? ' bad' : ''}">✓ นับแล้ว${chk(i) && i.st && i.st !== 'ยังไม่นับ' ? ' · ' + esc(i.st) : ''}<span>${i.by ? ' · ' + esc(i.by) : ''}</span>${i.q != null ? `<button type="button" class="chipbtn addmore" data-addmore>+ เจออีกที่ (บวกกับ ${i.q})</button>` : ''}</div>` : ''}
           ${i.dup || i.ef ? `<div class="lot-meta">${i.dup ? '<span class="pill p-warn">แถวซ้ำในระบบ</span>' : ''}${i.ef ? `<span class="pill p-warn">EXP บนกล่อง ${esc(fmtExp(i.ef))}</span>` : ''}</div>` : ''}
           ${chk(i) ? `
           <div class="lotx"><button type="button" data-x="ok">✓ ตรง</button><button type="button" data-x="edit"><svg class="bi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>ไม่ตรง แก้จำนวน</button></div>` : ''}
@@ -1262,6 +1273,7 @@ function openSheet(lots, mode, raw, pre, editing) {
           </div>
           ${chk(i) ? '<div class="diff" data-diff aria-live="polite"></div>' : ''}
           ${calcBox(i, pk)}
+          <div class="addnote" data-addnote hidden>นับเพิ่มจากที่อื่น · จะบวกกับ ${i.q} ที่นับไว้แล้ว</div>
           <div class="chips">
             <button type="button" class="chipbtn" data-zero>ไม่มีบนชั้น = 0</button>
             ${pk ? '' : `<button type="button" class="chipbtn" data-calcbtn>คิดจากจำนวนกล่อง</button>`}
@@ -1288,6 +1300,12 @@ function openSheet(lots, mode, raw, pre, editing) {
     const st = e.target.closest('[data-step]');
     if (st) { const inp = st.parentElement.querySelector('[data-q]'); const cur = inp.value === '' ? (Number(st.dataset.step) > 0 ? 0 : 1) : Number(inp.value);
       inp.value = Math.max(0, cur + Number(st.dataset.step)); updateSave(); vibrate(8); }
+    // ยาตัวเดียวกันวางหลายที่: นับที่ใหม่แล้วบวกกับยอดที่นับไว้ ไม่ต้องคิดเลขเอง
+    const am = e.target.closest('[data-addmore]');
+    if (am) { const L = am.closest('.lot'), on = L.dataset.add !== '1'; L.dataset.add = on ? '1' : '';
+      am.classList.toggle('on', on); L.querySelector('[data-addnote]').hidden = !on;
+      L.querySelector('[data-edit]').classList.add('on'); L.querySelectorAll('[data-x]').forEach(b => b.classList.toggle('on', b.dataset.x === 'edit'));
+      const q = L.querySelector('[data-q]'); q.value = ''; if (on) q.focus(); updateSave(); }
     const z = e.target.closest('[data-zero]');
     if (z) { const L = z.closest('.lot'); L.querySelector('[data-q]').value = 0; L.querySelectorAll('[data-cb],[data-cl]').forEach(x => x.value = ''); updateSave(); }
     const cb = e.target.closest('[data-calcbtn]');
@@ -1361,6 +1379,7 @@ function sheetEntries() {
     const v = el.querySelector('[data-q]').value.trim();
     if (v !== '') {
       const it = sheetCtx.lots[Number(el.dataset.k)], o = { it, q: Number(v) };
+      if (el.dataset.add === '1' && it.q != null) { o.added = o.q; o.q = Number(it.q) + o.q; }
       const x = el.querySelector('[data-x].on');
       if (x && x.dataset.x === 'ok') o.expOk = true;
       const cf = el.querySelector('[data-confirm]');
@@ -1389,9 +1408,10 @@ function updateSave() {
     if (!d || !it || it.f == null) return;
     const v = L.querySelector('[data-q]').value.trim(), on = L.querySelector('[data-edit]').classList.contains('on');
     if (!on || v === '' || !isFinite(Number(v))) { d.textContent = ''; d.className = 'diff'; return; }
-    const df = Number(v) - Number(it.f), u = it.u || '';
+    const tot = L.dataset.add === '1' && it.q != null ? Number(it.q) + Number(v) : Number(v);
+    const df = tot - Number(it.f), u = it.u || '', pre = tot !== Number(v) ? `รวม ${tot} · ` : '';
     d.className = 'diff ' + (df === 0 ? 'ok' : df < 0 ? 'lo' : 'hi');
-    d.textContent = df === 0 ? '✓ เท่ากับในระบบ' : df < 0 ? `ขาด ${-df} ${u} (ระบบ ${it.f})` : `เกิน ${df} ${u} (ระบบ ${it.f})`;
+    d.textContent = pre + (df === 0 ? '✓ เท่ากับในระบบ' : df < 0 ? `ขาด ${-df} ${u} (ระบบ ${it.f})` : `เกิน ${df} ${u} (ระบบ ${it.f})`);
   });
 }
 // มีตัวเลขที่กรอกไว้แต่ยังไม่บันทึก → ถามก่อนปิด กันกรอกแล้วหาย
@@ -1509,7 +1529,7 @@ async function saveSheet() {
     } }
   // ปิดแผ่นนับทันที ให้สแกนชิ้นต่อไปได้เลย ผลตรง/ไม่ตรงจะเด้งขึ้นมาเมื่อระบบตอบกลับ
   const snap = entries.map(e => ({ it: e.it, c: e.it.c, by: e.it.by, st: e.it.st }));
-  entries.forEach(e => { if (mode === 'count') { e.it.c = true; e.it.by = cfg.counter; } e.it.st = 'รอส่ง'; if (loc) e.it.loc = loc;
+  entries.forEach(e => { if (mode === 'count') { e.it.c = true; e.it.by = cfg.counter; e.it.q = e.q; } e.it.st = 'รอส่ง'; if (loc) e.it.loc = loc;
     if (e.expFound) e.it.ef = e.expFound; else if (e.expOk) e.it.ef = ''; });
   const p0 = sheetCtx.lots[0], raw0 = sheetCtx.raw || '';
   if (loc) ploc[normName(p0.n)] = loc;
@@ -2516,25 +2536,25 @@ paintBranch();
 $('#menuBtn').onclick = () => openDialog(`<h3>เมนู</h3>
   <div class="mgroup">การนับ</div>
   <div class="mlist">
-    <button class="mrow" id="mWho"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span><span class="mt">ผู้นับ<small>${esc(cfg.counter || 'ยังไม่เลือก')}</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
-    <button class="mrow" id="mBranch"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v10h16V10M3 10l2-6h14l2 6M3 10h18M10 20v-6h4v6"/></svg></span><span class="mt">สาขา<small>${curBranch ? esc(curBranch.code + ' ' + curBranch.name) : 'ไม่ทราบ'}</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button class="mrow" id="mWho"><span class="mi t-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span><span class="mt">ผู้นับ<small>${esc(cfg.counter || 'ยังไม่เลือก')}</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button class="mrow" id="mBranch"><span class="mi t-violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v10h16V10M3 10l2-6h14l2 6M3 10h18M10 20v-6h4v6"/></svg></span><span class="mt">สาขา<small>${curBranch ? esc(curBranch.code + ' ' + curBranch.name) : 'ไม่ทราบ'}</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
   </div>
   <div class="mgroup">ข้อมูล</div>
   <div class="mlist">
     <button class="mrow" id="mReload"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></span><span class="mt">โหลดข้อมูลล่าสุดจากชีต</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
-    <button class="mrow${queue.length ? ' alert' : ''}" id="mFlush"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 16v4h16v-4"/></svg></span><span class="mt">ส่งข้อมูลที่ค้างในเครื่อง<small>${queue.length ? 'ค้าง ' + queue.length + ' รายการ' : 'ไม่มีค้าง'}</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button class="mrow${queue.length ? ' alert' : ''}" id="mFlush"><span class="mi t-orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 16v4h16v-4"/></svg></span><span class="mt">ส่งข้อมูลที่ค้างในเครื่อง<small>${queue.length ? 'ค้าง ' + queue.length + ' รายการ' : 'ไม่มีค้าง'}</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
   </div>
   <div class="mgroup">การแสดงผล</div>
   <div class="mlist">
-    <div class="mrow"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg></span><span class="mt">ธีม</span>
+    <div class="mrow"><span class="mi t-slate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg></span><span class="mt">ธีม</span>
       <span class="seg" role="radiogroup" aria-label="ธีม">${[['auto', 'ตามเครื่อง'], ['light', 'สว่าง'], ['dark', 'มืด']].map(([v, l]) => `<button type="button" role="radio" data-theme="${v}" aria-checked="${(store.get('theme', 'auto') || 'auto') === v}">${l}</button>`).join('')}</span></div>
-    <button class="mrow" id="mBig" role="switch" aria-checked="${document.documentElement.classList.contains('big')}"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l5-14 5 14M6 15h6M15 20l3-8 3 8M16 18h4"/></svg></span><span class="mt">ตัวอักษรใหญ่</span><span class="sw${document.documentElement.classList.contains('big') ? ' on' : ''}"></span></button>
-    <button class="mrow" id="mShared" role="switch" aria-checked="${shared}"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-2.5-1.5-4.3-4-5"/></svg></span><span class="mt">เครื่องกลางของร้าน<small>ถามชื่อผู้นับทุกครั้งที่เปิด</small></span><span class="sw${shared ? ' on' : ''}"></span></button>
+    <button class="mrow" id="mBig" role="switch" aria-checked="${document.documentElement.classList.contains('big')}"><span class="mi t-slate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l5-14 5 14M6 15h6M15 20l3-8 3 8M16 18h4"/></svg></span><span class="mt">ตัวอักษรใหญ่</span><span class="sw${document.documentElement.classList.contains('big') ? ' on' : ''}"></span></button>
+    <button class="mrow" id="mShared" role="switch" aria-checked="${shared}"><span class="mi t-pink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-2.5-1.5-4.3-4-5"/></svg></span><span class="mt">เครื่องกลางของร้าน<small>ถามชื่อผู้นับทุกครั้งที่เปิด</small></span><span class="sw${shared ? ' on' : ''}"></span></button>
   </div>
   <div class="mgroup">ช่วยเหลือ</div>
   <div class="mlist">
-    <button class="mrow" id="mDiag"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="mt">ตรวจกล้องและตัวอ่าน<small>แคปหน้าจอนี้ส่งให้ผู้ดูแล ตอนสแกนไม่ติด</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
-    <button class="mrow" id="mSetup"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></span><span class="mt">ตั้งค่าการเชื่อมต่อ</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button class="mrow" id="mDiag"><span class="mi t-orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="mt">ตรวจกล้องและตัวอ่าน<small>แคปหน้าจอนี้ส่งให้ผู้ดูแล ตอนสแกนไม่ติด</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button class="mrow" id="mSetup"><span class="mi t-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></span><span class="mt">ตั้งค่าการเชื่อมต่อ</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
   </div>
   <p class="small muted mfoot">เวอร์ชัน ${APP_VER} · ${showSys ? 'โหมดตรวจเทียบ (เห็นยอดในระบบ)' : 'โหมดนับแบบไม่เห็นยอด'} · สแกนติดแล้ว ${barcodeStat} สินค้า</p>
   <div class="acts"><button class="btn ghost" data-close style="flex:1">ปิด</button></div>`, d => {
