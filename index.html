@@ -61,6 +61,15 @@ header{position:sticky;top:0;z-index:20;background:var(--card);color:var(--ink);
 .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none;box-shadow:0 0 0 3px var(--ok-soft)}
 .dot.off{background:var(--bad);box-shadow:0 0 0 3px var(--bad-soft)}
 .progress{margin-top:8px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);font-weight:500}
+.branch-chip{flex:none;border:1px solid var(--brand);background:var(--brand-soft);color:var(--brand-ink);border-radius:999px;padding:2px 10px 2px 12px;min-height:32px;font-family:var(--display);font-weight:600;font-size:13.5px;display:inline-flex;align-items:center;gap:6px;margin:-6px 0}
+.branch-chip::after{content:'';width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px)}
+.branch-chip.unknown{border-color:var(--amber);background:var(--warn-soft);color:var(--warn)}
+.brow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1.5px solid var(--line);background:var(--card);border-radius:16px;padding:12px 14px;min-height:64px}
+.brow .bc{font-family:var(--display);font-weight:600;font-size:18px;min-width:58px;color:var(--brand-ink)}
+.brow .bt{flex:1;min-width:0}.brow .bt b{display:block}.brow .bt span{font-size:13px;color:var(--muted)}
+.brow.on{border-color:var(--brand);background:var(--brand-soft)}
+.brow:disabled{opacity:.55}
+.brow .bok{font-size:22px;font-weight:700;color:var(--brand)}
 .bar{flex:1;height:6px;background:var(--line);border-radius:6px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--brand);width:0;transition:width .4s}
 
@@ -306,7 +315,7 @@ html.big .hrow .chip-btn{margin-left:auto}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
   </div>
-  <div class="progress"><span id="progTxt">กำลังโหลด…</span><div class="bar"><i id="progBar"></i></div><span id="queueTxt"></span></div>
+  <div class="progress"><button type="button" class="branch-chip" id="branchBtn" aria-label="เปลี่ยนสาขา"></button><span id="progTxt">กำลังโหลด…</span><div class="bar"><i id="progBar"></i></div><span id="queueTxt"></span></div>
 </header>
 
 <nav id="tabs" aria-label="เมนูหลัก">
@@ -394,7 +403,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-16.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-17.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -413,6 +422,12 @@ if (qs.get('api') || qs.get('pin') || qs.has('openExternalBrowser')) keepKey(sto
 // ลิงก์ระบบของร้าน (Apps Script) ฝังไว้ในแอป: ไม่ใช่ความลับ เพราะต้องมีรหัสร้านถึงจะอ่าน/เขียนข้อมูลได้
 const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbw4_JeW_ZdVEFxO4yv0OvTwW61uSk6CtYRPSJBepHLJb31kB-omU2rhOQRDcAIM-FvsNw/exec';
 const validApi = u => /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(String(u || '').trim());
+// สาขาของร้าน: แต่ละสาขามีชีตของตัวเอง (ลิงก์ /exec ไม่ใช่ความลับ ต้องมีรหัสร้านถึงจะอ่าน/เขียนได้) · api ว่าง = ยังไม่เปิดใช้
+const BRANCHES = [
+  { code: 'US51', name: 'อุดมสุข 51', note: 'สาขาหลัก', api: DEFAULT_API },
+  { code: 'US9', name: 'อุดมสุข 9', api: 'https://script.google.com/macros/s/AKfycbz8X-pnBW3waA1hfiPPaMTVB9DnPMQEauU_MNUhb098xBrHlIFe_vwtr0MQwbtBf8u42A/exec' },
+  { code: 'ON46', name: 'อ่อนนุช 46', api: '' },
+];
 // เครื่องกลาง (ใช้ร่วมกันหลายคน): จำชื่อผู้นับไว้แค่จนปิดแอป และถามใหม่เมื่อเปิดกลับมาหลังพักนาน
 const shared = store.get('shared', false);
 const sess = {
@@ -423,6 +438,8 @@ const whoGet = k => shared ? sess.get(k) : store.get(k, '');
 const whoSet = (k, v) => shared ? sess.set(k, v) : store.set(k, v);
 const cfg = { api: validApi(store.get('api', '')) ? store.get('api', '') : DEFAULT_API, pin: store.get('pin', ''), counter: whoGet('counter'), cpin: whoGet('cpin') };
 if (cfg.pin && !/[#&]k=/.test(location.hash)) keepKey(cfg.pin);
+const branchOf = api => BRANCHES.find(b => b.api && b.api === String(api || '').trim()) || null;
+const curBranch = branchOf(cfg.api);
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -2200,8 +2217,37 @@ function openSetup(err, advanced) {
     };
   });
 }
+/* ---------- เลือกสาขา ---------- */
+function paintBranch() {
+  const b = $('#branchBtn'); if (!b) return;
+  b.textContent = curBranch ? curBranch.code : 'สาขา?';
+  b.classList.toggle('unknown', !curBranch);
+}
+function openBranch() {
+  openDialog(`<h3>เลือกสาขาที่กำลังนับ</h3>
+    <p class="small muted">แต่ละสาขามีชีตของตัวเอง ยอดไม่ปนกัน · เลือกให้ตรงกับร้านที่ยืนอยู่</p>
+    <div class="choice">${BRANCHES.map(b => `<button type="button" class="brow${curBranch && curBranch.code === b.code ? ' on' : ''}" data-b="${b.code}"${b.api ? '' : ' disabled'}>
+      <span class="bc">${esc(b.code)}</span><span class="bt"><b>${esc(b.name)}</b><span>${curBranch && curBranch.code === b.code ? 'ใช้อยู่ตอนนี้' : b.api ? (b.note || 'แตะเพื่อสลับ') : 'ยังไม่เปิดใช้'}</span></span>
+      ${curBranch && curBranch.code === b.code ? '<span class="bok" aria-hidden="true">✓</span>' : ''}</button>`).join('')}</div>
+    <div class="acts"><button class="btn ghost" data-close>ปิด</button></div>`, d => {
+    d.querySelectorAll('[data-b]').forEach(el => el.onclick = () => {
+      const b = BRANCHES.find(x => x.code === el.dataset.b); if (!b || !b.api) return;
+      if (curBranch && curBranch.code === b.code) { closeDialog(); return; }
+      if (queue.length) { toast(`มีข้อมูลค้างส่ง ${queue.length} รายการ ต่อเน็ตแล้วกด "ส่งข้อมูลที่ค้าง" ก่อนสลับสาขา`, 'warn', 5000); return; }
+      // ข้อมูลของสาขาเดิม (ผู้นับ ชั้นที่กำลังนับ นับล่าสุด) ใช้กับสาขาใหม่ไม่ได้ → ล้าง แล้วโหลดใหม่
+      store.set('api', b.api); whoSet('counter', ''); whoSet('cpin', '');
+      store.set('recent', []); store.set('curShelf', ''); store.set('lastShelf', '');
+      el.querySelector('.bt span').textContent = 'กำลังสลับ…';
+      location.reload();
+    });
+  });
+}
+$('#branchBtn').onclick = openBranch;
+paintBranch();
+
 $('#menuBtn').onclick = () => openDialog(`<h3>เมนู</h3>
   <div class="choice">
+    <button class="btn ghost" id="mBranch">สาขา: ${curBranch ? esc(curBranch.code + ' ' + curBranch.name) : 'ไม่ทราบ'} · เปลี่ยนสาขา</button>
     <button class="btn ghost" id="mReload">โหลดข้อมูลล่าสุดจากชีต</button>
     <button class="btn ghost" id="mFlush">ส่งข้อมูลที่ค้างในเครื่อง (${queue.length})</button>
     <button class="btn ghost" id="mWho">เปลี่ยนผู้นับ</button>
@@ -2214,6 +2260,7 @@ $('#menuBtn').onclick = () => openDialog(`<h3>เมนู</h3>
   <p class="small muted" style="margin-top:10px">เครื่องกลาง = แอปถามชื่อผู้นับใหม่ทุกครั้งที่เปิด และเมื่อไม่ได้ใช้เกิน 5 นาที เหมาะกับมือถือหรือแท็บเล็ตของร้าน</p>
   <p class="small muted" style="margin-top:14px">ข้อมูลทุกครั้งที่บันทึกถูกเก็บในแท็บ “บันทึกการนับ” ของชีต</p>
   <div class="acts"><button class="btn ghost" data-close>ปิด</button></div>`, d => {
+  d.querySelector('#mBranch').onclick = () => openBranch();
   d.querySelector('#mReload').onclick = () => { closeDialog(); load(); };
   d.querySelector('#mFlush').onclick = () => { closeDialog(); flushQueue(); };
   d.querySelector('#mSetup').onclick = () => openSetup();
