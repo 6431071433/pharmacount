@@ -4,17 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#17211E" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0F1113" media="(prefers-color-scheme: dark)">
 <title>PharmaCount นับสต็อกยา</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="PharmaCount">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Prompt:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/barcode-detector@3.2.1/dist/iife/ponyfill.js"></script>
+<script>try{var t=JSON.parse(localStorage.getItem('pc_theme')||'""');if(t==='light'||t==='dark')document.documentElement.classList.add(t);}catch(e){}</script>
 <style>
 /* PharmaCount · แนวทาง "Soft clinical calm · ฉลากยา": เขียวกากบาทร้านยา + เหลือง/แดงแบบฉลากเตือน
    ตัวอักษร: Prompt (หัวเรื่อง/ตัวเลขเด่น) + IBM Plex Sans Thai (เนื้อหา) + IBM Plex Mono (LOT/บาร์โค้ด) */
 :root{
   --brand:#0B6E4F; --brand-2:#13916A; --brand-soft:#E2F2EB; --brand-ink:#064A35;
-  --ink:#17211E; --muted:#4B5955; --line:#D3DDD8; --bg:#F3F6F4; --card:#fff; --raise:0 1px 2px rgba(16,40,32,.06),0 4px 14px rgba(16,40,32,.06);
+  --ink:#15191C; --muted:#535C63; --line:#DDE2E6; --bg:#F4F5F7; --card:#fff; --raise:0 1px 2px rgba(16,40,32,.06),0 4px 14px rgba(16,40,32,.06);
   --ok:#11804F; --ok-soft:#E1F3E9; --warn:#9A6500; --warn-soft:#FFF3D1; --amber:#F2B415;
   --bad:#B7322A; --bad-soft:#FCE8E6; --blind:#3B4BB0; --blind-soft:#ECEEFC;
   --radius:16px; --nav:68px;
@@ -22,10 +27,15 @@
   --ease-out:cubic-bezier(.22,1,.36,1); --ease-in:cubic-bezier(.55,0,1,.45); --spring:cubic-bezier(.34,1.56,.64,1);
 }
 @media (prefers-color-scheme: dark){:root:not(.light){
-  --brand:#3CC497; --brand-2:#5BD6AD; --brand-soft:#16342A; --brand-ink:#B9F0DB;
-  --ink:#E8EFEC; --muted:#9DB0A9; --line:#2A3833; --bg:#0F1614; --card:#17211E; --raise:0 1px 2px rgba(0,0,0,.4);
-  --ok:#4FD18F; --ok-soft:#173A2A; --warn:#F2C14E; --warn-soft:#3A2F10; --bad:#FF8A7E; --bad-soft:#3E1C19; --blind:#A9B4FF; --blind-soft:#22264A;
+  --brand:#34BE8E; --brand-2:#52D3A6; --brand-soft:#173029; --brand-ink:#A9EDD3;
+  --ink:#ECEFF1; --muted:#A1A9B0; --line:#2C3136; --bg:#0F1113; --card:#191C1F; --raise:0 1px 2px rgba(0,0,0,.45);
+  --ok:#4CCB8C; --ok-soft:#163326; --warn:#F2C14E; --warn-soft:#352B10; --bad:#FF8A7E; --bad-soft:#3A1D1A; --blind:#A9B4FF; --blind-soft:#22264A;
 }}
+:root.dark{
+  --brand:#34BE8E; --brand-2:#52D3A6; --brand-soft:#173029; --brand-ink:#A9EDD3;
+  --ink:#ECEFF1; --muted:#A1A9B0; --line:#2C3136; --bg:#0F1113; --card:#191C1F; --raise:0 1px 2px rgba(0,0,0,.45);
+  --ok:#4CCB8C; --ok-soft:#163326; --warn:#F2C14E; --warn-soft:#352B10; --bad:#FF8A7E; --bad-soft:#3A1D1A; --blind:#A9B4FF; --blind-soft:#22264A;
+}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans Thai',Sarabun,system-ui,sans-serif;font-size:16px;line-height:1.6;font-variant-numeric:tabular-nums}
 html.big body{zoom:1.15}
@@ -52,8 +62,8 @@ button{cursor:pointer}
 header{position:sticky;top:0;z-index:20;background:var(--card);color:var(--ink);padding:10px 16px 10px;padding-top:max(10px,env(safe-area-inset-top));border-bottom:1px solid var(--line)}
 .hrow{display:flex;align-items:center;gap:10px}
 .logo{font-weight:700;font-size:18px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:8px;color:var(--brand-ink)}
-.logo .mark{width:26px;height:26px;border-radius:8px;background:var(--brand);display:grid;place-items:center;flex:none}
-.logo .mark svg{width:16px;height:16px}
+.logo .mark{width:30px;height:30px;flex:none;display:block}
+.logo .mark svg{width:30px;height:30px;display:block}
 .chip-btn{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:6px;max-width:46vw;min-height:44px}
 .chip-btn span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .icon-btn{border:0;background:transparent;color:var(--ink);width:44px;height:44px;border-radius:12px;display:grid;place-items:center}
@@ -171,11 +181,30 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .row .n{font-weight:600;line-height:1.35}
 .row .s{font-size:14px;color:var(--muted);margin-top:2px}
 /* ป้ายสถานะ: แบบฉลากเตือนติดขวดยา */
-.pill{display:inline-block;border-radius:6px 999px 999px 6px;padding:2px 10px 2px 8px;font-size:14px;font-weight:600;white-space:nowrap;border-left:3px solid currentColor}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:14px;font-weight:600;white-space:nowrap}
 .p-ok{background:var(--ok-soft);color:var(--ok)}
 .p-warn{background:var(--warn-soft);color:var(--warn)}
 .p-bad{background:var(--bad-soft);color:var(--bad)}
-.p-mute{background:var(--bg);color:var(--muted);border-left-color:var(--line)}
+.p-mute{background:var(--bg);color:var(--muted)}
+.rc-sum{display:flex;gap:14px;align-items:center;margin:2px 2px 4px}
+.rc-sum:empty{display:none}
+.rc-big{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:92px;padding:10px 12px;border-radius:var(--radius);background:var(--blind-soft);color:var(--blind)}
+.rc-big b{font-family:var(--display);font-size:30px;line-height:1.1}
+.rc-big span{font-size:14px;font-weight:600;text-align:center;line-height:1.3}
+.rc-how{flex:1;font-size:15px;line-height:1.55}
+.rc-shelf{display:flex;align-items:center;gap:8px;margin:18px 2px 2px;font-weight:700;font-size:16px}
+.rc-shelf .shi{width:28px;height:28px;border-radius:8px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center}.rc-shelf .shi svg{width:16px;height:16px}
+.rc-shelf .cnt{margin-left:auto;font-size:14px;color:var(--muted);font-weight:600}
+.rc-shelf.own{color:var(--muted);font-size:15px}
+.rc-row{border-left:4px solid var(--blind);align-items:center}
+.rc-row .n{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rc-lot{display:flex;align-items:center;gap:8px;margin-top:6px}
+.lotchip{font-family:var(--mono);font-weight:600;font-size:16px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:1px 8px;color:var(--ink)}
+.rc-row .s{margin-top:4px}
+.rc-row .s .warn{color:var(--warn);font-weight:600}.rc-row .s .bad{color:var(--bad);font-weight:600}
+.rc-go{display:flex;align-items:center;gap:2px;flex:none;color:var(--blind);font-weight:700;font-size:15px;padding:8px 4px 8px 10px}
+.rc-go svg{width:18px;height:18px}
+.rc-row.dim{opacity:.6;border-left-color:var(--line)}.rc-row.dim .rc-go{color:var(--muted)}
 .section-title{margin:20px 2px 6px;font-weight:700;color:var(--ink);font-size:15px;display:flex;align-items:center;gap:8px}
 
 /* sheet */
@@ -192,7 +221,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .sheet-f .btn.ghost{flex:0 0 32%}
 .lot{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:10px}
 .lot{transition:border-color .2s}
-.lot.done{border-color:var(--ok);box-shadow:inset 4px 0 0 var(--ok)}
+.lot.done{box-shadow:inset 3px 0 0 var(--ok)}
+.lot-done{margin-top:6px;font-size:14px;color:var(--ok);font-weight:600}
+.lot-done span{color:var(--muted);font-weight:400}
 .lot-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
 .lot-id{font-family:var(--mono);font-weight:600;font-size:18px;letter-spacing:.01em}
 .lot-id .lk{font-family:'IBM Plex Sans Thai',sans-serif;font-size:14px;font-weight:700;color:var(--muted);margin-right:6px;letter-spacing:.04em}
@@ -201,7 +232,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .lot-exp.warn{color:var(--warn);font-weight:600}.lot-exp.bad{color:var(--bad);font-weight:700}
 .sysq{text-align:right;flex:none;line-height:1.1}
 .sysq.sys{margin-top:0;padding:8px 12px;border-radius:12px}
-.sysq b{display:block;font-size:30px;color:var(--brand-ink)}
+.sysq b{display:block;font-size:30px;color:var(--ink)}
 .sysq span{font-size:14px;color:var(--muted)}
 .mode-chip{display:inline-block;background:var(--brand-soft);color:var(--brand-ink);border-radius:999px;padding:3px 10px;font-size:14px;font-weight:700}
 .mode-chip.blind{background:var(--blind-soft);color:var(--blind)}
@@ -253,12 +284,12 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .sugg .h{font-size:14px;color:var(--warn);padding:8px 12px;background:var(--warn-soft)}
 .recent .row .fixh{font-size:14px;font-weight:700;color:var(--brand);border:1px solid var(--line);border-radius:999px;padding:2px 12px;margin-left:8px}
 .recent .row .q{font-weight:700;font-size:16px;color:var(--brand);white-space:nowrap}
-.sys{margin-top:8px;background:var(--brand-soft);border-radius:12px;padding:8px 10px;font-size:15px}
-.sys b{font-size:18px;color:var(--brand-ink)}
+.sys{margin-top:8px;background:var(--bg);border-radius:12px;padding:8px 10px;font-size:15px}
+.sys b{font-size:18px;color:var(--ink)}
 .editbox{display:none}.editbox.on{display:block}
 .confirm{display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:14px;color:var(--brand);font-weight:600}
 .confirm input{width:20px;height:20px;flex:none;margin-top:1px;accent-color:var(--brand)}
-.allok{width:100%;margin:0 0 12px;padding:14px;font-size:17px;border-radius:999px}
+.allok{width:100%;margin:0 0 12px;padding:14px;font-size:17px;border-radius:16px}
 .str{color:var(--brand-ink);background:var(--brand-soft);border-radius:5px;padding:0 3px;font-weight:700}
 .newver{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav) + 14px + env(safe-area-inset-bottom));z-index:55;border:0;border-radius:999px;background:var(--brand);color:#fff;font-weight:700;padding:12px 20px;box-shadow:0 6px 20px rgba(0,0,0,.25);white-space:nowrap}
 .sugrow{border:2px solid var(--brand-2)}
@@ -320,6 +351,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .mrow .mt small{display:block;font-size:14px;font-weight:400;color:var(--muted)}
 .mrow .chev{width:18px;height:18px;color:var(--muted);flex:none}
 .mrow.alert .mi{background:var(--warn-soft);color:var(--warn)}.mrow.alert small{color:var(--warn);font-weight:700}
+.seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px;flex:none}
+.seg button{border:0;background:none;border-radius:9px;padding:6px 10px;min-height:36px;font-size:14px;font-weight:600;color:var(--muted)}
+.seg button[aria-checked="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.15)}
 .sw{width:46px;height:28px;border-radius:99px;background:var(--line);position:relative;flex:none;transition:background-color .15s}
 .sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .18s var(--ease-out)}
 .sw.on{background:var(--brand)}.sw.on::after{transform:translateX(18px)}
@@ -348,7 +382,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 
 <header id="hdr">
   <div class="hrow">
-    <div class="logo"><span class="mark"><svg viewBox="0 0 24 24" fill="#fff"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg></span>PharmaCount</div>
+    <div class="logo"><span class="mark"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#0B6E4F"/><path fill="#fff" d="M26 10h12a3 3 0 0 1 3 3v10h10a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H41v10a3 3 0 0 1-3 3H26a3 3 0 0 1-3-3V41H13a3 3 0 0 1-3-3V26a3 3 0 0 1 3-3h10V13a3 3 0 0 1 3-3z"/><path d="M24.5 32.5l5 5 10-10.5" fill="none" stroke="#0B6E4F" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>PharmaCount</div>
     <span class="dot" id="netDot" title="สถานะการเชื่อมต่อ"></span>
     <button class="chip-btn" id="counterBtn" aria-label="เปลี่ยนผู้นับ">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
@@ -420,10 +454,8 @@ html.big .hrow .chip-btn{margin-left:auto}
 
   <!-- นับซ้ำ -->
   <section id="tab-recount" class="hidden">
-    <div class="card small">
-      <b>รายการที่นับแล้วไม่ตรงกับระบบ</b><br>
-      <span id="recountHelp">ให้อีกคนนับ LOT เหล่านี้อีกรอบ · ถ้านับได้เท่าเดิม = ยืนยันว่าไม่ตรงจริง</span>
-    </div>
+    <div class="rc-sum" id="rcSum"></div>
+    <span id="recountHelp" class="hidden"></span>
     <div id="recountList" class="list"></div>
     <div id="causeWrap" class="hidden">
       <div class="section-title">นับ 2 ครั้งแล้วยังไม่ตรง · ใส่หมายเหตุได้ (ไม่บังคับ)</div>
@@ -447,7 +479,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-17.3';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-17.5';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -715,12 +747,28 @@ function renderRecount() {
   $('#recountBadge').textContent = pend.length || '';
   $('#recountHelp').textContent = showSys ? 'ให้อีกคนนับ LOT เหล่านี้อีกรอบ · ถ้านับได้เท่าเดิม = ยืนยันว่าไม่ตรงจริง'
     : 'ให้คนที่ไม่ใช่ผู้นับครั้งแรกนับอีกครั้ง โดยไม่เห็นตัวเลขเดิม แตะรายการหรือสแกนบาร์โค้ดในแท็บนี้ได้เลย';
-  $('#recountList').innerHTML = pend.length ? pend.map(i => `
-    <button class="row" data-r="${i.r}" data-act="recount">
+  // แบ่งเป็น 2 ส่วน: นับได้เลย (คนอื่นนับครั้งแรก) จัดกลุ่มตามชั้นวาง ให้เดินนับทีละชั้น · ส่วนที่ตัวเองนับครั้งแรก ไว้ท้ายสุดแบบจาง
+  const mine = i => cfg.counter && i.by && normKey(i.by) === normKey(cfg.counter);
+  const todo = pend.filter(i => !mine(i)), own = pend.filter(mine);
+  $('#rcSum').innerHTML = pend.length ? `<div class="rc-big"><b>${todo.length.toLocaleString()}</b><span>LOT รอคุณนับซ้ำ</span></div>
+    <div class="rc-how">นับใหม่โดยไม่ดูเลขเดิม ถ้าได้เท่าคนแรก = ยืนยันว่าไม่ตรงจริง${own.length ? `<br><span class="muted">อีก ${own.length} LOT คุณนับครั้งแรกเอง ให้คนอื่นนับ</span>` : ''}</div>` : '';
+  const exp = i => { const t = fmtExp(i.e); if (!t) return '';
+    const c = i.d != null && i.d < 0 ? 'bad' : i.d != null && i.d <= 90 ? 'warn' : '';
+    return `<span class="${c}">EXP ${esc(t)}${c === 'bad' ? ' (หมดอายุ)' : c ? ` (เหลือ ${i.d} วัน)` : ''}</span>`; };
+  const row = (i, dim) => `<button class="row rc-row${dim ? ' dim' : ''}" data-r="${i.r}" data-act="recount">
       <div class="t"><div class="n">${esc(i.n)}</div>
-      <div class="s">LOT ${esc(i.l || '-')} · ${esc(i.u)}${i.loc ? ' · ' + esc(i.loc) : ''}${i.by ? ' · นับครั้งแรก: ' + esc(i.by) : ''}</div></div>
-      ${expPill(i)}
-    </button>`).join('') : '<div class="empty"><b>ยังไม่มีรายการรอนับซ้ำ</b>LOT ที่นับแล้วไม่ตรงกับระบบจะมารอที่นี่ ให้อีกคนนับยืนยัน</div>';
+      <div class="rc-lot"><span class="lotchip">LOT ${esc(i.l || '-')}</span><span class="muted">${esc(i.u)}</span></div>
+      <div class="s">${exp(i)}${i.by ? ' · นับแรก ' + esc(i.by) : ''}</div></div>
+      <span class="rc-go">${dim ? 'ดู' : 'นับ'}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span>
+    </button>`;
+  const groups = new Map();
+  todo.forEach(i => { const k = (i.loc || '').trim() || 'ไม่ระบุชั้น'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); });
+  const keys = [...groups.keys()].sort((a, b) => (a === 'ไม่ระบุชั้น') - (b === 'ไม่ระบุชั้น') || a.localeCompare(b, 'th'));
+  $('#recountList').innerHTML = pend.length
+    ? keys.map(k => `<div class="rc-shelf"><span class="shi">${ICON.shelf}</span>${esc(k)}<span class="cnt">${groups.get(k).length}</span></div>`
+        + groups.get(k).sort((a, b) => a.n.localeCompare(b.n)).map(i => row(i, false)).join('')).join('')
+      + (own.length ? `<div class="rc-shelf own">คุณนับครั้งแรกเอง · ให้คนอื่นนับ<span class="cnt">${own.length}</span></div>` + own.map(i => row(i, true)).join('') : '')
+    : '<div class="empty"><b>ไม่มีรายการรอนับซ้ำ</b>LOT ที่นับแล้วไม่ตรงกับระบบจะมารอที่นี่ ให้อีกคนนับยืนยัน</div>';
   $('#causeWrap').classList.toggle('hidden', true);   // ไม่ใช้ขั้นระบุสาเหตุแล้ว
   $('#causeList').innerHTML = needCause.map(i => `
     <button class="row" data-r="${i.r}" data-act="cause">
@@ -1183,7 +1231,7 @@ function openSheet(lots, mode, raw, pre, editing) {
   $('#layer').innerHTML = `<div class="overlay" id="ov"><div class="sheet" role="dialog" aria-modal="true">
     <div class="sheet-h">
       <button type="button" class="xclose" id="sheetX" aria-label="ปิด"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-      <div class="mode">${showSys ? `<span class="mode-chip">${mode === 'recount' ? 'นับซ้ำ · ' : ''}ตรวจเทียบกับระบบ</span>` : `<span class="mode-chip blind">${mode === 'recount' ? 'นับซ้ำ · ' : ''}นับแบบไม่เห็นยอดในระบบ</span>`}</div>
+      <div class="mode">${showSys ? (mode === 'recount' ? '<span class="mode-chip blind">นับซ้ำ</span>' : '') : `<span class="mode-chip blind">${mode === 'recount' ? 'นับซ้ำ · ' : ''}นับแบบไม่เห็นยอดในระบบ</span>`}</div>
       <div class="pname">${esc(p.n)}</div>
       <div class="small muted">${raw ? 'บาร์โค้ด <span class="code">' + esc(raw) + '</span> · ' : ''}${lots.length} LOT${p.cat ? ' · ' + esc(p.cat) : ''}</div>
       ${raw && !editing ? '<button type="button" class="quietlink" id="wrongLink">ไม่ใช่ยาตัวนี้?</button>' : ''}
@@ -1192,7 +1240,7 @@ function openSheet(lots, mode, raw, pre, editing) {
       ${sameCounter ? `<div class="lot" style="background:var(--warn-soft);border-color:#f3c48c"><b>คุณเป็นผู้นับครั้งแรก</b><div class="small">การนับซ้ำควรเป็นอีกคน เพื่อให้ตรวจสอบได้จริง</div></div>` : ''}
       ${showSys && !editing ? `<button type="button" class="btn allok" id="allOk">✓ ตรงทั้งหมด ${lots.length > 1 ? lots.length + ' LOT ' : ''}แล้วบันทึก</button>` : ''}
       ${editing ? `<div class="note" style="margin:0 0 10px">แก้ไขยอดที่นับไว้ แก้ตัวเลขแล้วกดบันทึก (LOT ที่ไม่แก้ปล่อยว่างได้)</div>` :
-        mode === 'count' && counted.length ? `<div class="note" style="margin:0 0 10px">มี ${counted.length} LOT ที่นับไปแล้ว ถ้ากรอกใหม่จะเป็นการนับรอบใหม่แทนของเดิม</div>` : ''}
+        mode === 'count' && counted.length ? `<div class="note" style="margin:0 0 10px">นับไปแล้ว ${counted.length} LOT · กรอกใหม่จะแทนของเดิม</div>` : ''}
       ${lots.map((i, k) => `
         <div class="lot ${i.c && mode === 'count' ? 'done' : ''}" data-k="${k}">
           <div class="lot-top">
@@ -1200,7 +1248,8 @@ function openSheet(lots, mode, raw, pre, editing) {
             ${chk(i) ? `<div class="sysq sys"><b>${i.f}</b><span>${esc(i.u)} ในระบบ</span></div>` : statusPill(i.st)}
           </div>
           ${isHit(i) ? '<div class="lot-meta"><span class="pill p-ok">LOT ตรงกับบาร์โค้ดที่สแกน</span></div>' : ''}
-          ${(i.c && i.st && i.st !== 'ยังไม่นับ' && chk(i)) || i.dup || (i.c && i.by) || i.ef ? `<div class="lot-meta">${chk(i) && i.c ? statusPill(i.st) : ''}${i.dup ? '<span class="pill p-warn">แถวซ้ำในระบบ</span>' : ''}${i.c && i.by ? `<span class="pill p-mute">นับโดย ${esc(i.by)}</span>` : ''}${i.ef ? `<span class="pill p-warn">EXP บนกล่อง ${esc(fmtExp(i.ef))}</span>` : ''}</div>` : ''}
+          ${i.c && mode === 'count' ? `<div class="lot-done">✓ นับแล้ว${chk(i) && i.st && i.st !== 'ยังไม่นับ' ? ' · ' + esc(i.st) : ''}<span>${i.by ? ' · ' + esc(i.by) : ''}</span></div>` : ''}
+          ${i.dup || i.ef ? `<div class="lot-meta">${i.dup ? '<span class="pill p-warn">แถวซ้ำในระบบ</span>' : ''}${i.ef ? `<span class="pill p-warn">EXP บนกล่อง ${esc(fmtExp(i.ef))}</span>` : ''}</div>` : ''}
           ${chk(i) ? `
           <div class="lotx"><button type="button" data-x="ok">✓ ตรง</button><button type="button" data-x="edit"><svg class="bi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>ไม่ตรง แก้จำนวน</button></div>` : ''}
           <div class="editbox${!chk(i) || pre[i.r] !== undefined ? ' on' : ''}" data-edit>
@@ -2451,6 +2500,15 @@ function openBranch() {
     });
   });
 }
+// ธีม: ตามเครื่อง / สว่าง / มืด (จำไว้ในเครื่องนี้)
+function setTheme(v) {
+  const r = document.documentElement; r.classList.remove('light', 'dark');
+  if (v === 'light' || v === 'dark') r.classList.add(v);
+  store.set('theme', v);
+  const dark = v === 'dark' || (v !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => { m.removeAttribute('media'); m.content = dark ? '#0F1113' : '#ffffff'; });
+}
+{ const t = store.get('theme', 'auto'); if (t !== 'auto') setTheme(t); }
 $('#branchBtn').onclick = openBranch;
 $('#stPendBox').onclick = () => setTab('recount');
 paintBranch();
@@ -2468,6 +2526,8 @@ $('#menuBtn').onclick = () => openDialog(`<h3>เมนู</h3>
   </div>
   <div class="mgroup">การแสดงผล</div>
   <div class="mlist">
+    <div class="mrow"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg></span><span class="mt">ธีม</span>
+      <span class="seg" role="radiogroup" aria-label="ธีม">${[['auto', 'ตามเครื่อง'], ['light', 'สว่าง'], ['dark', 'มืด']].map(([v, l]) => `<button type="button" role="radio" data-theme="${v}" aria-checked="${(store.get('theme', 'auto') || 'auto') === v}">${l}</button>`).join('')}</span></div>
     <button class="mrow" id="mBig" role="switch" aria-checked="${document.documentElement.classList.contains('big')}"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l5-14 5 14M6 15h6M15 20l3-8 3 8M16 18h4"/></svg></span><span class="mt">ตัวอักษรใหญ่</span><span class="sw${document.documentElement.classList.contains('big') ? ' on' : ''}"></span></button>
     <button class="mrow" id="mShared" role="switch" aria-checked="${shared}"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-2.5-1.5-4.3-4-5"/></svg></span><span class="mt">เครื่องกลางของร้าน<small>ถามชื่อผู้นับทุกครั้งที่เปิด</small></span><span class="sw${shared ? ' on' : ''}"></span></button>
   </div>
@@ -2479,6 +2539,8 @@ $('#menuBtn').onclick = () => openDialog(`<h3>เมนู</h3>
   <p class="small muted mfoot">เวอร์ชัน ${APP_VER} · ${showSys ? 'โหมดตรวจเทียบ (เห็นยอดในระบบ)' : 'โหมดนับแบบไม่เห็นยอด'} · สแกนติดแล้ว ${barcodeStat} สินค้า</p>
   <div class="acts"><button class="btn ghost" data-close style="flex:1">ปิด</button></div>`, d => {
   d.querySelector('#mBranch').onclick = () => openBranch();
+  d.querySelectorAll('[data-theme]').forEach(b => b.onclick = () => { setTheme(b.dataset.theme);
+    d.querySelectorAll('[data-theme]').forEach(x => x.setAttribute('aria-checked', String(x === b))); });
   d.querySelector('#mReload').onclick = () => { closeDialog(); load(); };
   d.querySelector('#mFlush').onclick = () => { closeDialog(); flushQueue(); };
   d.querySelector('#mSetup').onclick = () => openSetup();
