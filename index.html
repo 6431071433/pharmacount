@@ -139,6 +139,11 @@ h2{font-size:17px;margin:0 0 8px}
 .manual .mq{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;display:grid}.manual .mq svg{width:20px;height:20px}
 #manualForm #manualInput{padding-left:44px}
 .quick{margin-top:8px}
+/* โหมดพิมพ์ชื่อยา: ซ่อนกล้องและส่วนอื่นชั่วคราว ให้ช่องพิมพ์ขึ้นบนสุด เห็นผลลัพธ์ตัวแรกเสมอแม้คีย์บอร์ดเปิด */
+#tab-count.typing #cam,#tab-count.typing #scanStatus,#tab-count.typing #shelfBar,#tab-count.typing .tips,#tab-count.typing .stats,#tab-count.typing #recentWrap{display:none}
+.manual .mcancel{display:none;flex:none;border:0;background:none;color:var(--brand);font-weight:700;font-size:16px;padding:0 4px}
+#tab-count.typing .manual .mcancel{display:block}
+main{overflow-anchor:none}
 .quick .more{text-align:center;color:var(--brand);font-weight:700;justify-content:center}
 .manual input{flex:1;min-width:0}
 input[type=text],input[type=search],input[type=number],input[type=url],input[type=password],select,textarea{width:100%;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card);font-size:16px}
@@ -460,6 +465,7 @@ html.big .hrow .chip-btn{margin-left:auto}
     <form class="manual" id="manualForm" autocomplete="off" role="search">
       <span class="mq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></span>
       <input type="search" id="manualInput" enterkeyhint="search" placeholder="สแกนไม่ติด? พิมพ์ชื่อยา เช่น amlo" aria-label="ค้นหายาจากชื่อ">
+      <button type="button" class="mcancel" id="manualCancel">ยกเลิก</button>
     </form>
     <div id="quickList" class="list quick hidden"></div>
     <details class="tips"><summary>เคล็ดลับการสแกน</summary><ul>
@@ -508,7 +514,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-18.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-18.3';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -766,7 +772,7 @@ function setTab(t) {
   const sec = $('#tab-' + t); sec.classList.add('enter'); clearTimeout(sec._en); sec._en = setTimeout(() => sec.classList.remove('enter'), 700);
   if (t === 'today') renderToday();
   if (t === 'search') { renderSearch(); setTimeout(() => $('#searchInput').focus(), 50); }
-  if (t !== 'count') stopCamera();
+  if (t !== 'count') { stopCamera(); $('#manualInput').value = ''; renderQuick(); $('#tab-count').classList.remove('typing'); }
 }
 
 /* ---------- นับซ้ำ ---------- */
@@ -1443,7 +1449,7 @@ async function sheetCanClose() {
   if (!sheetCtx || !(sheetEntries().length + newLotEntries().length)) return true;
   return (await choose('ปิดโดยไม่บันทึก?', 'ตัวเลขที่กรอกไว้ในแผ่นนี้จะหายไป', [{ v: false, label: 'กลับไปกรอกต่อ' }, { v: true, label: 'ปิด ไม่บันทึก', ghost: true }]));
 }
-function closeSheet() { if (sheetCtx && sheetCtx.raw) cool = { code: sheetCtx.raw, until: Date.now() + 2500 }; sheetCtx = null; $('#layer').innerHTML = ''; resumeScan(); }
+function closeSheet() { if (sheetCtx && sheetCtx.raw) cool = { code: sheetCtx.raw, until: Date.now() + 2500 }; sheetCtx = null; $('#layer').innerHTML = ''; resumeScan(); keepCamInView(); }
 
 /* ---------- กันกรอกผิด: LOT ที่คล้ายกันมาก (พิมพ์ผิด 1 ตัว, O/0, I/1, สลับตำแหน่ง) ---------- */
 const lotConf = v => normLot(v).replace(/O/g, '0').replace(/[IL]/g, '1').replace(/S/g, '5').replace(/B/g, '8').replace(/Z/g, '2');
@@ -2273,7 +2279,7 @@ function camRest() {
 async function loop() {
   if (!scanning) return;
   const v = $('#video');
-  const busy = paused || sheetOpen();
+  const busy = paused || sheetOpen() || $('#tab-count').classList.contains('typing');
   setCamFps(busy ? 5 : 24);
   const idle = idleMs();
   if (!busy && idle > IDLE_STOP) { camRest(); return; }
@@ -2377,14 +2383,32 @@ function flash(kind) { const g = $('#guide'); g.classList.add(kind); setTimeout(
 /* ---------- ช่องพิมพ์และเครื่องสแกนบลูทูธ ---------- */
 $('#manualForm').addEventListener('submit', e => {
   e.preventDefault(); const v = $('#manualInput').value.trim(); if (!v) return;
-  if (/\d{6,}/.test(v.replace(/\D/g, '')) && /^[\d\s-]+$/.test(v)) { $('#manualInput').value = ''; $('#manualInput').blur(); renderQuick(); handleCode(v, 'manual'); return; }
+  if (/\d{6,}/.test(v.replace(/\D/g, '')) && /^[\d\s-]+$/.test(v)) { $('#manualInput').value = ''; $('#manualInput').blur(); renderQuick(); setTyping(false); handleCode(v, 'manual'); return; }
   $('#manualInput').blur(); renderQuick();   // ชื่อยา: ผลขึ้นใต้ช่องอยู่แล้ว ปิดคีย์บอร์ดให้เห็นรายการ
 });
-$('#manualInput').addEventListener('input', renderQuick);
+$('#manualInput').addEventListener('input', () => { renderQuick(); window.scrollTo(0, 0); });
+// เข้าโหมดพิมพ์เมื่อแตะช่อง · ออกเมื่อช่องว่างแล้วเลิกพิมพ์ หรือกดยกเลิก
+function setTyping(on) {
+  const sec = $('#tab-count'); if (sec.classList.contains('typing') === on) return;
+  sec.classList.toggle('typing', on); window.scrollTo(0, 0);
+  if (!on) lastSeen = Date.now();
+}
+$('#manualInput').addEventListener('focus', () => { setTyping(true); setTimeout(() => window.scrollTo(0, 0), 350); });
+$('#manualInput').addEventListener('blur', () => setTimeout(() => {
+  if (document.activeElement !== $('#manualInput') && !$('#manualInput').value.trim()) setTyping(false);
+}, 200));
+$('#manualCancel').addEventListener('mousedown', e => e.preventDefault());
+$('#manualCancel').addEventListener('click', () => { $('#manualInput').value = ''; renderQuick(); $('#manualInput').blur(); setTyping(false); });
+// เลื่อนรายการด้วยนิ้ว ไม่นับเป็นการแตะเลือกยา (นิ้วขยับเกิน 10px หรือแตะเพื่อหยุดจอที่ยังไหลอยู่)
+let qY0 = 0, qMoved = false, qScrollAt = 0;
+$('#quickList').addEventListener('touchstart', e => { qY0 = e.touches[0].clientY; qMoved = Date.now() - qScrollAt < 300; }, { passive: true });
+$('#quickList').addEventListener('touchmove', e => { if (Math.abs(e.touches[0].clientY - qY0) > 10) qMoved = true; }, { passive: true });
+window.addEventListener('scroll', () => { qScrollAt = Date.now(); }, { passive: true });
 $('#quickList').addEventListener('click', e => {
+  if (qMoved) { qMoved = false; return; }
   if (e.target.closest('[data-more]')) { setTab('search'); $('#searchInput').value = $('#manualInput').value; renderSearch(); return; }
   const b = e.target.closest('button[data-name]'); if (!b) return;
-  $('#manualInput').value = ''; renderQuick();
+  $('#manualInput').blur();   // คำค้นและรายการยังอยู่ ปิดแผ่นนับแล้วเลือกตัวอื่นต่อได้ · กดยกเลิกเพื่อกลับหน้าสแกน
   openSheet(byName.get(normName(b.dataset.name)) || [], 'count');
 });
 // เครื่องสแกนบลูทูธพิมพ์ตัวเลขเร็วมากแล้วกด Enter: จับได้แม้ไม่ได้แตะช่องพิมพ์
@@ -2447,7 +2471,17 @@ function swipeClose(panel, scroller, ok, close, head) {
     else panel.style.transform = '';
   });
 }
-function closeDialog() { $('#layer').innerHTML = ''; resumeScan(); }
+function closeDialog() { $('#layer').innerHTML = ''; resumeScan(); keepCamInView(); }
+// iPhone: ตอนพิมพ์ในแผ่นนับ คีย์บอร์ดดันหน้าหลังเลื่อนลง ปิดแผ่นแล้วกล้องหลุดจอ → เลื่อนกลับให้เห็นกล้องเต็ม
+function keepCamInView() {
+  if (tab !== 'count' || !scanning || $('#tab-count').classList.contains('typing')) return;
+  const fix = () => {
+    if (sheetOpen()) return;
+    const r = $('#cam').getBoundingClientRect(), top = $('header').offsetHeight, vh = window.visualViewport ? visualViewport.height : innerHeight;
+    if (r.top < top || r.bottom > vh) window.scrollTo(0, 0);
+  };
+  requestAnimationFrame(fix); setTimeout(fix, 400);   // รอบสองหลังคีย์บอร์ดหุบเสร็จ
+}
 let tTimer = null;
 function toast(msg, kind, ms, html) {
   const t = $('#toast'); t.className = 'toast ' + (kind || '');
