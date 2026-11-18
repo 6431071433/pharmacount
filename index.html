@@ -373,6 +373,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .dialog.dlg-search{position:relative}.dialog.dlg-search .xclose{position:absolute;top:12px;right:12px;margin:0}
 .dialog.dlg-search #linkList{flex:1;min-height:80px;overflow:auto;overscroll-behavior:contain;margin-top:8px}
 .dialog.dlg-search .acts{flex:none;margin-top:10px}
+.dialog.dlg-search.kb .acts,.dialog.dlg-search.kb > p{display:none}
+.dialog.dlg-search.kb{max-height:calc(var(--vvh,100vh) - 4px);height:calc(var(--vvh,100vh) - 4px)}
+.dialog.dlg-search:not(.kb) [data-report]{display:none}
 .xclose{float:right;position:sticky;top:0;z-index:3;width:40px;height:40px;margin:-4px -6px 0 8px;border-radius:50%;border:0;background:var(--bg);color:var(--muted);display:grid;place-items:center}
 .xclose svg{width:20px;height:20px}
 .sheet-h .xclose{position:absolute;top:12px;right:12px;float:none;margin:0}
@@ -521,7 +524,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-18.6';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-18.7';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -954,24 +957,30 @@ function openUnknown(raw) {
     const withCode = productsWithCode();
     const render = () => {
       const t = normName(q.value);
-      if (t.length < 2) { list.innerHTML = '<div class="empty small">พิมพ์อย่างน้อย 2 ตัวอักษร</div>'; return; }
+      const rep = '<button class="row more" data-report>ไม่มีในรายการ · แจ้งเป็นยาใหม่</button>';
+      if (t.length < 2) { list.innerHTML = '<div class="empty small">พิมพ์อย่างน้อย 2 ตัวอักษร</div>' + rep; return; }
       const hits = [...byName.keys()].filter(n => n.includes(t))
         .sort((a, b) => (withCode.has(a) - withCode.has(b)) || a.localeCompare(b)).slice(0, 30);
       list.innerHTML = hits.length ? hits.map(n => { const it = byName.get(n)[0];
         return `<button class="row" data-name="${esc(it.n)}"><div class="t"><div class="n">${hiName(it.n)}</div>
           <div class="s">${byName.get(n).length} LOT${withCode.has(n) ? ' · มีบาร์โค้ดอื่นอยู่แล้ว' : ' · ยังไม่มีบาร์โค้ด'}</div></div></button>`; }).join('')
         : '<div class="empty small">ไม่พบชื่อนี้</div>';
+      // แถวท้ายรายการ: ใช้ได้ตอนคีย์บอร์ดเปิด (ปุ่มด้านล่างซ่อนไว้ให้รายการได้ที่เต็ม)
+      list.innerHTML += rep;
     };
     // หน้าค้นหาแบบเต็มจอที่มองเห็นจริง (พอดีคีย์บอร์ด) ช่องพิมพ์อยู่บน รายการเลื่อนในกรอบ พิมพ์ใหม่กลับไปบนสุด
     dlg.classList.add('dlg-search'); $('#dov').classList.add('search');
     // ระหว่างค้นชื่อ ปิดกล้องด้านหลังให้ประหยัดแบต ปิดหน้านี้แล้วเปิดกล้องกลับเอง
     if (stream) stopCamera();   // กล้องจะเปิดกลับเองเมื่อปิดหน้านี้ (ดู camWatch)
     q.addEventListener('input', () => { render(); list.scrollTop = 0; }); render(); setTimeout(() => q.focus(), 60);
+    q.addEventListener('focus', () => dlg.classList.add('kb'));
+    q.addEventListener('blur', () => setTimeout(() => dlg.classList.remove('kb'), 150));
     let y0 = 0, moved = false;
     list.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; moved = false; }, { passive: true });
     list.addEventListener('touchmove', e => { if (Math.abs(e.touches[0].clientY - y0) > 10) moved = true; }, { passive: true });
     list.addEventListener('click', async e => {
       if (moved) { moved = false; return; }   // เลื่อนรายการ ไม่ใช่แตะเลือก
+      if (e.target.closest('[data-report]')) { closeDialog(); openReport({ barcode: raw }); return; }
       const b = e.target.closest('[data-name]'); if (!b) return;
       if (!cfg.counter) { closeDialog(); askCounter(); return; }
       confirmLink(raw, b.dataset.name, name => {
