@@ -289,6 +289,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .tool.t-slate .ti{background:var(--slate-soft);color:var(--slate)}.tool.t-blue .ti{background:var(--blue-soft);color:var(--blue)}.tool.t-orange .ti{background:var(--orange-soft);color:var(--orange)}
 .tool:active{transform:scale(.97)}
 .tool.on.t-blue{border-color:var(--blue);background:var(--blue-soft)}.tool.on.t-orange{border-color:var(--orange);background:var(--orange-soft)}
+.exp-tip{font-size:13px;color:var(--muted);margin-top:4px}
 .exp-h{display:block;font-weight:700;color:var(--orange);margin-top:6px}
 .exp-n{font-size:14px;color:var(--muted);margin-bottom:6px}
 .expbox.on{padding:10px 12px;border:1.5px solid var(--orange);border-radius:16px;margin-top:12px}
@@ -520,7 +521,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-18.4';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-18.6';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -964,7 +965,7 @@ function openUnknown(raw) {
     // หน้าค้นหาแบบเต็มจอที่มองเห็นจริง (พอดีคีย์บอร์ด) ช่องพิมพ์อยู่บน รายการเลื่อนในกรอบ พิมพ์ใหม่กลับไปบนสุด
     dlg.classList.add('dlg-search'); $('#dov').classList.add('search');
     // ระหว่างค้นชื่อ ปิดกล้องด้านหลังให้ประหยัดแบต ปิดหน้านี้แล้วเปิดกล้องกลับเอง
-    if (stream) { stopCamera(); camResume = true; }
+    if (stream) stopCamera();   // กล้องจะเปิดกลับเองเมื่อปิดหน้านี้ (ดู camWatch)
     q.addEventListener('input', () => { render(); list.scrollTop = 0; }); render(); setTimeout(() => q.focus(), 60);
     let y0 = 0, moved = false;
     list.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; moved = false; }, { passive: true });
@@ -1080,10 +1081,19 @@ const TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 
 function expPicker() {
   const y0 = new Date().getFullYear() - 2;
   return `<div class="expp" data-exp>
-    <select data-e="d" aria-label="วัน"><option value="">วัน –</option>${Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('')}</select>
+    <select data-e="d" aria-label="วัน"><option value="">วัน (ไม่มีก็เว้น)</option>${Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('')}</select>
     <select data-e="m" aria-label="เดือน"><option value="">เดือน</option>${TH_M.map((m, i) => `<option value="${i + 1}">${i + 1} ${m}</option>`).join('')}</select>
-    <select data-e="y" aria-label="ปี"><option value="">ปี</option>${Array.from({ length: 14 }, (_, i) => `<option value="${y0 + i}">${y0 + i} (${y0 + i + 543})</option>`).join('')}</select></div>`;
+    <select data-e="y" aria-label="ปี"><option value="">ปี</option>${Array.from({ length: 16 }, (_, i) => `<option value="${y0 + i}">${y0 + i} (${y0 + i + 543})</option>`).join('')}</select></div>
+    <div class="exp-tip">กล่องมีแค่เดือน/ปี (เช่น 02.2028) ไม่ต้องเลือกวัน</div>`;
 }
+// ช่องวันมีเท่าจำนวนวันจริงของเดือนนั้น (ก.พ. 2028 = 29 วัน) เลือกวันเกินไว้จะปรับเป็นวันสุดท้ายให้
+document.addEventListener('change', e => {
+  const sel = e.target.closest('[data-exp] [data-e="m"], [data-exp] [data-e="y"]'); if (!sel) return;
+  const box = sel.closest('[data-exp]'), d = box.querySelector('[data-e="d"]'), m = Number(box.querySelector('[data-e="m"]').value), y = Number(box.querySelector('[data-e="y"]').value) || 2000;
+  const max = m ? new Date(y, m, 0).getDate() : 31, cur = Number(d.value);
+  d.innerHTML = '<option value="">วัน (ไม่มีก็เว้น)</option>' + Array.from({ length: max }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
+  d.value = cur ? String(Math.min(cur, max)) : '';
+});
 // '' = ไม่ได้กรอก, null = กรอกไม่ครบ, ไม่งั้นได้ YYYY-MM หรือ YYYY-MM-DD
 function readExp(root) {
   const g = k => root.querySelector(`[data-exp] [data-e="${k}"]`).value;
@@ -2189,10 +2199,27 @@ async function getDetector() {
   return detector;
 }
 
+// เปิดกล้องเฉพาะตอนอยู่หน้าสแกนจริงๆ: ไปหน้าอื่น เปิดหน้าต่างค้าง หรือพิมพ์ชื่อยา เกิน 5 วินาที → ปิดกล้อง (ประหยัดแบต/ไม่ร้อน)
+// กลับมาหน้าสแกนแล้วเปิดกล้องเองอัตโนมัติ ถ้าก่อนหน้านั้นเปิดกล้องอยู่ (กดปิดกล้องเอง หรือพักเพราะไม่ได้ใช้นาน = ไม่เปิดเอง)
+let wantCam = false, camStarting = false, awaySince = 0;
+const camAway = () => tab !== 'count' || document.hidden || sheetOpen() || $('#tab-count').classList.contains('typing');
+setInterval(() => {
+  if (camAway()) {
+    if (!awaySince) awaySince = Date.now();
+    if (stream && (tab !== 'count' || Date.now() - awaySince > 5000)) stopCamera();
+  } else {
+    awaySince = 0;
+    if (wantCam && !stream && !camStarting) startCamera();
+  }
+}, 700);
 async function startCamera() {
+  if (camStarting) return; camStarting = true; wantCam = true;
+  try { await startCamera_(); } finally { camStarting = false; }
+}
+async function startCamera_() {
   const msg = $('#camMsg');
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    msg.innerHTML = '<div>เบราว์เซอร์นี้เปิดกล้องไม่ได้<br><span class="small">ใช้ช่องพิมพ์ หรือเครื่องสแกนบลูทูธแทน</span></div>'; return;
+    wantCam = false; msg.innerHTML = '<div>เบราว์เซอร์นี้เปิดกล้องไม่ได้<br><span class="small">ใช้ช่องพิมพ์ หรือเครื่องสแกนบลูทูธแทน</span></div>'; return;
   }
   msg.innerHTML = '<div>กำลังเปิดกล้อง…</div>'; $('#cam').classList.remove('off'); $('#scanStatus').classList.remove('hidden');
   try {
@@ -2210,6 +2237,7 @@ async function startCamera() {
     if (navigator.onLine !== false) getOcr().catch(() => {});   // โหลดตัวอ่านตัวเลขรอไว้ทันที
   } catch (e) {
     msg.classList.remove('hidden');
+    wantCam = false;
     msg.innerHTML = `<div>เปิดกล้องไม่ได้ (${esc(e.name || e.message)})<br><span class="small">อนุญาตการใช้กล้องในการตั้งค่าเบราว์เซอร์ หรือใช้ช่องพิมพ์/เครื่องสแกนแทน</span><br><button class="btn" id="camRetry">ลองอีกครั้ง</button></div>`;
     $('#camRetry').onclick = startCamera;
   }
@@ -2285,7 +2313,7 @@ function idleMs() { return Date.now() - Math.max(lastSeen, lastTouch); }
 let lastTouch = Date.now();
 ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { lastTouch = Date.now(); }, { passive: true, capture: true }));
 function camRest() {
-  stopCamera();
+  wantCam = false; stopCamera();
   const msg = $('#camMsg');
   msg.innerHTML = '<div><div class="ttl">พักกล้องไว้ก่อน</div><div class="small">ไม่ได้สแกนเกิน 1 นาที ปิดกล้องให้เครื่องไม่ร้อน</div><button class="btn" id="camStart2">สแกนต่อ</button></div>';
   $('#camStart2').onclick = startCamera;
@@ -2371,7 +2399,7 @@ function nextFrame(gap) {
   else setTimeout(loop, 60);
 }
 $('#camStart').onclick = startCamera;
-$('#camStop').onclick = stopCamera;
+$('#camStop').onclick = () => { wantCam = false; stopCamera(); };
 $('#ocrBtn').onclick = ocrScan;
 $('#torchBtn').onclick = async () => {
   if (!track) return; const b = $('#torchBtn'), on = !b.classList.contains('on');
@@ -2485,9 +2513,7 @@ function swipeClose(panel, scroller, ok, close, head) {
     else panel.style.transform = '';
   });
 }
-let camResume = false;
-function closeDialog() { $('#layer').innerHTML = ''; resumeScan(); keepCamInView();
-  if (camResume) { camResume = false; if (tab === 'count' && !document.hidden) startCamera(); } }
+function closeDialog() { $('#layer').innerHTML = ''; resumeScan(); keepCamInView(); }
 // ขนาดจอที่มองเห็นจริง (หักคีย์บอร์ด iPhone) ใช้กับหน้าต่างค้นหา
 function syncVV() { const v = window.visualViewport; if (!v) return;
   document.documentElement.style.setProperty('--vvh', v.height + 'px'); document.documentElement.style.setProperty('--vvt', v.offsetTop + 'px'); }
