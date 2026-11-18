@@ -292,7 +292,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .tool.t-slate .ti{background:var(--slate-soft);color:var(--slate)}.tool.t-blue .ti{background:var(--blue-soft);color:var(--blue)}.tool.t-orange .ti{background:var(--orange-soft);color:var(--orange)}
 .tool:active{transform:scale(.97)}
 .tool.t-violet .ti{background:var(--violet-soft);color:var(--violet)}.tool.on.t-violet{border-color:var(--violet);background:var(--violet-soft)}
-.swapbtn{width:100%;margin-top:8px;min-height:44px;border:1.5px solid color-mix(in srgb,var(--violet) 40%,var(--line));background:transparent;color:var(--violet);border-radius:14px;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px}
+.swaprow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.swaprow > span{grid-column:1/-1;font-size:14px;color:var(--muted);margin-bottom:-2px}.swaprow .swapbtn{margin-top:0;white-space:nowrap}
+.swapbtn.exp{color:var(--orange);border-color:color-mix(in srgb,var(--orange) 40%,var(--line))}.swapbtn.exp.on{background:var(--orange-soft);border-color:var(--orange)}
+.swapbtn{flex:1;min-height:44px;border:1.5px solid color-mix(in srgb,var(--violet) 40%,var(--line));background:transparent;color:var(--violet);border-radius:14px;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px}
 .swapbtn svg{width:18px;height:18px}.swapbtn.on{background:var(--violet-soft);border-color:var(--violet)}
 .swapnote{margin-top:10px;padding:8px 12px;border-radius:12px;background:var(--violet-soft);color:var(--violet);font-weight:600;font-size:14px}
 .tool.on.t-blue{border-color:var(--blue);background:var(--blue-soft)}.tool.on.t-orange{border-color:var(--orange);background:var(--orange-soft)}
@@ -532,7 +534,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-18.10';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-18.11';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -1334,7 +1336,9 @@ function openSheet(lots, mode, raw, pre, editing) {
           ${i.dup || i.ef ? `<div class="lot-meta">${i.dup ? '<span class="pill p-warn">แถวซ้ำในระบบ</span>' : ''}${i.ef ? `<span class="pill p-warn">EXP บนกล่อง ${esc(fmtExp(i.ef))}</span>` : ''}</div>` : ''}
           ${chk(i) ? `
           <div class="lotx"><button type="button" data-x="ok">✓ ตรง</button><button type="button" data-x="edit"><svg class="bi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>ไม่ตรง แก้จำนวน</button></div>
-          ${mode === 'count' ? `<button type="button" class="swapbtn" data-lotswap>${ICO_SWAP}LOT บนกล่องไม่ตรง แต่จำนวนตรง</button>` : ''}` : ''}
+          <div class="swaprow"><span>จำนวนตรงกับระบบ แต่…</span>
+            ${mode === 'count' ? `<button type="button" class="swapbtn" data-lotswap>${ICO_SWAP}LOT ไม่ตรง</button>` : ''}
+            <button type="button" class="swapbtn exp" data-exponly>${ICO_CAL}EXP ไม่ตรง</button></div>` : ''}
           <div class="editbox${!chk(i) || pre[i.r] !== undefined ? ' on' : ''}" data-edit>
           <div class="small" style="margin-top:8px">นับเป็น <span class="unit-big">${esc(i.u || '-')}</span> (หน่วยเดียวกับ Arincare)</div>
           <div class="stepper">
@@ -1392,6 +1396,16 @@ function openSheet(lots, mode, raw, pre, editing) {
       if (m) { const set = (k, v) => { const el = row.querySelector(`[data-e="${k}"]`); if ([...el.options].some(o => o.value === v)) { el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); } };
         set('y', m[1]); set('m', String(Number(m[2]))); if (m[3]) set('d', String(Number(m[3]))); }
       row.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => row.querySelector('[data-nl]').focus(), 250);
+      updateSave(); return; }
+    // จำนวนตรง แต่ EXP บนกล่องไม่ตรง: ใช้ยอดในระบบ แล้วเปิดช่องเลือก EXP ที่เห็น
+    const eo = e.target.closest('[data-exponly]');
+    if (eo) { const L = eo.closest('.lot'), it = lots[Number(L.dataset.k)], q = L.querySelector('[data-q]'), eb = L.querySelector('[data-expbox]');
+      const on = !eo.classList.contains('on'); eo.classList.toggle('on', on);
+      if (on) { if (it.f != null) q.value = it.f; L.querySelector('[data-edit]').classList.add('on'); eb.classList.add('on');
+        L.querySelectorAll('[data-x]').forEach(b => b.classList.remove('on'));
+        const t = L.querySelector('[data-expt]'); if (t) t.classList.add('on');
+        eb.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+      else { eb.classList.remove('on'); const t = L.querySelector('[data-expt]'); if (t) t.classList.remove('on'); }
       updateSave(); return; }
     const am = e.target.closest('[data-addmore]');
     if (am) { const L = am.closest('.lot'), on = L.dataset.add !== '1'; L.dataset.add = on ? '1' : '';
