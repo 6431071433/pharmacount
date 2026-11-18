@@ -374,7 +374,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .dialog.dlg-search #linkList{flex:1;min-height:80px;overflow:auto;overscroll-behavior:contain;margin-top:8px}
 .dialog.dlg-search .acts{flex:none;margin-top:10px}
 .dialog.dlg-search.kb .acts,.dialog.dlg-search.kb > p{display:none}
-.dialog.dlg-search.kb{max-height:calc(var(--vvh,100vh) - 4px);height:calc(var(--vvh,100vh) - 4px)}
+.dialog.dlg-search.kb{max-height:calc(var(--vvh,100vh) - 4px);height:calc(var(--vvh,100vh) - 4px);padding-bottom:6px}
+.dialog.dlg-search.kb::before{margin-bottom:6px}
 .dialog.dlg-search:not(.kb) [data-report]{display:none}
 .xclose{float:right;position:sticky;top:0;z-index:3;width:40px;height:40px;margin:-4px -6px 0 8px;border-radius:50%;border:0;background:var(--bg);color:var(--muted);display:grid;place-items:center}
 .xclose svg{width:20px;height:20px}
@@ -524,7 +525,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-18.7';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-18.8';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -782,7 +783,7 @@ function setTab(t) {
   const sec = $('#tab-' + t); sec.classList.add('enter'); clearTimeout(sec._en); sec._en = setTimeout(() => sec.classList.remove('enter'), 700);
   if (t === 'today') renderToday();
   if (t === 'search') { renderSearch(); setTimeout(() => $('#searchInput').focus(), 50); }
-  if (t !== 'count') { stopCamera(); $('#manualInput').value = ''; renderQuick(); $('#tab-count').classList.remove('typing'); }
+  if (t !== 'count') { camSoftOff(); $('#manualInput').value = ''; renderQuick(); $('#tab-count').classList.remove('typing'); }
 }
 
 /* ---------- นับซ้ำ ---------- */
@@ -950,7 +951,7 @@ function confirmLink(raw, name, done) {
 function openUnknown(raw) {
   openDialog(`<h3>ยังไม่รู้จักบาร์โค้ดนี้</h3>
     <p class="muted small">บาร์โค้ด <b>${esc(raw)}</b> ยังไม่รู้จัก · พิมพ์ชื่อยาที่ถืออยู่แล้วแตะเลือก แอปจะจำไว้</p>
-    <input type="search" id="linkQ" name="drugq" placeholder="พิมพ์ชื่อยา เช่น amlo, พาราเซตามอล" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+    <input type="search" id="linkQ" name="drugq" placeholder="พิมพ์ยา เช่น amlo, พาราเซตามอล" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
     <div class="list" id="linkList"></div>
     <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button><button class="btn ghost" id="reportBtn">ไม่มีในรายการ แจ้งเป็นยาใหม่</button></div>`, dlg => {
     const q = dlg.querySelector('#linkQ'), list = dlg.querySelector('#linkList');
@@ -971,7 +972,7 @@ function openUnknown(raw) {
     // หน้าค้นหาแบบเต็มจอที่มองเห็นจริง (พอดีคีย์บอร์ด) ช่องพิมพ์อยู่บน รายการเลื่อนในกรอบ พิมพ์ใหม่กลับไปบนสุด
     dlg.classList.add('dlg-search'); $('#dov').classList.add('search');
     // ระหว่างค้นชื่อ ปิดกล้องด้านหลังให้ประหยัดแบต ปิดหน้านี้แล้วเปิดกล้องกลับเอง
-    if (stream) stopCamera();   // กล้องจะเปิดกลับเองเมื่อปิดหน้านี้ (ดู camWatch)
+    camSoftOff();   // พักกล้องระหว่างค้นชื่อ ปิดหน้านี้แล้วกลับมาใช้ต่อเอง
     q.addEventListener('input', () => { render(); list.scrollTop = 0; }); render(); setTimeout(() => q.focus(), 60);
     q.addEventListener('focus', () => dlg.classList.add('kb'));
     q.addEventListener('blur', () => setTimeout(() => dlg.classList.remove('kb'), 150));
@@ -2210,15 +2211,21 @@ async function getDetector() {
 
 // เปิดกล้องเฉพาะตอนอยู่หน้าสแกนจริงๆ: ไปหน้าอื่น เปิดหน้าต่างค้าง หรือพิมพ์ชื่อยา เกิน 5 วินาที → ปิดกล้อง (ประหยัดแบต/ไม่ร้อน)
 // กลับมาหน้าสแกนแล้วเปิดกล้องเองอัตโนมัติ ถ้าก่อนหน้านั้นเปิดกล้องอยู่ (กดปิดกล้องเอง หรือพักเพราะไม่ได้ใช้นาน = ไม่เปิดเอง)
-let wantCam = false, camStarting = false, awaySince = 0;
+// iPhone ถามสิทธิ์กล้องทุกครั้งที่ขอกล้องใหม่ จึง "พักกล้อง" แทนการปิด (หยุดรับภาพ ไม่คืนกล้อง) แล้วกลับมาใช้ต่อได้ทันทีไม่ถามซ้ำ
+// ปิดกล้องจริงเฉพาะเมื่อไม่ได้กลับมาหน้าสแกนเกิน 2 นาที หรือออกจากแอป
+let wantCam = false, camStarting = false, awaySince = 0, camSoft = false;
 const camAway = () => tab !== 'count' || document.hidden || sheetOpen() || $('#tab-count').classList.contains('typing');
+function camSoftOff() { if (!track || camSoft) return; camSoft = true; try { track.enabled = false; $('#video').pause(); } catch (e) {} }
+function camSoftOn() { if (!camSoft) return; camSoft = false; try { if (track) track.enabled = true; $('#video').play().catch(() => {}); } catch (e) {} lastSeen = Date.now(); }
 setInterval(() => {
   if (camAway()) {
     if (!awaySince) awaySince = Date.now();
-    if (stream && (tab !== 'count' || Date.now() - awaySince > 5000)) stopCamera();
+    if (stream && Date.now() - awaySince > 1500) camSoftOff();
+    if (stream && Date.now() - awaySince > 120000) stopCamera();
   } else {
     awaySince = 0;
-    if (wantCam && !stream && !camStarting) startCamera();
+    if (stream) camSoftOn();
+    else if (wantCam && !camStarting) startCamera();
   }
 }, 700);
 async function startCamera() {
@@ -2264,7 +2271,7 @@ function setupCaps() {
   } else { z.classList.add('hidden'); $('#zoomSpacer').classList.remove('hidden'); $('#zoomBtn').classList.add('hidden'); }
 }
 function stopCamera() {
-  scanning = false;
+  scanning = false; camSoft = false;
   if (stream) stream.getTracks().forEach(t => t.stop());
   stream = null; track = null;
   $('#torchBtn').classList.remove('on');
@@ -2330,7 +2337,7 @@ function camRest() {
 async function loop() {
   if (!scanning) return;
   const v = $('#video');
-  const busy = paused || sheetOpen() || $('#tab-count').classList.contains('typing');
+  const busy = paused || camSoft || tab !== 'count' || sheetOpen() || $('#tab-count').classList.contains('typing');
   setCamFps(busy ? 5 : 24);
   const idle = idleMs();
   if (!busy && idle > IDLE_STOP) { camRest(); return; }
