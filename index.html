@@ -288,6 +288,10 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .tool b{font-size:15px}.tool small{font-size:13px;color:var(--muted)}
 .tool.t-slate .ti{background:var(--slate-soft);color:var(--slate)}.tool.t-blue .ti{background:var(--blue-soft);color:var(--blue)}.tool.t-orange .ti{background:var(--orange-soft);color:var(--orange)}
 .tool:active{transform:scale(.97)}
+.tool.t-violet .ti{background:var(--violet-soft);color:var(--violet)}.tool.on.t-violet{border-color:var(--violet);background:var(--violet-soft)}
+.swapbtn{width:100%;margin-top:8px;min-height:44px;border:1.5px solid color-mix(in srgb,var(--violet) 40%,var(--line));background:transparent;color:var(--violet);border-radius:14px;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px}
+.swapbtn svg{width:18px;height:18px}.swapbtn.on{background:var(--violet-soft);border-color:var(--violet)}
+.swapnote{margin-top:10px;padding:8px 12px;border-radius:12px;background:var(--violet-soft);color:var(--violet);font-weight:600;font-size:14px}
 .tool.on.t-blue{border-color:var(--blue);background:var(--blue-soft)}.tool.on.t-orange{border-color:var(--orange);background:var(--orange-soft)}
 .exp-tip{font-size:13px;color:var(--muted);margin-top:4px}
 .exp-h{display:block;font-weight:700;color:var(--orange);margin-top:6px}
@@ -525,7 +529,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-18.8';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-18.9';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -1272,6 +1276,7 @@ let sheetCtx = null;
 function sheetOpen() { return !!sheetCtx || !!$('#layer').firstChild; }
 
 const ICO_BOX = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>';
+const ICO_SWAP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>';
 const ICO_CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>';
 const BIG_UNITS = ['กล่อง', 'แผง', 'ขวด', 'แพ็ค', 'โหล', 'ลัง'];
 function packFor(name) { const k = normName(name); let hit = null; packs.forEach(x => { if (normName(x[0]) === k) hit = { big: x[1], n: Number(x[2]) }; }); return hit; }
@@ -1325,7 +1330,8 @@ function openSheet(lots, mode, raw, pre, editing) {
           ${i.c && mode === 'count' ? `<div class="lot-done${/ไม่ตรง|นับซ้ำ/.test(i.st || '') ? ' bad' : ''}">✓ นับแล้ว${chk(i) && i.st && i.st !== 'ยังไม่นับ' ? ' · ' + esc(i.st) : ''}<span>${i.by ? ' · ' + esc(i.by) : ''}</span>${i.q != null ? `<button type="button" class="chipbtn addmore" data-addmore>+ เจออีกที่ (บวกกับ ${i.q})</button>` : ''}</div>` : ''}
           ${i.dup || i.ef ? `<div class="lot-meta">${i.dup ? '<span class="pill p-warn">แถวซ้ำในระบบ</span>' : ''}${i.ef ? `<span class="pill p-warn">EXP บนกล่อง ${esc(fmtExp(i.ef))}</span>` : ''}</div>` : ''}
           ${chk(i) ? `
-          <div class="lotx"><button type="button" data-x="ok">✓ ตรง</button><button type="button" data-x="edit"><svg class="bi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>ไม่ตรง แก้จำนวน</button></div>` : ''}
+          <div class="lotx"><button type="button" data-x="ok">✓ ตรง</button><button type="button" data-x="edit"><svg class="bi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>ไม่ตรง แก้จำนวน</button></div>
+          ${mode === 'count' ? `<button type="button" class="swapbtn" data-lotswap>${ICO_SWAP}LOT บนกล่องไม่ตรง แต่จำนวนตรง</button>` : ''}` : ''}
           <div class="editbox${!chk(i) || pre[i.r] !== undefined ? ' on' : ''}" data-edit>
           <div class="small" style="margin-top:8px">นับเป็น <span class="unit-big">${esc(i.u || '-')}</span> (หน่วยเดียวกับ Arincare)</div>
           <div class="stepper">
@@ -1340,7 +1346,7 @@ function openSheet(lots, mode, raw, pre, editing) {
           <div class="tools-h">กรณีพิเศษ แตะเลือกได้</div>
           <div class="tools">
             <button type="button" class="tool t-slate" data-zero><span class="ti">0</span><b>ไม่มีบนชั้น</b><small>ใส่ 0 ให้เลย</small></button>
-            ${pk ? '' : `<button type="button" class="tool t-blue" data-calcbtn><span class="ti">${ICO_BOX}</span><b>นับเป็นกล่อง</b><small>แปลงเป็น${esc(i.u)}ให้</small></button>`}
+            ${pk ? '' : `<button type="button" class="tool t-blue" data-calcbtn><span class="ti">${ICO_BOX}</span><b>นับเป็นกล่อง</b><small>แปลงเป็น ${esc(i.u)} ให้</small></button>`}
             ${chk(i) ? `<button type="button" class="tool t-orange" data-expt><span class="ti">${ICO_CAL}</span><b>EXP ไม่ตรง</b><small>ใส่ EXP จริง</small></button>` : ''}
           </div>
           ${chk(i) && mode === 'count' ? `<label class="confirm"><input type="checkbox" data-confirm> มั่นใจยอดนี้ ไม่ต้องให้อีกคนนับซ้ำ</label>` : ''}
@@ -1365,6 +1371,25 @@ function openSheet(lots, mode, raw, pre, editing) {
     if (st) { const inp = st.parentElement.querySelector('[data-q]'); const cur = inp.value === '' ? (Number(st.dataset.step) > 0 ? 0 : 1) : Number(inp.value);
       inp.value = Math.max(0, cur + Number(st.dataset.step)); updateSave(); vibrate(8); }
     // ยาตัวเดียวกันวางหลายที่: นับที่ใหม่แล้วบวกกับยอดที่นับไว้ ไม่ต้องคิดเลขเอง
+    // LOT บนกล่องไม่ใช่เลขในระบบ (ยอดเท่าเดิม): LOT นี้ = 0 แล้วเพิ่ม LOT ที่เจอจริงพร้อมจำนวน/EXP เดิม → ชีตสรุปเป็น "LOT ไม่ตรง (จำนวนรวมตรง)"
+    const sw = e.target.closest('[data-lotswap]');
+    if (sw) { const L = sw.closest('.lot'), it = lots[Number(L.dataset.k)], q = L.querySelector('[data-q]');
+      const old = document.querySelector(`#ov [data-new][data-swap="${CSS.escape(String(it.r))}"]`);
+      if (old) { old.remove(); sw.classList.remove('on'); q.value = ''; const n = L.querySelector('.swapnote'); if (n) n.remove(); const cf = L.querySelector('[data-confirm]'); if (cf) cf.checked = false; updateSave(); return; }
+      const qty = q.value !== '' && Number(q.value) > 0 ? Number(q.value) : (it.f != null ? it.f : '');
+      L.querySelector('[data-edit]').classList.add('on'); L.querySelectorAll('[data-x]').forEach(b => b.classList.toggle('on', b.dataset.x === 'edit'));
+      q.value = 0; sw.classList.add('on');
+      const cf = L.querySelector('[data-confirm]'); if (cf) cf.checked = true;   // เห็นกล่องจริงแล้ว ไม่ต้องให้คนอื่นนับซ้ำ LOT ที่ไม่มีอยู่จริง
+      if (!L.querySelector('.swapnote')) L.querySelector('[data-edit]').insertAdjacentHTML('afterend', `<div class="swapnote">LOT ${esc(it.l)} บันทึกเป็น 0 · ยอดย้ายไป LOT ที่เจอจริงด้านล่าง</div>`);
+      $('#newLotBtn').click();
+      const row = $('#newLots').lastElementChild; row.dataset.swap = String(it.r);
+      row.querySelector('.lot-id').textContent = `LOT ที่เจอจริง (แทน ${it.l || 'LOT ในระบบ'})`;
+      if (qty !== '') row.querySelector('[data-q]').value = qty;
+      const m = String(it.e || '').match(/^(\d{4})-(\d{2})(?:-(\d{2}))?/);
+      if (m) { const set = (k, v) => { const el = row.querySelector(`[data-e="${k}"]`); if ([...el.options].some(o => o.value === v)) { el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); } };
+        set('y', m[1]); set('m', String(Number(m[2]))); if (m[3]) set('d', String(Number(m[3]))); }
+      row.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => row.querySelector('[data-nl]').focus(), 250);
+      updateSave(); return; }
     const am = e.target.closest('[data-addmore]');
     if (am) { const L = am.closest('.lot'), on = L.dataset.add !== '1'; L.dataset.add = on ? '1' : '';
       am.classList.toggle('on', on); L.querySelector('[data-addnote]').hidden = !on;
@@ -1459,7 +1484,7 @@ function sheetEntries() {
 function newLotEntries() {
   return [...document.querySelectorAll('#ov [data-new]')].map(el => {
     const lot = el.querySelector('[data-nl]').value.trim().toUpperCase(), qv = el.querySelector('[data-q]').value.trim();
-    return { lot, exp: readExp(el), q: qv === '' ? undefined : Number(qv) };
+    return { lot, exp: readExp(el), q: qv === '' ? undefined : Number(qv), swap: el.dataset.swap || '' };
   }).filter(o => o.lot || o.q !== undefined);
 }
 function updateSave() {
@@ -1515,7 +1540,7 @@ function choose(title, text, buttons) {
 async function checkNewLots(newLots) {
   const p0 = sheetCtx.lots[0], u = p0.u || '';
   for (const o of newLots) {
-    const sys = sheetCtx.lots.find(i => lotNear(i.l, o.lot));
+    const sys = o.swap ? null : sheetCtx.lots.find(i => lotNear(i.l, o.lot));   // เลือก "LOT ไม่ตรง" เองแล้ว ไม่ต้องถามว่าพิมพ์ผิด
     if (sys) {
       const v = await choose('ตรวจเลข LOT อีกครั้ง',
         `LOT ที่กรอก <b class="code">${esc(o.lot)}</b> คล้ายกับ LOT <b class="code">${esc(sys.l)}</b> ที่มีในระบบมาก<br>ดูเลขบนกล่องอีกที`,
