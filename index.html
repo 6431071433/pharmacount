@@ -327,6 +327,10 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .recent .row .q{font-weight:700;font-size:16px;color:var(--brand);white-space:nowrap}
 .sys{margin-top:8px;background:var(--bg);border-radius:12px;padding:8px 10px;font-size:15px}
 .sys b{font-size:18px;color:var(--ink)}
+/* ยอดในระบบบนการ์ด LOT: ตัวเลขใหญ่ สีฟ้า กล่องพื้นฟ้าอ่อน แยกจากปุ่มและข้อความอื่นชัด */
+.sysq.sys{background:var(--blue-soft);border:1.5px solid color-mix(in srgb,var(--blue) 30%,transparent);padding:6px 14px 8px;min-width:88px}
+.sysq.sys b{font-size:38px;font-weight:700;color:var(--blue);line-height:1.05}
+.sysq.sys span{font-size:13px;color:var(--blue);opacity:.85;font-weight:600}
 .editbox{display:none}.editbox.on{display:block}
 .confirm{display:flex;gap:10px;align-items:center;margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;font-size:15px;color:var(--ink);font-weight:600}
 .confirm input{width:22px;height:22px;flex:none;accent-color:var(--brand)}
@@ -534,7 +538,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-18.11';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-18.12';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
