@@ -366,6 +366,12 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
   .dialog::before{content:'';display:block;width:40px;height:5px;border-radius:5px;background:var(--line);margin:0 auto 12px}
 }
 .dialog h3{margin:0 0 6px;font-size:18px;padding-right:44px}
+#dov.search{top:var(--vvt,0px);bottom:auto;height:var(--vvh,100%)}
+.dialog.dlg-search{display:flex;flex-direction:column;max-height:calc(var(--vvh,100vh) - 8px);overflow:hidden}
+.dialog.dlg-search > p{margin:0 0 8px}
+.dialog.dlg-search{position:relative}.dialog.dlg-search .xclose{position:absolute;top:12px;right:12px;margin:0}
+.dialog.dlg-search #linkList{flex:1;min-height:80px;overflow:auto;overscroll-behavior:contain;margin-top:8px}
+.dialog.dlg-search .acts{flex:none;margin-top:10px}
 .xclose{float:right;position:sticky;top:0;z-index:3;width:40px;height:40px;margin:-4px -6px 0 8px;border-radius:50%;border:0;background:var(--bg);color:var(--muted);display:grid;place-items:center}
 .xclose svg{width:20px;height:20px}
 .sheet-h .xclose{position:absolute;top:12px;right:12px;float:none;margin:0}
@@ -514,7 +520,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-18.3';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-18.4';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -939,8 +945,8 @@ function confirmLink(raw, name, done) {
 /* ---------- สอนบาร์โค้ด: สแกนแล้วไม่รู้จัก ---------- */
 function openUnknown(raw) {
   openDialog(`<h3>ยังไม่รู้จักบาร์โค้ดนี้</h3>
-    <p class="muted small">บาร์โค้ด <b>${esc(raw)}</b> ยังไม่อยู่ในฐานบาร์โค้ด ค้นหาชื่อสินค้าที่ถืออยู่แล้วแตะเลือก ระบบจะจำไว้ ครั้งต่อไปสแกนติดทันที</p>
-    <input type="search" id="linkQ" placeholder="พิมพ์ชื่อยา เช่น amlo, พาราเซตามอล" autocomplete="off">
+    <p class="muted small">บาร์โค้ด <b>${esc(raw)}</b> ยังไม่รู้จัก · พิมพ์ชื่อยาที่ถืออยู่แล้วแตะเลือก แอปจะจำไว้</p>
+    <input type="search" id="linkQ" name="drugq" placeholder="พิมพ์ชื่อยา เช่น amlo, พาราเซตามอล" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
     <div class="list" id="linkList"></div>
     <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button><button class="btn ghost" id="reportBtn">ไม่มีในรายการ แจ้งเป็นยาใหม่</button></div>`, dlg => {
     const q = dlg.querySelector('#linkQ'), list = dlg.querySelector('#linkList');
@@ -955,8 +961,16 @@ function openUnknown(raw) {
           <div class="s">${byName.get(n).length} LOT${withCode.has(n) ? ' · มีบาร์โค้ดอื่นอยู่แล้ว' : ' · ยังไม่มีบาร์โค้ด'}</div></div></button>`; }).join('')
         : '<div class="empty small">ไม่พบชื่อนี้</div>';
     };
-    q.addEventListener('input', render); render(); setTimeout(() => q.focus(), 60);
+    // หน้าค้นหาแบบเต็มจอที่มองเห็นจริง (พอดีคีย์บอร์ด) ช่องพิมพ์อยู่บน รายการเลื่อนในกรอบ พิมพ์ใหม่กลับไปบนสุด
+    dlg.classList.add('dlg-search'); $('#dov').classList.add('search');
+    // ระหว่างค้นชื่อ ปิดกล้องด้านหลังให้ประหยัดแบต ปิดหน้านี้แล้วเปิดกล้องกลับเอง
+    if (stream) { stopCamera(); camResume = true; }
+    q.addEventListener('input', () => { render(); list.scrollTop = 0; }); render(); setTimeout(() => q.focus(), 60);
+    let y0 = 0, moved = false;
+    list.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; moved = false; }, { passive: true });
+    list.addEventListener('touchmove', e => { if (Math.abs(e.touches[0].clientY - y0) > 10) moved = true; }, { passive: true });
     list.addEventListener('click', async e => {
+      if (moved) { moved = false; return; }   // เลื่อนรายการ ไม่ใช่แตะเลือก
       const b = e.target.closest('[data-name]'); if (!b) return;
       if (!cfg.counter) { closeDialog(); askCounter(); return; }
       confirmLink(raw, b.dataset.name, name => {
@@ -2471,7 +2485,13 @@ function swipeClose(panel, scroller, ok, close, head) {
     else panel.style.transform = '';
   });
 }
-function closeDialog() { $('#layer').innerHTML = ''; resumeScan(); keepCamInView(); }
+let camResume = false;
+function closeDialog() { $('#layer').innerHTML = ''; resumeScan(); keepCamInView();
+  if (camResume) { camResume = false; if (tab === 'count' && !document.hidden) startCamera(); } }
+// ขนาดจอที่มองเห็นจริง (หักคีย์บอร์ด iPhone) ใช้กับหน้าต่างค้นหา
+function syncVV() { const v = window.visualViewport; if (!v) return;
+  document.documentElement.style.setProperty('--vvh', v.height + 'px'); document.documentElement.style.setProperty('--vvt', v.offsetTop + 'px'); }
+if (window.visualViewport) { visualViewport.addEventListener('resize', syncVV); visualViewport.addEventListener('scroll', syncVV); syncVV(); }
 // iPhone: ตอนพิมพ์ในแผ่นนับ คีย์บอร์ดดันหน้าหลังเลื่อนลง ปิดแผ่นแล้วกล้องหลุดจอ → เลื่อนกลับให้เห็นกล้องเต็ม
 function keepCamInView() {
   if (tab !== 'count' || !scanning || $('#tab-count').classList.contains('typing')) return;
