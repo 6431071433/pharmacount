@@ -269,11 +269,28 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .rlot .two{display:grid;grid-template-columns:1fr 112px;gap:8px}
 .rlot .field{margin-top:8px}
 .unit-big{display:inline-block;background:var(--brand);color:#fff;border-radius:8px;padding:2px 8px;font-size:14px;font-weight:700}
-.calc{display:none;margin-top:10px;padding:10px;border:1px dashed var(--brand-2);border-radius:14px;background:var(--brand-soft);font-size:14px}
+.calc{display:none;margin-top:12px;padding:12px 14px;border:1.5px solid var(--blue);border-radius:16px;background:var(--card);font-size:15px}
+.calc-h{font-weight:700;color:var(--blue);margin-bottom:8px}
+.calc-step{display:flex;gap:10px;align-items:center;padding:6px 0}
+.calc-step .no{width:24px;height:24px;border-radius:50%;background:var(--blue-soft);color:var(--blue);font-weight:700;font-size:14px;display:grid;place-items:center;flex:none}
+.calc select{width:auto;min-width:84px;height:44px;padding:4px 28px 4px 10px;font-size:16px}
+.calc-n{font-size:14px;color:var(--muted);margin-top:4px}
+.tools-h{margin-top:14px;font-size:14px;font-weight:600;color:var(--muted)}
+.tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-top:6px}
+.tool{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px 8px;border:1.5px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);text-align:center;min-height:96px;line-height:1.3}
+.tool .ti{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-weight:700;font-size:18px;margin-bottom:4px}
+.tool .ti svg{width:20px;height:20px}
+.tool b{font-size:15px}.tool small{font-size:13px;color:var(--muted)}
+.tool.t-slate .ti{background:var(--slate-soft);color:var(--slate)}.tool.t-blue .ti{background:var(--blue-soft);color:var(--blue)}.tool.t-orange .ti{background:var(--orange-soft);color:var(--orange)}
+.tool:active{transform:scale(.97)}
+.tool.on.t-blue{border-color:var(--blue);background:var(--blue-soft)}.tool.on.t-orange{border-color:var(--orange);background:var(--orange-soft)}
+.exp-h{display:block;font-weight:700;color:var(--orange);margin-top:6px}
+.exp-n{font-size:14px;color:var(--muted);margin-bottom:6px}
+.expbox.on{padding:10px 12px;border:1.5px solid var(--orange);border-radius:16px;margin-top:12px}
 .calc.on{display:block}
 .calc .crow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .calc input{width:64px;height:40px;text-align:center;font-size:18px;font-weight:700;padding:4px}
-.calc .eq{font-weight:700;color:var(--brand);margin-top:6px}
+.calc .eq{font-weight:700;font-size:18px;color:var(--ink);margin-top:6px}
 .lotx{display:flex;gap:6px;margin-top:10px}
 .lotx button{flex:1;border:1.5px solid var(--line);background:var(--card);border-radius:14px;padding:11px 6px;font-size:15px;font-weight:700;color:var(--ink);min-height:50px}
 .lotx .bi{width:16px;height:16px;vertical-align:-2px;margin-right:6px}
@@ -296,7 +313,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-2);outline
 .sys{margin-top:8px;background:var(--bg);border-radius:12px;padding:8px 10px;font-size:15px}
 .sys b{font-size:18px;color:var(--ink)}
 .editbox{display:none}.editbox.on{display:block}
-.confirm{display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:14px;color:var(--brand);font-weight:600}
+.confirm{display:flex;gap:10px;align-items:center;margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;font-size:15px;color:var(--ink);font-weight:600}
+.confirm input{width:22px;height:22px;flex:none;accent-color:var(--brand)}
 .confirm input{width:20px;height:20px;flex:none;margin-top:1px;accent-color:var(--brand)}
 .allok{width:100%;margin:0 0 12px;padding:14px;font-size:17px;border-radius:16px}
 .str{color:var(--brand-ink);background:var(--brand-soft);border-radius:5px;padding:0 3px;font-weight:700}
@@ -490,7 +508,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-17.6';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-18.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -1213,16 +1231,21 @@ function renderToday() {
 let sheetCtx = null;
 function sheetOpen() { return !!sheetCtx || !!$('#layer').firstChild; }
 
+const ICO_BOX = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>';
+const ICO_CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>';
 const BIG_UNITS = ['กล่อง', 'แผง', 'ขวด', 'แพ็ค', 'โหล', 'ลัง'];
 function packFor(name) { const k = normName(name); let hit = null; packs.forEach(x => { if (normName(x[0]) === k) hit = { big: x[1], n: Number(x[2]) }; }); return hit; }
 function calcBox(i, pk) {
   const big = pk ? pk.big : (i.u === 'แผง' ? 'กล่อง' : i.u === 'เม็ด' ? 'แผง' : 'กล่อง');
+  const num = (attr, ph, label, extra) => `<input type="number" inputmode="numeric" min="0" step="1" ${attr} placeholder="${ph}" aria-label="${label}"${extra || ''}>`;
   return `<div class="calc${pk ? ' on' : ''}" data-calc>
-    <div class="crow"><input type="number" inputmode="numeric" min="0" step="1" data-cb placeholder="0" aria-label="จำนวน${esc(big)}">
-      <select data-cbig aria-label="หน่วยที่นับ">${BIG_UNITS.concat(BIG_UNITS.includes(big) ? [] : [big]).map(u => `<option${u === big ? ' selected' : ''}>${esc(u)}</option>`).join('')}</select>
-      <span>+ เศษ</span><input type="number" inputmode="numeric" min="0" step="1" data-cl placeholder="0" aria-label="เศษ"><span>${esc(i.u)}</span></div>
-    <div class="crow small muted" style="margin-top:6px">1 <span data-cbn>${esc(big)}</span> = <input type="number" inputmode="numeric" min="1" step="1" data-cn value="${pk ? pk.n : ''}" placeholder="?" style="width:56px;height:34px;font-size:15px"> ${esc(i.u)} ${pk ? '(ตั้งไว้ในแท็บ ขนาดบรรจุ)' : '(ระบบจะจำไว้)'}</div>
-    <div class="eq" data-ceq></div></div>`;
+    <div class="calc-h">นับเป็นกล่อง แล้วให้แอปแปลงเป็น ${esc(i.u)}</div>
+    <div class="calc-step"><span class="no">1</span><div class="crow">1 <select data-cbig aria-label="หน่วยใหญ่">${BIG_UNITS.concat(BIG_UNITS.includes(big) ? [] : [big]).map(u => `<option${u === big ? ' selected' : ''}>${esc(u)}</option>`).join('')}</select> มี
+      ${num('data-cn', '?', 'จำนวนต่อหน่วยใหญ่', ` value="${pk ? pk.n : ''}"`)} ${esc(i.u)}</div></div>
+    <div class="calc-step"><span class="no">2</span><div><div class="crow">นับได้ ${num('data-cb', '0', 'จำนวนหน่วยใหญ่')} <span data-cbn>${esc(big)}</span></div>
+      <div class="crow" style="margin-top:6px">เศษ ${num('data-cl', '0', 'เศษ')} ${esc(i.u)} <span class="muted">(ถ้ามี)</span></div></div></div>
+    <div class="eq" data-ceq></div>
+    <div class="calc-n">${pk ? 'ขนาดบรรจุตั้งไว้ในแท็บ ขนาดบรรจุ' : 'ขนาดบรรจุที่ใส่ แอปจะจำไว้ใช้ครั้งต่อไป'}</div></div>`;
 }
 function openSheet(lots, mode, raw, pre, editing) {
   if (!lots.length) return;
@@ -1274,14 +1297,15 @@ function openSheet(lots, mode, raw, pre, editing) {
           ${chk(i) ? '<div class="diff" data-diff aria-live="polite"></div>' : ''}
           ${calcBox(i, pk)}
           <div class="addnote" data-addnote hidden>นับเพิ่มจากที่อื่น · จะบวกกับ ${i.q} ที่นับไว้แล้ว</div>
-          <div class="chips">
-            <button type="button" class="chipbtn" data-zero>ไม่มีบนชั้น = 0</button>
-            ${pk ? '' : `<button type="button" class="chipbtn" data-calcbtn>คิดจากจำนวนกล่อง</button>`}
-            ${chk(i) ? `<button type="button" class="chipbtn" data-expt>EXP บนกล่องไม่ตรง</button>` : ''}
+          <div class="tools-h">กรณีพิเศษ แตะเลือกได้</div>
+          <div class="tools">
+            <button type="button" class="tool t-slate" data-zero><span class="ti">0</span><b>ไม่มีบนชั้น</b><small>ใส่ 0 ให้เลย</small></button>
+            ${pk ? '' : `<button type="button" class="tool t-blue" data-calcbtn><span class="ti">${ICO_BOX}</span><b>นับเป็นกล่อง</b><small>แปลงเป็น${esc(i.u)}ให้</small></button>`}
+            ${chk(i) ? `<button type="button" class="tool t-orange" data-expt><span class="ti">${ICO_CAL}</span><b>EXP ไม่ตรง</b><small>ใส่ EXP จริง</small></button>` : ''}
           </div>
           ${chk(i) && mode === 'count' ? `<label class="confirm"><input type="checkbox" data-confirm> มั่นใจยอดนี้ ไม่ต้องให้อีกคนนับซ้ำ</label>` : ''}
           ${chk(i) ? '' : `<div class="lotx"><button type="button" data-x="ok">✓ LOT/EXP ตรง</button><button type="button" data-x="bad">EXP ไม่ตรง</button></div>`}
-          <div class="expbox" data-expbox><label class="small muted">เลือก EXP ที่เห็นบนกล่อง (ถ้าเลข LOT ไม่ตรงด้วย ใช้ปุ่ม “+ เจอ LOT อื่น” ด้านล่าง)</label>${expPicker()}</div>
+          <div class="expbox" data-expbox><label class="exp-h">EXP ที่เห็นบนกล่อง</label><div class="exp-n">ถ้าเลข LOT ไม่ตรงด้วย ใช้ปุ่มสีส้ม “เจอ LOT อื่น” ด้านล่างแทน</div>${expPicker()}</div>
           </div>
         </div>`).join('')}
       <div id="newLots"></div><button type="button" class="addlot" id="newLotBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>เจอ LOT อื่นที่ไม่มีในรายการนี้</button>
@@ -1309,7 +1333,7 @@ function openSheet(lots, mode, raw, pre, editing) {
     const z = e.target.closest('[data-zero]');
     if (z) { const L = z.closest('.lot'); L.querySelector('[data-q]').value = 0; L.querySelectorAll('[data-cb],[data-cl]').forEach(x => x.value = ''); updateSave(); }
     const cb = e.target.closest('[data-calcbtn]');
-    if (cb) { const c = cb.closest('.lot').querySelector('[data-calc]'); c.classList.toggle('on'); if (c.classList.contains('on')) c.querySelector(c.querySelector('[data-cn]').value ? '[data-cb]' : '[data-cn]').focus(); }
+    if (cb) { const c = cb.closest('.lot').querySelector('[data-calc]'); c.classList.toggle('on'); cb.classList.toggle('on', c.classList.contains('on')); if (c.classList.contains('on')) c.querySelector(c.querySelector('[data-cn]').value ? '[data-cb]' : '[data-cn]').focus(); }
     const x = e.target.closest('[data-x]');
     if (x) { const L = x.closest('.lot'), it = lots[Number(L.dataset.k)], q = L.querySelector('[data-q]');
       const on = x.dataset.x === 'edit' ? true : !x.classList.contains('on');
@@ -1323,7 +1347,7 @@ function openSheet(lots, mode, raw, pre, editing) {
       if (!chk(it) && on && x.dataset.x === 'ok' && q.value === '' && showSys && it.f != null) q.value = it.f;
       updateSave(); }
     const et = e.target.closest('[data-expt]');
-    if (et) et.closest('.lot').querySelector('[data-expbox]').classList.toggle('on');
+    if (et) { const eb = et.closest('.lot').querySelector('[data-expbox]'); eb.classList.toggle('on'); et.classList.toggle('on', eb.classList.contains('on')); }
   });
   ov.querySelectorAll('[data-q]').forEach(inp => inp.addEventListener('input', updateSave));
   // ตัวช่วยแปลงหน่วย: กล่อง × จำนวนต่อกล่อง + เศษ → ใส่ในช่องจำนวน (หน่วยตามระบบ)
