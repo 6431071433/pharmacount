@@ -538,7 +538,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-18.12';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-19.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -615,7 +615,19 @@ function productsWithCode() {
 }
 
 /* ---------- เชื่อมต่อ Apps Script ---------- */
+// ระบบยุ่ง (หมดเวลาล็อก = มีเครื่องอื่นกำลังบันทึกอยู่) ข้อมูลยังไม่ถูกเขียน จึงลองส่งซ้ำได้อย่างปลอดภัย
+const isBusy = m => /ล็อก|lock|ยุ่ง|busy|too many|Service invoked too many/i.test(m || '');
 async function api(action, payload, method) {
+  for (let i = 0; ; i++) {
+    try { return await api_(action, payload, method); }
+    catch (e) {
+      if (!(e.server && isBusy(e.message))) throw e;
+      if (i >= 3) { e.server = false; e.busy = true; throw e; }   // ยังยุ่ง: ให้ไปเข้าคิวส่งเองทีหลัง
+      await new Promise(r => setTimeout(r, 2000 * (i + 1) + Math.random() * 1500));
+    }
+  }
+}
+async function api_(action, payload, method) {
   if (!cfg.api) throw new Error('ยังไม่ได้ตั้งค่าลิงก์ระบบ');
   let res;
   if (method === 'GET') {
@@ -1669,6 +1681,7 @@ async function saveSheet() {
     // ออฟไลน์: เก็บไว้ส่งทีหลัง
     queue.push({ action: mode, payload, counter: cfg.counter, cpin: cfg.cpin, at: Date.now() });
     store.set('queue', queue);
+    if (e.busy) { renderAll(); toast('ระบบกำลังยุ่ง (มีคนบันทึกพร้อมกัน) เก็บไว้ในเครื่องแล้ว จะส่งให้เองอัตโนมัติ ไม่ต้องนับใหม่', 'warn', 5000); return; }
     setOnline(false); renderAll();
     toast('ไม่มีสัญญาณ เก็บไว้ในเครื่องแล้ว จะส่งเองเมื่อออนไลน์', 'warn', 4000);
   }
