@@ -538,7 +538,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-19.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-19.2';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -1337,6 +1337,8 @@ function openSheet(lots, mode, raw, pre, editing) {
       ${raw && !editing ? '<button type="button" class="quietlink" id="wrongLink">ไม่ใช่ยาตัวนี้?</button>' : ''}
     </div>
     <div class="sheet-b">
+      ${mode === 'recount' && !editing ? (() => { const mine = new Set(lots.map(i => normKey(i.l))); const oth = [...new Set(items.filter(i => i.n === p.n && !mine.has(normKey(i.l))).map(i => i.l || '-'))];
+        return `<div class="lot" style="background:var(--warn-soft);border-color:#f3c48c"><b>นับเฉพาะกล่องที่ LOT ตรง: ${lots.map(i => esc(i.l || '-')).join(', ')}</b><div class="small">ดูเลข LOT ทุกกล่องก่อนนับ ถ้ามี LOT อื่นปนอยู่บนชั้น อย่านับรวม${oth.length ? ' · ยานี้มี LOT อื่นอีก: ' + oth.slice(0, 4).map(esc).join(', ') : ' · ถ้าเจอ LOT ที่ไม่อยู่ในรายการ กด “เจอ LOT อื่น” แยกไว้'}</div></div>`; })() : ''}
       ${sameCounter ? `<div class="lot" style="background:var(--warn-soft);border-color:#f3c48c"><b>คุณเป็นผู้นับครั้งแรก</b><div class="small">การนับซ้ำควรเป็นอีกคน เพื่อให้ตรวจสอบได้จริง</div></div>` : ''}
       ${showSys && !editing ? `<button type="button" class="btn allok" id="allOk">✓ ตรงทั้งหมด ${lots.length > 1 ? lots.length + ' LOT ' : ''}แล้วบันทึก</button>` : ''}
       ${editing ? `<div class="note" style="margin:0 0 10px">แก้ไขยอดที่นับไว้ แก้ตัวเลขแล้วกดบันทึก (LOT ที่ไม่แก้ปล่อยว่างได้)</div>` :
