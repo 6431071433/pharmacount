@@ -538,7 +538,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-20.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-20.2';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -584,6 +584,7 @@ const hiName = n => esc(n).replace(/(\d+(?:[.,]\d+)?\s*(?:MG\/\s*\d*\s*ML|MG|MCG
 const normName = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().toUpperCase();
 
 /* ---------- ข้อมูล ---------- */
+let goneBy = new Map();   // สินค้าที่ไม่อยู่ในไฟล์ Arincare รอบนี้ (ยอดเป็น 0) ใช้ตอนสแกนเจอของจริง
 let items = [], counters = [], causes = [], shelves = [], cpinNames = [], packs = [], units = [];
 let barcodeStat = '–';
 let ploc = {}, showSys = false;   // showSys = แสดงยอดในระบบ (ตรวจเทียบ ติ๊กตรง/แก้) ตั้งในแท็บ ตั้งค่า   // ชื่อสินค้า (normName) → ชั้นวางล่าสุด (แท็บ ชั้นวางของสินค้า)
@@ -654,6 +655,7 @@ async function load(silent) {
   try {
     const d = await api('init', null, 'GET');
     // LOT ที่ไม่มีใน Arincare แล้ว (ยอด 0) และยังไม่มีใครนับ ไม่ต้องนับ จึงไม่แสดงและไม่นับรวมในความคืบหน้า
+    goneBy = new Map(); d.items.filter(i => i.g).forEach(i => { const k = normName(i.n); if (!goneBy.has(k)) goneBy.set(k, i); });
     items = d.items.filter(i => !i.g); counters = d.counters || []; causes = d.causes || []; cpinNames = d.cpin || [];
     shelves = dedupeShelves(d.shelves || []); packs = d.packs || []; units = d.units || []; ploc = d.ploc || {}; showSys = !!d.show;
     ignCodes = new Set((d.ign || []).map(normCode)); buildIndex(d.barcodes);
@@ -920,9 +922,20 @@ function handleCode(raw, source) {
     if (!lots.length) { toast('สินค้านี้ไม่มี LOT ที่รอนับซ้ำ', 'warn'); return; }
     openSheet(lots, 'recount', raw); return;
   }
-  if (!lots.length) { toast('บาร์โค้ดนี้จับคู่ไว้กับสินค้าที่ไม่อยู่ในรายการนับรอบนี้', 'warn', 3500); return; }
+  if (!lots.length) { openGone(names, raw); return; }
   if (names.size > 1) { chooseProduct(names, lots, raw); return; }
   openSheet(lots, 'count', raw);
+}
+// สแกนเจอสินค้าที่รู้จักบาร์โค้ด แต่ไม่อยู่ในไฟล์ Arincare รอบนี้ (ในระบบเป็น 0 หรือถูกตัดออก) → แจ้งยอดที่เจอจริง ให้ไปเพิ่มใน Arincare
+function openGone(names, raw) {
+  const it = [...names].map(n => goneBy.get(n)).find(Boolean);
+  const name = it ? it.n : [...names][0] || '';
+  openDialog(`<h3>ยานี้ไม่อยู่ในรายการนับรอบนี้</h3>
+    <p class="small"><b>${esc(name)}</b></p>
+    <p class="muted small">ในไฟล์ Arincare ที่นำเข้ารอบนี้ไม่มียอดของยานี้ (ระบบเป็น 0 หรือไม่ได้ส่งออกมา) ถ้ามีของจริงบนชั้น ให้กรอก LOT และจำนวนที่เจอ ระบบจะขึ้นในหน้า “รอปรับ Arincare” ให้ไปเพิ่มยอด</p>
+    <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button><button class="btn" id="goneRep">มีของจริง · กรอกยอด</button></div>`, dlg => {
+    dlg.querySelector('#goneRep').onclick = () => { closeDialog(); openReport({ barcode: raw, name, unit: it ? it.u : '', note: 'มีในระบบแต่ไม่อยู่ในไฟล์ Arincare รอบนี้ (ยอด 0)' }); };
+  });
 }
 function chooseProduct(names, lots, raw) {
   const list = [...names].map(n => (byName.get(n) || [])[0]).filter(Boolean);
@@ -1034,17 +1047,18 @@ function openReport(pre) {
         <div></div>
       </div>
       <div class="field"><label>วันหมดอายุ (ไม่มีวันที่ เลือกแค่เดือน/ปี ได้)</label>${expPicker()}</div></div>`;
-  const unitOpts = units.length ? units : ['กล่อง', 'ขวด', 'แผง', 'ชิ้น', 'ซอง', 'หลอด', 'เม็ด'];
+  const unitOpts = (units.length ? units : ['กล่อง', 'ขวด', 'แผง', 'ชิ้น', 'ซอง', 'หลอด', 'เม็ด']).slice();
+  if (pre.unit && !unitOpts.includes(pre.unit)) unitOpts.unshift(pre.unit);
   openDialog(`<h3>${pre.type === 'newlot' ? 'พบ LOT ที่ไม่มีในระบบ' : 'สินค้าไม่มีในรายการนับ'}</h3>
     <p class="muted small">บันทึกไว้ในแท็บ “บันทึกการนับ” ให้เภสัชกรตรวจสอบกับ Arincare ภายหลัง ถ้าบนชั้นมีหลาย LOT กด “+ เพิ่ม LOT” แล้วกรอกจำนวนแยกกัน</p>
     ${pre.type === 'newlot' ? `<div class="field"><label>สินค้า</label><input type="text" value="${esc(pre.name)}" disabled></div>` :
       `<div class="field"><label>บาร์โค้ด</label><input type="text" id="rpB" value="${esc(pre.barcode || '')}"></div>
-       <div class="field"><label>ชื่อสินค้า (ถ้าทราบ)</label><input type="text" id="rpN" autocomplete="off"><div id="rpSugg"></div></div>
-       <div class="field"><label>หน่วยที่นับ</label><select id="rpU"><option value="">— เลือกหน่วย —</option>${unitOpts.map(u => `<option>${esc(u)}</option>`).join('')}</select></div>`}
+       <div class="field"><label>ชื่อสินค้า (ถ้าทราบ)</label><input type="text" id="rpN" autocomplete="off" value="${esc(pre.name || '')}"><div id="rpSugg"></div></div>
+       <div class="field"><label>หน่วยที่นับ</label><select id="rpU"><option value="">— เลือกหน่วย —</option>${unitOpts.map(u => `<option${u === pre.unit ? ' selected' : ''}>${esc(u)}</option>`).join('')}</select></div>`}
     <div id="rpLots">${lotRow(1)}</div>
     <button type="button" class="addlot" id="rpAdd">+ เพิ่ม LOT</button>
     ${shelfField('rpLoc', store.get('lastShelf', ''))}
-    <div class="field"><label>หมายเหตุ</label><input type="text" id="rpNote"></div>
+    <div class="field"><label>หมายเหตุ</label><input type="text" id="rpNote" value="${esc(pre.note || '')}"></div>
     <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button><button class="btn" id="rpSave">บันทึก</button></div>`, dlg => {
     const box = dlg.querySelector('#rpLots');
     const renumber = () => { const rows = box.querySelectorAll('[data-lot]');
