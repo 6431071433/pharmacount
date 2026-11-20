@@ -538,7 +538,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-20.2';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-20.3';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -885,10 +885,13 @@ function searchHTML(q, limit) {
       <div class="s">${g.length} LOT · นับแล้ว ${done}${has ? '' : ' · ยังไม่มีบาร์โค้ด'}</div></div>
       ${done === g.length ? '<span class="pill p-ok">ครบ</span>' : ''}
     </button>`; }).join('') : `<div class="empty"><b>ไม่พบ “${esc(q.trim())}”</b>ลองพิมพ์แค่ 2–3 ตัวแรกของชื่อยา เช่น amlo หรือสแกนบาร์โค้ดแทน</div>`)
-    + (all.length > limit ? `<button class="row more" data-more>ดูทั้งหมด ${all.length} รายการ</button>` : '');
+    + (all.length > limit ? `<button class="row more" data-more>ดูทั้งหมด ${all.length} รายการ</button>` : '')
+    // ของที่ไม่มีบาร์โค้ดและไม่มีในรายการ (เช่น ของแบ่งขาย) แจ้งจากชื่อได้เลย
+    + `<button class="row more" data-newprod="${esc(q.trim())}">＋ ไม่มีในรายการ · แจ้งเป็นสินค้าใหม่ (ไม่มีบาร์โค้ดก็ได้)</button>`;
 }
 function productCodes(name) { const n = normName(name), out = []; byCode.forEach((s, c) => { if (s.has(n)) out.push(c); }); return out; }
 $('#searchList').addEventListener('click', e => {
+  const np = e.target.closest('[data-newprod]'); if (np) { openReport({ name: np.dataset.newprod }); return; }
   const b = e.target.closest('button[data-name]'); if (!b) return;
   openSheet(byName.get(normName(b.dataset.name)) || [], 'count');
 });
@@ -2544,6 +2547,7 @@ window.addEventListener('scroll', () => { qScrollAt = Date.now(); }, { passive: 
 $('#quickList').addEventListener('click', e => {
   if (qMoved) { qMoved = false; return; }
   if (e.target.closest('[data-more]')) { setTab('search'); $('#searchInput').value = $('#manualInput').value; renderSearch(); return; }
+  const np = e.target.closest('[data-newprod]'); if (np) { $('#manualInput').blur(); openReport({ name: np.dataset.newprod }); return; }
   const b = e.target.closest('button[data-name]'); if (!b) return;
   $('#manualInput').blur();   // คำค้นและรายการยังอยู่ ปิดแผ่นนับแล้วเลือกตัวอื่นต่อได้ · กดยกเลิกเพื่อกลับหน้าสแกน
   openSheet(byName.get(normName(b.dataset.name)) || [], 'count');
