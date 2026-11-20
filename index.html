@@ -538,7 +538,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-20.5';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-20.6';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -584,7 +584,7 @@ const hiName = n => esc(n).replace(/(\d+(?:[.,]\d+)?\s*(?:MG\/\s*\d*\s*ML|MG|MCG
 const normName = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().toUpperCase();
 
 /* ---------- ข้อมูล ---------- */
-let goneBy = new Map();   // สินค้าที่ไม่อยู่ในไฟล์ Arincare รอบนี้ (ยอดเป็น 0) ใช้ตอนสแกนเจอของจริง
+let goneBy = new Map(), goneAll = [];   // สินค้าที่ไม่อยู่ในไฟล์ Arincare รอบนี้ (ยอดเป็น 0) ใช้ตอนสแกนเจอของจริง
 let items = [], counters = [], causes = [], shelves = [], cpinNames = [], packs = [], units = [];
 let barcodeStat = '–';
 let ploc = {}, showSys = false;   // showSys = แสดงยอดในระบบ (ตรวจเทียบ ติ๊กตรง/แก้) ตั้งในแท็บ ตั้งค่า   // ชื่อสินค้า (normName) → ชั้นวางล่าสุด (แท็บ ชั้นวางของสินค้า)
@@ -655,7 +655,7 @@ async function load(silent) {
   try {
     const d = await api('init', null, 'GET');
     // LOT ที่ไม่มีใน Arincare แล้ว (ยอด 0) และยังไม่มีใครนับ ไม่ต้องนับ จึงไม่แสดงและไม่นับรวมในความคืบหน้า
-    goneBy = new Map(); d.items.filter(i => i.g).forEach(i => { const k = normName(i.n); if (!goneBy.has(k)) goneBy.set(k, i); });
+    goneAll = d.items.filter(i => i.g); goneBy = new Map(); goneAll.forEach(i => { const k = normName(i.n); if (!goneBy.has(k)) goneBy.set(k, i); });
     items = d.items.filter(i => !i.g); counters = d.counters || []; causes = d.causes || []; cpinNames = d.cpin || [];
     shelves = dedupeShelves(d.shelves || []); packs = d.packs || []; units = d.units || []; ploc = d.ploc || {}; showSys = !!d.show;
     ignCodes = new Set((d.ign || []).map(normCode)); buildIndex(d.barcodes);
@@ -937,7 +937,11 @@ function openGone(names, raw) {
     <p class="small"><b>${esc(name)}</b></p>
     <p class="muted small">ในไฟล์ Arincare ที่นำเข้ารอบนี้ไม่มียอดของยานี้ (ระบบเป็น 0 หรือไม่ได้ส่งออกมา) ถ้ามีของจริงบนชั้น ให้กรอก LOT และจำนวนที่เจอ ระบบจะขึ้นในหน้า “รอปรับ Arincare” ให้ไปเพิ่มยอด</p>
     <div class="acts"><button class="btn ghost" data-close>ยกเลิก</button><button class="btn" id="goneRep">มีของจริง · กรอกยอด</button></div>`, dlg => {
-    dlg.querySelector('#goneRep').onclick = () => { closeDialog(); openReport({ barcode: raw, name, unit: it ? it.u : '', note: 'มีในระบบแต่ไม่อยู่ในไฟล์ Arincare รอบนี้ (ยอด 0)' }); };
+    // มีแถวของยานี้ในชีตอยู่แล้ว (ยอดระบบ 0): เปิดแผ่นนับของแถวเหล่านั้น LOT ที่ไม่ตรงใช้ปุ่ม "เจอ LOT อื่น" ได้ตามปกติ
+    const gl = goneAll.filter(i => names.has(normName(i.n)));
+    dlg.querySelector('#goneRep').onclick = () => { closeDialog();
+      if (gl.length) openSheet(gl, 'count', raw);
+      else openReport({ barcode: raw, name, unit: it ? it.u : '', note: 'มีในระบบแต่ไม่อยู่ในไฟล์ Arincare รอบนี้ (ยอด 0)' }); };
   });
 }
 function chooseProduct(names, lots, raw) {
@@ -1635,6 +1639,11 @@ async function saveSheet() {
   if (newLots.some(o => sheetCtx.lots.some(i => normKey(i.l) === normKey(o.lot)))) { toast('LOT นี้มีในระบบอยู่แล้ว กรอกที่การ์ดของ LOT นั้นแทน', 'bad'); return; }
   if (new Set(newLots.map(o => normLot(o.lot))).size < newLots.length) { toast('กรอก LOT ใหม่ซ้ำกัน รวมเป็นช่องเดียว', 'bad'); return; }
   if (newLots.length && !(await checkNewLots(newLots))) return;
+  // LOT ที่ "ไม่อยู่ในรายการ" แต่จริง ๆ มีแถวในชีตอยู่แล้ว (ยอดในระบบ 0 / ไม่อยู่ในไฟล์ Arincare รอบนี้) → บันทึกเป็นยอดนับของแถวนั้นแทนการแจ้ง LOT ใหม่
+  for (let k = newLots.length - 1; k >= 0; k--) {
+    const o = newLots[k], g = goneAll.find(i => normName(i.n) === normName(sheetCtx.lots[0].n) && normKey(i.l) === normKey(o.lot));
+    if (g) { entries.push({ it: g, q: o.q, confirm: true, expFound: o.exp && g.e && o.exp.slice(0, 7) !== String(g.e).slice(0, 7) ? o.exp : undefined }); newLots.splice(k, 1); }
+  }
   // ตัวเลขผิดสังเกต (โหมดตรวจเทียบ): น่าจะนับคนละหน่วย หรือส่วนต่างมากผิดปกติ → ถามก่อนบันทึก
   const odd = sheetEntries().filter(e => e.it.f != null && e.q !== e.it.f && !e.pack).map(e => {
     const f = e.it.f, q = e.q, ratio = q && f ? Math.max(f / q, q / f) : 0;
