@@ -538,7 +538,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-20.4';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-20.5';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -1679,12 +1679,22 @@ async function saveSheet() {
     if (entries.length) { const first = recent[0]; toastFix(msg, () => openRecent(first), 4000); } }
   if (newLots.length) {
     const body = { type: 'newlot', name: p0.n, barcode: raw0, lots: newLots, loc, unit: p0.u, note: '' };
-    api('report', body).then(d => { if (d.duplicate) { toast('LOT นี้แจ้งไว้แล้ว ไม่บันทึกซ้ำ · ถ้าจะแก้ แตะรายการใน "นับล่าสุด"', 'warn', 4500); return; }
-      pushRecentNew(d, body); if (!entries.length) { beep('ok'); const nx = recent.find(x => x.kind === 'new'); toastFix(`บันทึก LOT ใหม่ ${newLots.length} LOT แล้ว`, () => nx && openFixNew(nx), 5000); } })
-      .catch(e => {
-        if (e.server) { toast('บันทึก LOT ใหม่ไม่ได้: ' + e.message, 'bad', 5000); return; }
+    // ส่ง LOT ใหม่ให้เสร็จก่อน แล้วค่อยส่งยอดนับ (ไม่แย่งคิวบันทึกกัน) ถ้าไม่สำเร็จแจ้งเป็นหน้าต่างค้างไว้ ไม่ใช่ข้อความที่หายเร็ว
+    try {
+      const d = await api('report', body);
+      if (d.duplicate) toast('LOT นี้แจ้งไว้แล้ว ไม่บันทึกซ้ำ · ถ้าจะแก้ แตะรายการใน "นับล่าสุด"', 'warn', 4500);
+      else { pushRecentNew(d, body); if (!entries.length) { beep('ok'); const nx = recent.find(x => x.kind === 'new'); toastFix(`บันทึก LOT ใหม่ ${newLots.length} LOT แล้ว`, () => nx && openFixNew(nx), 5000); } }
+    } catch (e) {
+      if (e.server) {
+        beep('miss');
+        openDialog(`<h3>บันทึก LOT ใหม่ไม่สำเร็จ</h3><p class="small"><b>${esc(p0.n)}</b><br>LOT ${newLots.map(o => esc(o.lot) + ' = ' + (o.q ?? '-')).join(', ')}</p>
+          <p class="small" style="color:var(--bad)">${esc(e.message)}</p><p class="muted small">จดไว้หรือแคปหน้าจอนี้ แล้วลองแจ้งใหม่อีกครั้ง</p>
+          <div class="acts"><button class="btn" data-close>รับทราบ</button></div>`);
+      } else {
         queue.push({ action: 'report', payload: body, counter: cfg.counter, cpin: cfg.cpin, at: Date.now() }); store.set('queue', queue); setOnline(false); renderAll();
-      });
+        toast('LOT ใหม่เก็บไว้ในเครื่องแล้ว จะส่งเองอัตโนมัติ', 'warn', 4000);
+      }
+    }
   }
   if (!entries.length) return;
   try {
