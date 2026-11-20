@@ -456,7 +456,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 <nav id="tabs" aria-label="เมนูหลัก">
   <button data-tab="count" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 8v8M11 8v8M14 8v8M17 8v8"/></svg>สแกนนับ</button>
   <button data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 11l2 2 4-4M9 17h6"/></svg>งานวันนี้<span class="badge" id="todayBadge"></span></button>
-  <button data-tab="recount"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>นับซ้ำ<span class="badge" id="recountBadge"></span></button>
+  <button data-tab="recount" class="hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>นับซ้ำ<span class="badge" id="recountBadge"></span></button>
   <button data-tab="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>ค้นชื่อยา</button>
 </nav>
 
@@ -500,7 +500,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 
     <div class="stats">
       <div class="stat"><b id="stCounted">–</b><span class="small muted">LOT ที่นับแล้ว</span><div class="minibar"><i id="stBar" style="width:0"></i></div></div>
-      <button type="button" class="stat warn statbtn" id="stPendBox"><b id="stPend">–</b><span class="small muted">รอนับซ้ำ ›</span></button>
+      <button type="button" class="stat warn statbtn" id="stPendBox"><b id="stPend">–</b><span class="small muted">ไม่ตรง · รอปรับ Arincare</span></button>
     </div>
     <div id="recentWrap" class="hidden recent">
       <div class="section-title">นับล่าสุดในเครื่องนี้ · กรอกผิด แตะเพื่อแก้</div>
@@ -538,7 +538,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-20.3';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-20.4';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -695,7 +695,7 @@ function renderAll() {
   const names = new Set(items.map(i => normName(i.n))), withCode = productsWithCode();
   let n = 0; names.forEach(x => { if (withCode.has(x)) n++; });
   barcodeStat = names.size ? `${n.toLocaleString()} / ${names.size.toLocaleString()}` : '–';
-  const pc = items.filter(i => i.st === 'รอนับซ้ำ').length;
+  const pc = items.filter(i => /^ไม่ตรง|^รอนับซ้ำ/.test(i.st || '')).length;   // ไม่มีนับซ้ำแล้ว: ไม่ตรง = ส่งไปรอปรับ Arincare เลย
   $('#stPend').textContent = pc.toLocaleString(); $('#stPendBox').classList.toggle('warn', pc > 0);
   $('#queueTxt').textContent = queue.length ? `รอส่ง ${queue.length}` : '';
   $('#counterName').textContent = cfg.counter || 'เลือกผู้นับ';
@@ -1295,7 +1295,6 @@ function renderToday() {
     ${taskBlock('soon', 't-warn', ICON.clock, `หมดอายุภายใน ${expDays[2]} วัน`, 'ติดต่อคืนบริษัท หรือแนะนำขายก่อน', b.soon.map(expRow), 'ไม่มี')}
     ${taskBlock('mid', 't-warn', ICON.front, `หมดอายุภายใน ${expDays[1]} วัน`, 'ย้ายไว้หน้าสุดของชั้น ให้หยิบขายก่อน', b.mid.map(expRow), 'ไม่มี')}
     ${taskBlock('order', 't-ok', ICON.cart, 'ควรสั่งเพิ่ม', reorder.length ? (trends.has ? 'คิดจากยอดขายจริงที่นำเข้าจาก Arincare' : 'ประมาณจากยอดที่ขายออกระหว่างการนำเข้า Arincare') : 'นำเข้ายอดขาย Arincare ทุกสัปดาห์ แล้วรายการจะขึ้นที่นี่', ro, 'ยังไม่มีข้อมูลการขาย นำเข้ายอดขายจาก Arincare (เมนู PharmaCount ในชีต)')}
-    ${taskBlock('recount', 't-blind', ICON.redo, 'รอนับซ้ำ', 'ให้อีกคนนับยืนยัน', pend.slice(0, 40).map(i => `<button class="row" data-recount="${i.r}"><div class="t"><div class="n">${hiName(i.n)}</div><div class="s">LOT ${esc(i.l || '-')}${i.by ? ' · นับครั้งแรก ' + esc(i.by) : ''}</div></div></button>`), 'ไม่มีรายการรอนับซ้ำ')}
     ${taskBlock('shelf', 't-ok', ICON.shelf, 'ชั้นที่ยังนับไม่ครบ', 'แตะเพื่อไปนับชั้นนั้น', shelvesLeft.map(x => `<button class="row" data-goshelf="${esc(x.name)}"><div class="t"><div class="n">📍 ${esc(x.name)}</div>
       <div class="minibar"><i style="width:${x.done / x.all * 100}%"></i></div></div><div class="qty">${x.done}/${x.all}<small>LOT</small></div></button>`),
       'ยังไม่มีข้อมูลชั้นวาง ใช้ "นับทีละชั้น" ในแท็บสแกนนับ ระบบจะจำให้')}`;
@@ -1391,7 +1390,6 @@ function openSheet(lots, mode, raw, pre, editing) {
             ${pk ? '' : `<button type="button" class="tool t-blue" data-calcbtn><span class="ti">${ICO_BOX}</span><b>นับเป็นกล่อง</b><small>แปลงเป็น ${esc(i.u)} ให้</small></button>`}
             ${chk(i) ? `<button type="button" class="tool t-orange" data-expt><span class="ti">${ICO_CAL}</span><b>EXP ไม่ตรง</b><small>ใส่ EXP จริง</small></button>` : ''}
           </div>
-          ${chk(i) && mode === 'count' ? `<label class="confirm"><input type="checkbox" data-confirm> มั่นใจยอดนี้ ไม่ต้องให้อีกคนนับซ้ำ</label>` : ''}
           ${chk(i) ? '' : `<div class="lotx"><button type="button" data-x="ok">✓ LOT/EXP ตรง</button><button type="button" data-x="bad">EXP ไม่ตรง</button></div>`}
           <div class="expbox" data-expbox><label class="exp-h">EXP ที่เห็นบนกล่อง</label><div class="exp-n">ถ้าเลข LOT ไม่ตรงด้วย ใช้ปุ่มสีส้ม “เจอ LOT อื่น” ด้านล่างแทน</div>${expPicker()}</div>
           </div>
@@ -1523,8 +1521,8 @@ function sheetEntries() {
       if (el.dataset.add === '1' && it.q != null) { o.added = o.q; o.q = Number(it.q) + o.q; }
       const x = el.querySelector('[data-x].on');
       if (x && x.dataset.x === 'ok') o.expOk = true;
-      const cf = el.querySelector('[data-confirm]');
-      if (cf && cf.checked && el.querySelector('[data-edit]').classList.contains('on') && it.f != null && o.q !== it.f) o.confirm = true;
+      // ไม่มีระบบนับซ้ำแล้ว: ยอดที่นับ = ยอดหน้างานจริง ไม่ตรงกับระบบก็ส่งไป "รอปรับ Arincare" ทันที (ระบบเช็กเองว่าต่างจากยอดในระบบไหม)
+      if (sheetCtx.mode === 'count') o.confirm = true;
       if (el.querySelector('[data-expbox]').classList.contains('on')) o.expFound = readExp(el.querySelector('[data-expbox]'));
       const c = el.querySelector('[data-calc]');
       if (c.classList.contains('on') && c.querySelector('[data-cb]').value !== '') o.pack = { big: c.querySelector('[data-cbig]').value, n: Number(c.querySelector('[data-cn]').value) };
@@ -1716,8 +1714,8 @@ function applyResults(results, entries, loc, mode) {
     it.st = res.st;
     if (mode === 'count') { it.c = true; it.by = cfg.counter; it.cz = ''; it.df = null; }
     if (loc) it.loc = loc;
-    if (res.st === 'รอนับซ้ำ') { warn++; lines.push(`LOT ${it.l}: ไม่ตรง → ส่งให้คนที่ 2 นับซ้ำ`); }
-    else if (/^ไม่ตรง/.test(res.st)) { warn++; it.df = res.diff; askCause.push(it); lines.push(mode === 'count' ? `LOT ${it.l}: บันทึกตามหน้างาน รอปรับ Arincare` : `LOT ${it.l}: ยืนยันว่าไม่ตรง`); }
+    if (res.st === 'รอนับซ้ำ') { it.st = res.st = 'ไม่ตรง (ยืนยันแล้ว)'; if (it.f != null) res.diff = (entries.find(e => e.it.r === res.r) || {}).q - it.f; }
+    if (/^ไม่ตรง/.test(res.st)) { warn++; it.df = res.diff; askCause.push(it); lines.push(mode === 'count' ? `LOT ${it.l}: บันทึกตามหน้างาน รอปรับ Arincare` : `LOT ${it.l}: ยืนยันว่าไม่ตรง`); }
     else lines.push(`LOT ${it.l}: ${res.st} ✓`);
     if (res.same) { warn++; lines.push('⚠ นับซ้ำโดยคนเดิม (ระบบติดป้ายไว้ให้เภสัชกรเห็น)'); }
   });
@@ -2733,7 +2731,7 @@ function setTheme(v) {
 }
 { const t = store.get('theme', 'auto'); if (t !== 'auto') setTheme(t); }
 $('#branchBtn').onclick = openBranch;
-$('#stPendBox').onclick = () => setTab('recount');
+$('#stPendBox').onclick = () => toast('LOT ที่นับไม่ตรงไปอยู่ในแท็บ “รอปรับ Arincare” ในชีตแล้ว ให้เภสัชกรปรับยอดใน Arincare', 'ok', 4000);
 paintBranch();
 
 $('#menuBtn').onclick = () => openDialog(`<h3>เมนู</h3>
