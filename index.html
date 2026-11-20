@@ -538,7 +538,7 @@ html.big .hrow .chip-btn{margin-left:auto}
 'use strict';
 
 /* ---------- ตั้งค่าและที่เก็บในเครื่อง ---------- */
-const APP_VER = '2026-11-19.2';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
+const APP_VER = '2026-11-20.1';   // เปลี่ยนทุกครั้งที่อัปโหลด index.html ใหม่ (แอปใช้เช็กว่ามีเวอร์ชันใหม่)
 const store = {
   get(k, d) { try { const v = localStorage.getItem('pc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('pc_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -2274,7 +2274,9 @@ async function getDetector() {
 // กลับมาหน้าสแกนแล้วเปิดกล้องเองอัตโนมัติ ถ้าก่อนหน้านั้นเปิดกล้องอยู่ (กดปิดกล้องเอง หรือพักเพราะไม่ได้ใช้นาน = ไม่เปิดเอง)
 // iPhone ถามสิทธิ์กล้องทุกครั้งที่ขอกล้องใหม่ จึง "พักกล้อง" แทนการปิด (หยุดรับภาพ ไม่คืนกล้อง) แล้วกลับมาใช้ต่อได้ทันทีไม่ถามซ้ำ
 // ปิดกล้องจริงเฉพาะเมื่อไม่ได้กลับมาหน้าสแกนเกิน 2 นาที หรือออกจากแอป
-let wantCam = false, camStarting = false, awaySince = 0, camSoft = false;
+let wantCam = false, camStarting = false, awaySince = 0, camSoft = false, camAllowed = false;
+function checkCamPerm() { try { navigator.permissions && navigator.permissions.query({ name: 'camera' }).then(st => { camAllowed = st.state === 'granted'; st.onchange = () => { camAllowed = st.state === 'granted'; }; }).catch(() => {}); } catch (e) {} }
+checkCamPerm();
 const camAway = () => tab !== 'count' || document.hidden || sheetOpen() || $('#tab-count').classList.contains('typing');
 function camSoftOff() { if (!track || camSoft) return; camSoft = true; try { track.enabled = false; $('#video').pause(); } catch (e) {} }
 function camSoftOn() { if (!camSoft) return; camSoft = false; try { if (track) track.enabled = true; $('#video').play().catch(() => {}); } catch (e) {} lastSeen = Date.now(); }
@@ -2282,7 +2284,9 @@ setInterval(() => {
   if (camAway()) {
     if (!awaySince) awaySince = Date.now();
     if (stream && Date.now() - awaySince > 1500) camSoftOff();
-    if (stream && Date.now() - awaySince > 120000) stopCamera();
+    // ถ้าเว็บนี้ได้สิทธิ์กล้องแบบ "อนุญาตเสมอ" แล้ว ปิดกล้องจริงเร็ว ๆ (ไฟเขียวดับ ประหยัดแบต) เปิดใหม่จะไม่ถามสิทธิ์
+    // ถ้ายังเป็นแบบ "ถาม" ใช้พักกล้องไว้ก่อน (ไม่ให้ถามสิทธิ์ทุกครั้ง) แล้วค่อยปิดจริงหลัง 2 นาที
+    if (stream && Date.now() - awaySince > (camAllowed ? 4000 : 120000)) stopCamera();
   } else {
     awaySince = 0;
     if (stream) camSoftOn();
